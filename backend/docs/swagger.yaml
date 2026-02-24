@@ -1,0 +1,107 @@
+info:
+  contact: {}
+paths:
+  /users:
+    get:
+      description: Récupère la liste complète des utilisateurs
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Lister les utilisateurs
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: Crée un nouvel utilisateur dans le système
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Créer un utilisateur
+      tags:
+      - users
+  /users/{id}:
+    delete:
+      description: Supprime un utilisateur du système via son ID
+      parameters:
+      - description: ID de l'utilisateur
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Supprimer un utilisateur
+      tags:
+      - users
+    get:
+      description: Récupère les détails d'un utilisateur grâce à son ID
+      parameters:
+      - description: ID de l'utilisateur
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Récupérer un utilisateur
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Modifie les informations d'un utilisateur existant via son ID
+      parameters:
+      - description: ID de l'utilisateur
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Mettre à jour un utilisateur
+      tags:
+      - users
+  /users/me:
+    get:
+      description: Récupère les informations de l'utilisateur qui fait la requête
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Profil utilisateur courant
+      tags:
+      - users
+swagger: "2.0"

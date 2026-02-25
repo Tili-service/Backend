@@ -1,40 +1,133 @@
+definitions:
+  account.Account:
+    properties:
+      account_id:
+        type: integer
+      expires_at:
+        type: string
+      is_active:
+        type: boolean
+      licence_id:
+        type: integer
+    type: object
+  store.Store:
+    properties:
+      account:
+        $ref: '#/definitions/account.Account'
+      account_id:
+        type: integer
+      store_id:
+        type: integer
+      store_name:
+        type: string
+    type: object
+  user.CreateUserInput:
+    properties:
+      access_code:
+        type: string
+      access_level:
+        type: integer
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      store_id:
+        type: integer
+    required:
+    - email
+    - name
+    - password
+    type: object
+  user.UpdateUserInput:
+    properties:
+      access_code:
+        type: string
+      access_level:
+        type: integer
+      email:
+        type: string
+      name:
+        type: string
+    type: object
+  user.User:
+    properties:
+      access_code:
+        type: string
+      access_level:
+        type: integer
+      email:
+        type: string
+      name:
+        type: string
+      store:
+        $ref: '#/definitions/store.Store'
+      store_id:
+        type: integer
+      user_id:
+        type: integer
+    type: object
 info:
   contact: {}
 paths:
   /users:
     get:
-      description: Récupère la liste complète des utilisateurs
+      description: Retrieves the complete list of users
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
+            items:
+              $ref: '#/definitions/user.User'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
             additionalProperties: true
             type: object
-      summary: Lister les utilisateurs
+      summary: List users
       tags:
       - users
     post:
       consumes:
       - application/json
-      description: Crée un nouvel utilisateur dans le système
+      description: Creates a new user in the system
+      parameters:
+      - description: User payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/user.CreateUserInput'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
+            $ref: '#/definitions/user.User'
+        "400":
+          description: Bad Request
+          schema:
             additionalProperties: true
             type: object
-      summary: Créer un utilisateur
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a user
       tags:
       - users
   /users/{id}:
     delete:
-      description: Supprime un utilisateur du système via son ID
+      description: Deletes a user from the system via their ID
       parameters:
-      - description: ID de l'utilisateur
+      - description: User ID
         in: path
         name: id
         required: true
@@ -42,18 +135,30 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
           schema:
             additionalProperties: true
             type: object
-      summary: Supprimer un utilisateur
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete a user
       tags:
       - users
     get:
-      description: Récupère les détails d'un utilisateur grâce à son ID
+      description: Retrieves the details of a user using their ID
       parameters:
-      - description: ID de l'utilisateur
+      - description: User ID
         in: path
         name: id
         required: true
@@ -64,44 +169,59 @@ paths:
         "200":
           description: OK
           schema:
+            $ref: '#/definitions/user.User'
+        "400":
+          description: Bad Request
+          schema:
             additionalProperties: true
             type: object
-      summary: Récupérer un utilisateur
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Retrieve a user
       tags:
       - users
     put:
       consumes:
       - application/json
-      description: Modifie les informations d'un utilisateur existant via son ID
+      description: Modifies the information of an existing user via their ID
       parameters:
-      - description: ID de l'utilisateur
+      - description: User ID
         in: path
         name: id
         required: true
         type: integer
+      - description: User update payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/user.UpdateUserInput'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
-      summary: Mettre à jour un utilisateur
-      tags:
-      - users
-  /users/me:
-    get:
-      description: Récupère les informations de l'utilisateur qui fait la requête
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
+            $ref: '#/definitions/user.User'
+        "400":
+          description: Bad Request
           schema:
             additionalProperties: true
             type: object
-      summary: Profil utilisateur courant
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update a user
       tags:
       - users
 swagger: "2.0"

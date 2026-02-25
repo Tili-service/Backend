@@ -17,17 +17,26 @@ const docTemplate = `{
     "paths": {
         "/users": {
             "get": {
-                "description": "Récupère la liste complète des utilisateurs",
+                "description": "Retrieves the complete list of users",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "users"
                 ],
-                "summary": "Lister les utilisateurs",
+                "summary": "List users",
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/user.User"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -36,7 +45,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Crée un nouvel utilisateur dans le système",
+                "description": "Creates a new user in the system",
                 "consumes": [
                     "application/json"
                 ],
@@ -46,31 +55,34 @@ const docTemplate = `{
                 "tags": [
                     "users"
                 ],
-                "summary": "Créer un utilisateur",
+                "summary": "Create a user",
+                "parameters": [
+                    {
+                        "description": "User payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.CreateUserInput"
+                        }
+                    }
+                ],
                 "responses": {
                     "201": {
                         "description": "Created",
                         "schema": {
+                            "$ref": "#/definitions/user.User"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
-                    }
-                }
-            }
-        },
-        "/users/me": {
-            "get": {
-                "description": "Récupère les informations de l'utilisateur qui fait la requête",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Profil utilisateur courant",
-                "responses": {
-                    "200": {
-                        "description": "OK",
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -81,18 +93,18 @@ const docTemplate = `{
         },
         "/users/{id}": {
             "get": {
-                "description": "Récupère les détails d'un utilisateur grâce à son ID",
+                "description": "Retrieves the details of a user using their ID",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "users"
                 ],
-                "summary": "Récupérer un utilisateur",
+                "summary": "Retrieve a user",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID de l'utilisateur",
+                        "description": "User ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -102,6 +114,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
+                            "$ref": "#/definitions/user.User"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
@@ -109,7 +134,7 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "description": "Modifie les informations d'un utilisateur existant via son ID",
+                "description": "Modifies the information of an existing user via their ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -119,19 +144,48 @@ const docTemplate = `{
                 "tags": [
                     "users"
                 ],
-                "summary": "Mettre à jour un utilisateur",
+                "summary": "Update a user",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID de l'utilisateur",
+                        "description": "User ID",
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "description": "User update payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.UpdateUserInput"
+                        }
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/user.User"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -140,31 +194,156 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Supprime un utilisateur du système via son ID",
+                "description": "Deletes a user from the system via their ID",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "users"
                 ],
-                "summary": "Supprimer un utilisateur",
+                "summary": "Delete a user",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID de l'utilisateur",
+                        "description": "User ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "account.Account": {
+            "type": "object",
+            "properties": {
+                "account_id": {
+                    "type": "integer"
+                },
+                "expires_at": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "licence_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "store.Store": {
+            "type": "object",
+            "properties": {
+                "account": {
+                    "$ref": "#/definitions/account.Account"
+                },
+                "account_id": {
+                    "type": "integer"
+                },
+                "store_id": {
+                    "type": "integer"
+                },
+                "store_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "user.CreateUserInput": {
+            "type": "object",
+            "required": [
+                "email",
+                "name",
+                "password"
+            ],
+            "properties": {
+                "access_code": {
+                    "type": "string"
+                },
+                "access_level": {
+                    "type": "integer"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 6
+                },
+                "store_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "user.UpdateUserInput": {
+            "type": "object",
+            "properties": {
+                "access_code": {
+                    "type": "string"
+                },
+                "access_level": {
+                    "type": "integer"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "user.User": {
+            "type": "object",
+            "properties": {
+                "access_code": {
+                    "type": "string"
+                },
+                "access_level": {
+                    "type": "integer"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "store": {
+                    "$ref": "#/definitions/store.Store"
+                },
+                "store_id": {
+                    "type": "integer"
+                },
+                "user_id": {
+                    "type": "integer"
                 }
             }
         }

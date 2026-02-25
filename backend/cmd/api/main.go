@@ -19,7 +19,11 @@ func main() {
 	r := gin.Default()
 
 	userHandler.RegisterRoutes(r)
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
+
+	swaggerHandler := ginSwagger.WrapHandler(swaggerfiles.Handler)
+	r.GET("/swagger/*any", func(c *gin.Context) {
+		swaggerHandler(c)
+	})
 
 	log.Println("Serveur démarré sur http://localhost:8080")
 	r.Run(":8080")

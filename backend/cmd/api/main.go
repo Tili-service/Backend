@@ -3,10 +3,11 @@ package main
 import (
 	"log"
 
-	"github.com/gin-gonic/gin"
+	_ "tili/backend/docs"
 	"tili/backend/internal/user"
 	"tili/backend/pkg/db"
-	_ "tili/backend/docs"
+
+	"github.com/gin-gonic/gin"
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -20,10 +21,7 @@ func main() {
 
 	userHandler.RegisterRoutes(r)
 
-	swaggerHandler := ginSwagger.WrapHandler(swaggerfiles.Handler)
-	r.GET("/swagger/*any", func(c *gin.Context) {
-		swaggerHandler(c)
-	})
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
 	log.Println("Serveur démarré sur http://localhost:8080")
 	r.Run(":8080")

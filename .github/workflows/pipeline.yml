@@ -20,7 +20,6 @@ jobs:
           ./scripts/go_coding_style_checker.sh
 
       - name: display errors
-        if: failure()
         run: |
           if [ -s ./scripts/gofmt_output.txt ]; then
             echo "Coding style errors found:"

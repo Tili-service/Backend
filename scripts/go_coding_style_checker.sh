@@ -15,9 +15,8 @@ then
 else
     echo -e "\033[1;29mgofmt: The following files are not properly formatted:\033[0m"
     gofmt -l . | sed 's#^\./##' > ./scripts/gofmt_output.txt
-    echo "gofmt: The following files are not properly formatted:" >&2
     while IFS= read -r file; do
-        echo "$file"
+        echo -e "\033[1;31m$file\033[0m"
     done < ./scripts/gofmt_output.txt
     exit 0
 fi

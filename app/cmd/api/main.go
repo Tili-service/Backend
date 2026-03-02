@@ -19,7 +19,7 @@ func main() {
 	userHandler := user.NewHandler(userService)
 	r := gin.Default()
 
-	userHandler.RegisterRoutes(r)
+	     userHandler.RegisterRoutes(r)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 

@@ -1,0 +1,8 @@
+# Backend pipeline for CI/CD
+
+name: Backend Pipeline
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]

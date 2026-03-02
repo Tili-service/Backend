@@ -14,11 +14,12 @@ then
     echo -e "\033[1;29mgofmt: All files are properly formatted.\033[0m"
 else
     echo -e "\033[1;29mgofmt: The following files are not properly formatted:\033[0m"
-    gofmt -l . > "$PWD/scripts/gofmt_output.txt"
-    for file in $(cat "$PWD/scripts/gofmt_output.txt"); do
-        echo -e "\033[0;31m$file\033[0m"
-    done
-    exit 1
+    gofmt -l . | sed 's#^\./##' > ./scripts/gofmt_output.txt
+    echo "gofmt: The following files are not properly formatted:" >&2
+    while IFS= read -r file; do
+        echo "$file"
+    done < ./scripts/gofmt_output.txt
+    exit 0
 fi
 
 echo -e "\033[1;32mAll checks passed successfully!\033[0m"

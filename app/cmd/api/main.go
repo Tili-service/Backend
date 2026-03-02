@@ -3,9 +3,9 @@ package main
 import (
 	"log"
 
-	_ "tili/backend/docs"
-	"tili/backend/internal/user"
-	"tili/backend/pkg/db"
+	_ "tili/app/docs"
+	"tili/app/internal/user"
+	"tili/app/pkg/db"
 
 	"github.com/gin-gonic/gin"
 	swaggerfiles "github.com/swaggo/files"

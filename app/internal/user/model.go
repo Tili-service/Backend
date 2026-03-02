@@ -1,7 +1,7 @@
 package user
 
 import (
-	"tili/backend/internal/store"
+	"tili/app/internal/store"
 
 	"github.com/uptrace/bun"
 )

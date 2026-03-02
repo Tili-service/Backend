@@ -1,8 +1,8 @@
 package catalogue
 
 import (
-	"tili/backend/internal/categorie"
-	"tili/backend/internal/image"
+	"tili/app/internal/categorie"
+	"tili/app/internal/image"
 
 	"github.com/uptrace/bun"
 )

@@ -26,7 +26,7 @@ jobs:
             echo "Coding style errors found:"
             sed -n '1,200p' ./scripts/gofmt_output.txt
             while IFS= read -r line; do
-              echo "::error::Formatting issue in $line"
+              echo "::notice title=A coding style error has been found...::Formatting issue in $line"
             done < ./scripts/gofmt_output.txt
             exit 1
           else

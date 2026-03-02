@@ -20,12 +20,14 @@ jobs:
           ./scripts/go_coding_style_checker.sh
 
       - name: display errors
+        if: always()
         run: |
           if [ -s ./scripts/gofmt_output.txt ]; then
             echo "Coding style errors found:"
-            cat ./scripts/gofmt_output.txt | while read line; do
-              echo "::error file=$line::"
-            done
+            sed -n '1,200p' ./scripts/gofmt_output.txt
+            while IFS= read -r line; do
+              echo "::error file=$line::Formatting issue in $line"
+            done < ./scripts/gofmt_output.txt
             exit 1
           else
             echo "No coding style errors found."

@@ -3,8 +3,8 @@ package license
 import (
 	"context"
 
-	"tili/app/pkg/db"
 	"tili/app/internal/account"
+	"tili/app/pkg/db"
 
 	"github.com/uptrace/bun"
 )

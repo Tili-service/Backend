@@ -4,10 +4,10 @@ import (
 	"log"
 
 	_ "tili/app/docs"
-	"tili/app/internal/user"
-	"tili/app/pkg/db"
 	"tili/app/internal/license"
 	"tili/app/internal/store"
+	"tili/app/internal/user"
+	"tili/app/pkg/db"
 
 	"github.com/gin-gonic/gin"
 	swaggerfiles "github.com/swaggo/files"

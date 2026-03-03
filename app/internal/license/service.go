@@ -2,28 +2,28 @@ package license
 
 import (
 	"context"
-	"time"
-	"errors"
 	"crypto/rand"
-	"math/big"
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"math/big"
+	"time"
 
+	"tili/app/internal/account"
 	"tili/app/internal/store"
 	"tili/app/internal/user"
-	"tili/app/internal/account"
 )
 
 type Service struct {
-	repo *Repository
-	userService *user.Service
+	repo         *Repository
+	userService  *user.Service
 	storeService *store.Service
 }
 
 func NewService(repo *Repository, userService *user.Service, storeService *store.Service) *Service {
 	return &Service{
-		repo: repo,
-		userService: userService,
+		repo:         repo,
+		userService:  userService,
 		storeService: storeService,
 	}
 }
@@ -66,20 +66,20 @@ func (s *Service) Create(ctx context.Context, input AccountRegistrationInput) (*
 		panic(err)
 	}
 	_, err = s.userService.Create(ctx, user.CreateUserInput{
-		StoreID:   storeData.StoreID,
-		Name:      input.Name,
-		Email:     input.Email,
-		Password:  input.Password,
-		AccessCode: pin,
+		StoreID:     storeData.StoreID,
+		Name:        input.Name,
+		Email:       input.Email,
+		Password:    input.Password,
+		AccessCode:  pin,
 		AccessLevel: 1,
 	})
 	if err != nil {
 		return nil, err
 	}
 	bodyResponse := bodyResponse{
-		AccountID: account.AccountID,
+		AccountID:      account.AccountID,
 		UserAccessCode: pin,
-		ExpiresAt: account.ExpiresAt,
+		ExpiresAt:      account.ExpiresAt,
 	}
 	return &bodyResponse, nil
 }

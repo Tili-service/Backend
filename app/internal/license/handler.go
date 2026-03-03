@@ -1,9 +1,9 @@
 package license
 
 import (
-	"net/http"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 type Handler struct {
@@ -17,7 +17,7 @@ func NewHandler(service *Service) *Handler {
 func (h *Handler) RegisterRoutes(router *gin.Engine) {
 	registrationRoutes := router.Group("/registration/account")
 	{
-		registrationRoutes.POST("", h.Create) // POST /registration/account
+		registrationRoutes.POST("", h.Create)   // POST /registration/account
 		registrationRoutes.DELETE("", h.Delete) // DELETE /registration/account
 	}
 }
@@ -86,4 +86,3 @@ func (h *Handler) Delete(c *gin.Context) {
 
 	c.JSON(http.StatusNoContent, nil)
 }
-

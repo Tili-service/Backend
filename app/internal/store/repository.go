@@ -3,8 +3,8 @@ package store
 import (
 	"context"
 
-	"tili/app/pkg/db"
 	"github.com/uptrace/bun"
+	"tili/app/pkg/db"
 )
 
 type Repository struct {

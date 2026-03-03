@@ -68,14 +68,11 @@ func (h *Handler) Delete(c *gin.Context) {
 		return
 	}
 
-	fmt.Println(input.AccountID)
-
 	exist, err := h.service.Exists(c.Request.Context(), input.AccountID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	fmt.Println("Account exists:", exist)
 	if !exist {
 		c.JSON(http.StatusNotFound, gin.H{"error": "account not found"})
 		return

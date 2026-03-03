@@ -85,7 +85,6 @@ func (s *Service) Create(ctx context.Context, input AccountRegistrationInput) (*
 }
 
 func (s *Service) Exists(ctx context.Context, accountID int64) (bool, error) {
-	fmt.Println("Account ID:", accountID)
 	_, err := s.repo.FindByID(ctx, accountID)
 	if err != nil {
 		if err.Error() == "account not found" {

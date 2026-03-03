@@ -5,6 +5,7 @@ import (
 
 	_ "tili/backend/docs"
 	"tili/backend/internal/user"
+	"tili/backend/internal/license"
 	"tili/backend/pkg/db"
 
 	"github.com/gin-gonic/gin"
@@ -17,9 +18,13 @@ func main() {
 	userRepo := user.NewRepository(db)
 	userService := user.NewService(userRepo)
 	userHandler := user.NewHandler(userService)
+	licenseRepo := license.NewRepository(db)
+	licenseService := license.NewService(licenseRepo, userService)
+	licenseHandler := license.NewHandler(licenseService)
 	r := gin.Default()
 
 	userHandler.RegisterRoutes(r)
+	licenseHandler.RegisterRoutes(r)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 

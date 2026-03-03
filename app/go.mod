@@ -1,4 +1,4 @@
-module tili/backend
+module tili/app
 
 go 1.24.13
 

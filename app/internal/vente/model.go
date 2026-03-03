@@ -3,7 +3,7 @@ package vente
 import (
 	"time"
 
-	"tili/backend/internal/payementmethod"
+	"tili/app/internal/payementmethod"
 
 	"github.com/uptrace/bun"
 )

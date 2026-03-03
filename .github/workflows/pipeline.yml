@@ -1,0 +1,35 @@
+# Backend pipeline for CI/CD
+
+name: Backend Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-coding-style:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+
+      - name: run coding style checker
+        run : |
+          ./scripts/go_coding_style_checker.sh
+
+      - name: display errors
+        if: always()
+        run: |
+          if [ -s ./scripts/gofmt_output.txt ]; then
+            echo "Coding style errors found:"
+            sed -n '1,200p' ./scripts/gofmt_output.txt
+            while IFS= read -r line; do
+              echo "::notice title=A coding style error has been found...::Formatting issue in $line"
+            done < ./scripts/gofmt_output.txt
+            exit 1
+          else
+            echo "No coding style errors found."
+            exit 0
+          fi

@@ -3,7 +3,7 @@ package user
 import (
 	"context"
 
-	"tili/backend/pkg/db"
+	"tili/app/pkg/db"
 
 	"github.com/uptrace/bun"
 )

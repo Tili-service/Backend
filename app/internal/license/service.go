@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 
-	"tili/backend/internal/store"
-	"tili/backend/internal/user"
-	"tili/backend/internal/account"
+	"tili/app/internal/store"
+	"tili/app/internal/user"
+	"tili/app/internal/account"
 )
 
 type Service struct {

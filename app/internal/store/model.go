@@ -14,3 +14,8 @@ type Store struct {
 	AccountID int64            `bun:"account_id"                json:"account_id"`
 	Account   *account.Account `bun:"rel:belongs-to,join:account_id=account_id" json:"account,omitempty"`
 }
+
+type CreateStoreInput struct {
+	StoreName string `json:"store_name" binding:"required"`
+	AccountID int64  `json:"account_id" binding:"required"`
+}

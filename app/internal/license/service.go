@@ -3,6 +3,7 @@ package license
 import (
 	"context"
 	"time"
+	"errors"
 	"crypto/rand"
 	"math/big"
 	"fmt"
@@ -16,12 +17,14 @@ import (
 type Service struct {
 	repo *Repository
 	userService *user.Service
+	storeService *store.Service
 }
 
-func NewService(repo *Repository, userService *user.Service) *Service {
+func NewService(repo *Repository, userService *user.Service, storeService *store.Service) *Service {
 	return &Service{
 		repo: repo,
 		userService: userService,
+		storeService: storeService,
 	}
 }
 
@@ -46,25 +49,24 @@ func (s *Service) Create(ctx context.Context, input AccountRegistrationInput) (*
 		IsActive:  true,
 	}
 
-
 	if err := s.repo.CreateAccount(ctx, account); err != nil {
 		return nil, err
 	}
 
-	store := &store.Store{
+	storeData, err := s.storeService.Create(ctx, store.CreateStoreInput{
 		StoreName: input.StoreName,
 		AccountID: account.AccountID,
-	}
-
-	if err := s.repo.CreateStore(ctx, store); err != nil {
+	})
+	if err != nil {
 		return nil, err
 	}
+
 	pin, err := generatePIN(6)
 	if err != nil {
 		panic(err)
 	}
 	_, err = s.userService.Create(ctx, user.CreateUserInput{
-		StoreID:   store.StoreID,
+		StoreID:   storeData.StoreID,
 		Name:      input.Name,
 		Email:     input.Email,
 		Password:  input.Password,
@@ -82,10 +84,40 @@ func (s *Service) Create(ctx context.Context, input AccountRegistrationInput) (*
 	return &bodyResponse, nil
 }
 
-// func (s *Service) Delete(ctx context.Context, id int64) error {
-// 	_, err := s.repo.FindByID(ctx, id)
-// 	if err != nil {
-// 		return errors.New("account not found")
-// 	}
-// 	return s.repo.Delete(ctx, id)
-// }
+func (s *Service) Exists(ctx context.Context, accountID int64) (bool, error) {
+	fmt.Println("Account ID:", accountID)
+	_, err := s.repo.FindByID(ctx, accountID)
+	if err != nil {
+		if err.Error() == "account not found" {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+func (s *Service) FullDeleteAccount(ctx context.Context, id int64) error {
+	account, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return errors.New("account not found")
+	}
+	storeData, err := s.storeService.FindByAccountID(ctx, account.AccountID)
+	if err != nil {
+		return errors.New("store not found")
+	}
+	user, err := s.userService.FindByStoreID(ctx, storeData.StoreID)
+	if err != nil {
+		return errors.New("user not found")
+	}
+
+	if err := s.userService.Delete(ctx, user.UserID); err != nil {
+		return err
+	}
+	if err := s.storeService.Delete(ctx, storeData.StoreID); err != nil {
+		return err
+	}
+	if err := s.repo.Delete(ctx, id); err != nil {
+		return err
+	}
+	return nil
+}

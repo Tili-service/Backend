@@ -12,6 +12,10 @@ type AccountRegistrationInput struct {
 	LicenceActive int    `json:"licence_active"  binding:"required"`
 }
 
+type AccountDeleting struct {
+	AccountID        int64 `json:"account_id"          binding:"required"`
+}
+
 type bodyResponse struct {
 	AccountID  int64  `json:"account_id"`
 	UserAccessCode string `json:"user_access_code"`

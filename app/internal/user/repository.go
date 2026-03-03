@@ -33,6 +33,12 @@ func (r *Repository) FindByID(ctx context.Context, id int64) (*User, error) {
 	return u, err
 }
 
+func (r *Repository) FindByStoreID(ctx context.Context, storeID int64) (*User, error) {
+	u := new(User)
+	err := r.db.NewSelect().Model(u).Where("u.store_id = ?", storeID).Scan(ctx)
+	return u, err
+}
+
 func (r *Repository) FindByEmail(ctx context.Context, email string) (*User, error) {
 	u := new(User)
 	err := r.db.NewSelect().Model(u).Where("u.email = ?", email).Scan(ctx)

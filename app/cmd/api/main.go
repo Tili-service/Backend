@@ -4,6 +4,8 @@ import (
 	"log"
 
 	_ "tili/app/docs"
+	"tili/app/internal/license"
+	"tili/app/internal/store"
 	"tili/app/internal/user"
 	"tili/app/pkg/db"
 
@@ -14,12 +16,23 @@ import (
 
 func main() {
 	db := db.NewDb()
+
 	userRepo := user.NewRepository(db)
 	userService := user.NewService(userRepo)
 	userHandler := user.NewHandler(userService)
+
+	storeRepo := store.NewRepository(db)
+	storeService := store.NewService(storeRepo)
+	storeHandler := store.NewHandler(storeService)
+
+	licenseRepo := license.NewRepository(db)
+	licenseService := license.NewService(licenseRepo, userService, storeService)
+	licenseHandler := license.NewHandler(licenseService)
 	r := gin.Default()
 
 	userHandler.RegisterRoutes(r)
+	storeHandler.RegisterRoutes(r)
+	licenseHandler.RegisterRoutes(r)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 

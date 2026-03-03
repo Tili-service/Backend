@@ -67,6 +67,14 @@ func (s *Service) Update(ctx context.Context, id int64, input UpdateUserInput) (
 	return u, nil
 }
 
+func (s *Service) FindByStoreID(ctx context.Context, storeID int64) (*User, error) {
+	u, err := s.repo.FindByStoreID(ctx, storeID)
+	if err != nil {
+		return nil, err
+	}
+	return u, nil
+}
+
 func (s *Service) Delete(ctx context.Context, id int64) error {
 	_, err := s.repo.FindByID(ctx, id)
 	if err != nil {

@@ -1,4 +1,4 @@
-package vente
+package sale
 
 import (
 	"time"
@@ -8,10 +8,10 @@ import (
 	"github.com/uptrace/bun"
 )
 
-type Vente struct {
-	bun.BaseModel `bun:"table:vente,alias:v" swaggerignore:"true"`
+type Sales struct {
+	bun.BaseModel `bun:"table:sale,alias:v" swaggerignore:"true"`
 
-	VenteID          int64                          `bun:"vente_id,pk,autoincrement"                          json:"vente_id"`
+	Sale_ID          int64                          `bun:"sale_id,pk,autoincrement"                          json:"sale_id"`
 	Element          map[string]interface{}         `bun:"element,type:jsonb"                                 json:"element,omitempty"`
 	Price            float64                        `bun:"price,type:decimal(10,2)"                           json:"price"`
 	TimeStamp        time.Time                      `bun:"time_stamp,default:current_timestamp"               json:"time_stamp"`

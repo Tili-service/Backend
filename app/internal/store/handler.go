@@ -21,7 +21,7 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 	storeRoutes := router.Group("/store")
 	{
 		storeRoutes.GET("/account/:accountID", h.GetByAccountID) // GET /store/account/:accountID
-		storeRoutes.PUT("/:id", h.Update) // PUT /store/:id
+		storeRoutes.PUT("/:id", h.Update)                        // PUT /store/:id
 	}
 }
 

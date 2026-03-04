@@ -19,3 +19,7 @@ type CreateStoreInput struct {
 	StoreName string `json:"store_name" binding:"required"`
 	AccountID int64  `json:"account_id" binding:"required"`
 }
+
+type UpdateStoreInput struct {
+	StoreName string `json:"store_name" binding:"required"`
+}

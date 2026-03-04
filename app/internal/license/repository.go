@@ -35,3 +35,12 @@ func (r *Repository) FindByID(ctx context.Context, accountID int64) (*account.Ac
 	}
 	return account, nil
 }
+
+func (r *Repository) GetAll(ctx context.Context) ([]account.Account, error) {
+	var accounts []account.Account
+	err := r.db.NewSelect().Model(&accounts).Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return accounts, nil
+}

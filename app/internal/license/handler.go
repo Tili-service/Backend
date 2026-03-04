@@ -1,8 +1,12 @@
 package license
 
 import (
-	"github.com/gin-gonic/gin"
+	"database/sql"
+	"errors"
 	"net/http"
+	"strconv"
+
+	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {
@@ -16,8 +20,10 @@ func NewHandler(service *Service) *Handler {
 func (h *Handler) RegisterRoutes(router *gin.Engine) {
 	registrationRoutes := router.Group("/registration/account")
 	{
-		registrationRoutes.POST("", h.Create)   // POST /registration/account
-		registrationRoutes.DELETE("", h.Delete) // DELETE /registration/account
+		registrationRoutes.POST("", h.Create)            // POST /registration/account
+		registrationRoutes.GET("", h.Get)                // GET /registration/account
+		registrationRoutes.GET("/:id", h.GetLicenseByID) // GET /registration/account/:id
+		registrationRoutes.DELETE("", h.Delete)          // DELETE /registration/account
 	}
 }
 
@@ -84,4 +90,56 @@ func (h *Handler) Delete(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusNoContent, nil)
+}
+
+// Get licenses list
+// @Summary      Get all licenses
+// @Description  Returns a list of all licenses in the system.
+// @Tags         licenses
+// @Accept       json
+// @Produce      json
+// @Success      200  {array}   account.Account
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /registration/account [get]
+func (h *Handler) Get(c *gin.Context) {
+	licenses, err := h.service.GetAllLicenses(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, licenses)
+}
+
+// Get a license by ID
+// @Summary      Get license by ID
+// @Description  Retrieves a single license by its ID provided as a path parameter.
+// @Tags         licenses
+// @Accept       json
+// @Produce      json
+// @Param        id   path      int64 true "License ID"
+// @Success      200  {object}  account.Account
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      404  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /registration/account/{id} [get]
+func (h *Handler) GetLicenseByID(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := strconv.ParseInt(idParam, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	licence, err := h.service.GetLicenseByID(c.Request.Context(), id)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "license not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, licence)
 }

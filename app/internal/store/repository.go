@@ -45,3 +45,8 @@ func (r *Repository) Delete(ctx context.Context, id int64) error {
 	_, err := r.db.NewDelete().Model(&Store{}).Where("store_id = ?", id).Exec(ctx)
 	return err
 }
+
+func (r *Repository) Update(ctx context.Context, store *Store) error {
+	_, err := r.db.NewUpdate().Model(store).Where("store_id = ?", store.StoreID).Exec(ctx)
+	return err
+}

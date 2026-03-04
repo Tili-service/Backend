@@ -5,9 +5,10 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"math/big"
 	"time"
+
+	"github.com/google/uuid"
 
 	"tili/app/internal/account"
 	"tili/app/internal/store"
@@ -119,4 +120,22 @@ func (s *Service) FullDeleteAccount(ctx context.Context, id int64) error {
 		return err
 	}
 	return nil
+}
+
+func (s *Service) GetAllLicenses(ctx context.Context) ([]account.Account, error) {
+	licenses, err := s.repo.GetAll(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+	return licenses, nil
+}
+
+func (s *Service) GetLicenseByID(ctx context.Context, id int64) (*account.Account, error) {
+	license, err := s.repo.FindByID(ctx, id)
+
+	if err != nil {
+		return nil, err
+	}
+	return license, nil
 }

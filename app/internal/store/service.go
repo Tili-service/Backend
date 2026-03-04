@@ -39,8 +39,8 @@ func (s *Service) Delete(ctx context.Context, id int64) error {
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *Service) Update(ctx context.Context, input UpdateStoreInput) (*Store, error) {
-	store, err := s.repo.FindByID(ctx, input.StoreID)
+func (s *Service) Update(ctx context.Context, id int64, input UpdateStoreInput) (*Store, error) {
+	store, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}

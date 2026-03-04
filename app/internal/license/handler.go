@@ -1,6 +1,8 @@
 package license
 
 import (
+	"database/sql"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -118,6 +120,7 @@ func (h *Handler) Get(c *gin.Context) {
 // @Param        id   path      int64 true "License ID"
 // @Success      200  {object}  account.Account
 // @Failure      400  {object}  map[string]interface{}
+// @Failure      404  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /registration/account/{id} [get]
 func (h *Handler) GetLicenseByID(c *gin.Context) {
@@ -131,6 +134,10 @@ func (h *Handler) GetLicenseByID(c *gin.Context) {
 	licence, err := h.service.GetLicenseByID(c.Request.Context(), id)
 
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "license not found"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

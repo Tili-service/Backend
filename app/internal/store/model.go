@@ -21,6 +21,5 @@ type CreateStoreInput struct {
 }
 
 type UpdateStoreInput struct {
-	StoreID   int64  `json:"store_id" binding:"required"`
 	StoreName string `json:"store_name" binding:"required"`
 }

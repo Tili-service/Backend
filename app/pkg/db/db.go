@@ -24,6 +24,6 @@ func NewDb() *Db {
 
 	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
 	db := bun.NewDB(sqldb, pgdialect.New())
-	db.AddQueryHook(bundebug.NewQueryHook(bundebug.WithVerbose(true)))
+	db.WithQueryHook(bundebug.NewQueryHook(bundebug.WithVerbose(true)))
 	return &Db{DB: db}
 }

@@ -15,7 +15,8 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_PORT=${POSTGRES_PORT}
     volumes:
-      - ./database/scheme.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+      - ./database/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+      - ./database/schemas/tables:/docker-entrypoint-initdb.d/tables
       - pgdata:/var/lib/postgresql/data
     networks:
       - backend

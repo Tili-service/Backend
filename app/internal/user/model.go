@@ -13,7 +13,7 @@ type User struct {
 	StoreID      int64        `bun:"store_id"                 json:"store_id"`
 	Name         string       `bun:"name,notnull"             json:"name"`
 	Email        string       `bun:"email,unique,notnull"     json:"email"`
-	PasswordHash string       `bun:"password_hash,notnull"    json:"-"`
+	PasswordHash string       `bun:"password,notnull"    json:"-"`
 	AccessCode   string       `bun:"access_code"              json:"access_code,omitempty"`
 	AccessLevel  int          `bun:"access_level"             json:"access_level"`
 	Store        *store.Store `bun:"rel:belongs-to,join:store_id=store_id" json:"store,omitempty"`

@@ -50,7 +50,6 @@ func (h *Handler) GetByAccountID(c *gin.Context) {
 	c.JSON(http.StatusOK, store)
 }
 
-
 // Update an existing store
 // @Summary      Update a store
 // @Description  Updates the details of an existing store. The request body must contain an `UpdateStoreInput` object with the store ID and new values. Returns the updated `store.Store`.

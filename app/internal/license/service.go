@@ -139,4 +139,3 @@ func (s *Service) GetLicenseByID(ctx context.Context, id int64) (*account.Accoun
 	}
 	return license, nil
 }
-

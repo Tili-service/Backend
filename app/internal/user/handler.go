@@ -3,7 +3,6 @@ package user
 import (
 	"net/http"
 	"strconv"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -19,10 +18,39 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 	userRoutes := router.Group("/users")
 	{
 		userRoutes.POST("", h.Create)       // POST /users
-		userRoutes.GET("", h.GetAll)        // GET /users
-		userRoutes.GET("/:id", h.GetByID)   // GET /users/:id
-		userRoutes.PUT("/:id", h.Update)    // PUT /users/:id
-		userRoutes.DELETE("/:id", h.Delete) // DELETE /users/:id
+		userRoutes.POST("/login", h.login)  // POST /users/login
+
+		protected := userRoutes.Group("")
+		protected.Use(h.AuthMiddleware())
+		{
+			protected.GET("", h.GetAll)        // GET /users
+			protected.GET("/:id", h.GetByID)   // GET /users/:id
+			protected.PUT("/:id", h.Update)    // PUT /users/:id
+			protected.DELETE("/:id", h.Delete) // DELETE /users/:id
+			protected.GET("/me", h.me)         // GET /users/me
+		}
+	}
+}
+
+// AuthMiddleware validates JWT token from Authorization header
+func (h *Handler) AuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authorizationHeader := c.GetHeader("Authorization")
+		if authorizationHeader == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "missing authorization header"})
+			c.Abort()
+			return
+		}
+
+		userID, err := ValidateToken(authorizationHeader)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
+			c.Abort()
+			return
+		}
+
+		c.Set("userID", userID)
+		c.Next()
 	}
 }
 
@@ -56,7 +84,9 @@ func (h *Handler) Create(c *gin.Context) {
 // @Description  Retrieves the complete list of users
 // @Tags         users
 // @Produce      json
+// @Security     BearerAuth
 // @Success      200  {array}   User
+// @Failure      401  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /users [get]
 func (h *Handler) GetAll(c *gin.Context) {
@@ -74,8 +104,10 @@ func (h *Handler) GetAll(c *gin.Context) {
 // @Tags         users
 // @Produce      json
 // @Param        id   path      int  true  "User ID"
+// @Security     BearerAuth
 // @Success      200  {object}  User
 // @Failure      400  {object}  map[string]interface{}
+// @Failure      401  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
 // @Router       /users/{id} [get]
 func (h *Handler) GetByID(c *gin.Context) {
@@ -100,8 +132,10 @@ func (h *Handler) GetByID(c *gin.Context) {
 // @Produce      json
 // @Param        id   path      int             true "User ID"
 // @Param        body body      UpdateUserInput true "User update payload"
+// @Security     BearerAuth
 // @Success      200  {object}  User
 // @Failure      400  {object}  map[string]interface{}
+// @Failure      401  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /users/{id} [put]
@@ -130,8 +164,10 @@ func (h *Handler) Update(c *gin.Context) {
 // @Tags         users
 // @Produce      json
 // @Param        id   path      int  true  "User ID"
+// @Security     BearerAuth
 // @Success      204  {object}  nil
 // @Failure      400  {object}  map[string]interface{}
+// @Failure      401  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /users/{id} [delete]
@@ -146,4 +182,57 @@ func (h *Handler) Delete(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusNoContent)
+}
+
+// Login authenticates a user and returns a JWT token
+// @Summary      Login user
+// @Description  Authenticates a user with email and password, returns a JWT token
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        body body      LoginInput true "Login credentials"
+// @Success      200  {object}  map[string]interface{} "Token response"
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      401  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /users/login [post]
+func (h *Handler) login(c *gin.Context) {
+	var input LoginInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	u, err := h.service.Login(c.Request.Context(), input)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
+		return
+	}
+
+	tokenString, err := CreateToken(*u)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create token"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"token": tokenString})
+}
+
+// Me retrieves the current authenticated user's information
+// @Summary      Get current user
+// @Description  Retrieves the profile information of the currently authenticated user
+// @Tags         users
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  User
+// @Failure      401  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /users/me [get]
+func (h *Handler) me(c *gin.Context) {
+	userID := c.GetInt64("userID")
+	u, err := h.service.GetByID(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user"})
+		return
+	}
+	c.JSON(http.StatusOK, u)
 }

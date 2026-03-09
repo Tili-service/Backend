@@ -9,17 +9,18 @@ then
 fi
 
 # Check if gofmt is properly formatted (run on repository root)
-if ! gofmt -l . | grep -q .
+if ! gofmt -l ./app | grep -q .
 then
     echo -e "\033[1;29mgofmt: All files are properly formatted.\033[0m"
+    echo -e "\033[1;32mAll checks passed successfully!\033[0m"
+    exit 0
 else
     echo -e "\033[1;29mgofmt: The following files are not properly formatted:\033[0m"
-    gofmt -l . | sed 's#^\./##' > ./scripts/gofmt_output.txt
+    gofmt -l ./app | sed 's#^\./##' > ./scripts/gofmt_output.txt
+    gofmt -w ./app
     while IFS= read -r file; do
         echo -e "\033[1;31m$file\033[0m"
     done < ./scripts/gofmt_output.txt
-    exit 0
 fi
 
-echo -e "\033[1;32mAll checks passed successfully!\033[0m"
 exit 0

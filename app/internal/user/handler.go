@@ -1,9 +1,10 @@
 package user
 
 import (
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {
@@ -84,7 +85,6 @@ func (h *Handler) Create(c *gin.Context) {
 // @Description  Retrieves the complete list of users
 // @Tags         users
 // @Produce      json
-// @Security     BearerAuth
 // @Success      200  {array}   User
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
@@ -104,7 +104,6 @@ func (h *Handler) GetAll(c *gin.Context) {
 // @Tags         users
 // @Produce      json
 // @Param        id   path      int  true  "User ID"
-// @Security     BearerAuth
 // @Success      200  {object}  User
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
@@ -132,7 +131,6 @@ func (h *Handler) GetByID(c *gin.Context) {
 // @Produce      json
 // @Param        id   path      int             true "User ID"
 // @Param        body body      UpdateUserInput true "User update payload"
-// @Security     BearerAuth
 // @Success      200  {object}  User
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
@@ -164,7 +162,6 @@ func (h *Handler) Update(c *gin.Context) {
 // @Tags         users
 // @Produce      json
 // @Param        id   path      int  true  "User ID"
-// @Security     BearerAuth
 // @Success      204  {object}  nil
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
@@ -222,7 +219,6 @@ func (h *Handler) login(c *gin.Context) {
 // @Description  Retrieves the profile information of the currently authenticated user
 // @Tags         users
 // @Produce      json
-// @Security     BearerAuth
 // @Success      200  {object}  User
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}

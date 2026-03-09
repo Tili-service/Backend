@@ -82,3 +82,14 @@ func (s *Service) Delete(ctx context.Context, id int64) error {
 	}
 	return s.repo.Delete(ctx, id)
 }
+
+func (s *Service) Login(ctx context.Context, input LoginInput) (*User, error) {
+	u, err := s.repo.FindByEmail(ctx, input.Email)
+	if err != nil {
+		return nil, errors.New("invalid email or password")
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(input.Password)); err != nil {
+		return nil, errors.New("invalid email or password")
+	}
+	return u, nil
+}

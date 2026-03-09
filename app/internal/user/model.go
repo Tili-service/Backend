@@ -34,3 +34,8 @@ type UpdateUserInput struct {
 	AccessCode  string `json:"access_code"`
 	AccessLevel int    `json:"access_level"`
 }
+
+type LoginInput struct {
+	Email    string `json:"email"    binding:"required,email"`
+	Password string `json:"password" binding:"required"`
+}

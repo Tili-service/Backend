@@ -1,9 +1,9 @@
 package user
 
 import (
+	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
-	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {
@@ -17,8 +17,8 @@ func NewHandler(service *Service) *Handler {
 func (h *Handler) RegisterRoutes(router *gin.Engine) {
 	userRoutes := router.Group("/users")
 	{
-		userRoutes.POST("", h.Create)       // POST /users
-		userRoutes.POST("/login", h.login)  // POST /users/login
+		userRoutes.POST("", h.Create)      // POST /users
+		userRoutes.POST("/login", h.login) // POST /users/login
 
 		protected := userRoutes.Group("")
 		protected.Use(h.AuthMiddleware())

@@ -14,6 +14,10 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type 'Bearer {token}' to authorize
 func main() {
 	db := db.NewDb()
 

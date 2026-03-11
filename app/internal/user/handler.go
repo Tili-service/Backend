@@ -4,6 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"tili/app/internal/middleware"
+	"tili/app/internal/token"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -22,36 +25,29 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 		userRoutes.POST("/login", h.login) // POST /users/login
 
 		protected := userRoutes.Group("")
-		protected.Use(h.AuthMiddleware())
+		protected.Use(middleware.AuthMiddleware())
 		{
-			protected.GET("", h.GetAll)        // GET /users
-			protected.GET("/:id", h.GetByID)   // GET /users/:id
-			protected.PUT("/:id", h.Update)    // PUT /users/:id
-			protected.DELETE("/:id", h.Delete) // DELETE /users/:id
-			protected.GET("/me", h.me)         // GET /users/me
-		}
-	}
-}
+			protected.GET("/me", h.me) // GET /users/me
 
-// AuthMiddleware validates JWT token from Authorization header
-func (h *Handler) AuthMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		authorizationHeader := c.GetHeader("Authorization")
-		if authorizationHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "missing authorization header"})
-			c.Abort()
-			return
-		}
+			managerRoutes := protected.Group("")
+			managerRoutes.Use(middleware.LevelAccessRequired(token.Manager))
+			{
+				managerRoutes.PUT("/:id", h.Update) // PUT /users/:id
+			}
 
-		userID, err := ValidateToken(authorizationHeader)
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
-			c.Abort()
-			return
-		}
+			adminRoutes := protected.Group("")
+			adminRoutes.Use(middleware.LevelAccessRequired(token.Admin))
+			{
+				adminRoutes.GET("", h.GetAll)        // GET /users
+				adminRoutes.GET("/:id", h.GetByID)   // GET /users/:id
+				adminRoutes.DELETE("/:id", h.Delete) // DELETE /users/:id
+			}
 
-		c.Set("userID", userID)
-		c.Next()
+			superAdminRoutes := protected.Group("")
+			superAdminRoutes.Use(middleware.LevelAccessRequired(token.SuperAdmin))
+			{
+			}
+		}
 	}
 }
 
@@ -85,6 +81,7 @@ func (h *Handler) Create(c *gin.Context) {
 // @Description  Retrieves the complete list of users
 // @Tags         users
 // @Produce      json
+// @Security     BearerAuth
 // @Success      200  {array}   User
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
@@ -103,6 +100,7 @@ func (h *Handler) GetAll(c *gin.Context) {
 // @Description  Retrieves the details of a user using their ID
 // @Tags         users
 // @Produce      json
+// @Security     BearerAuth
 // @Param        id   path      int  true  "User ID"
 // @Success      200  {object}  User
 // @Failure      400  {object}  map[string]interface{}
@@ -129,6 +127,7 @@ func (h *Handler) GetByID(c *gin.Context) {
 // @Tags         users
 // @Accept       json
 // @Produce      json
+// @Security     BearerAuth
 // @Param        id   path      int             true "User ID"
 // @Param        body body      UpdateUserInput true "User update payload"
 // @Success      200  {object}  User
@@ -161,6 +160,7 @@ func (h *Handler) Update(c *gin.Context) {
 // @Description  Deletes a user from the system via their ID
 // @Tags         users
 // @Produce      json
+// @Security     BearerAuth
 // @Param        id   path      int  true  "User ID"
 // @Success      204  {object}  nil
 // @Failure      400  {object}  map[string]interface{}
@@ -206,7 +206,7 @@ func (h *Handler) login(c *gin.Context) {
 		return
 	}
 
-	tokenString, err := CreateToken(*u)
+	tokenString, err := token.Create(u.UserID, u.Name, u.Email, u.AccessLevel)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create token"})
 		return
@@ -219,6 +219,7 @@ func (h *Handler) login(c *gin.Context) {
 // @Description  Retrieves the profile information of the currently authenticated user
 // @Tags         users
 // @Produce      json
+// @Security     BearerAuth
 // @Success      200  {object}  User
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}

@@ -1,3 +1,4 @@
+-- access_level: 1 = superAdmin, 2 = admin, 3 = manager, 4 = user
 CREATE TABLE "user" (
     user_id SERIAL PRIMARY KEY,
     store_id INTEGER REFERENCES store(store_id),

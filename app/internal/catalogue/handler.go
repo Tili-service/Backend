@@ -4,6 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"tili/app/internal/middleware"
+	"tili/app/internal/token"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -19,13 +22,18 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 	catalogueRoutes := router.Group("/catalogue")
 	{
 		protected := catalogueRoutes.Group("")
-		protected.Use(h.AuthMiddleware())
+		protected.Use(middleware.AuthMiddleware())
 		{
-			protected.POST("", h.Create)       // POST /catalogue
 			protected.GET("", h.GetAll)        // GET /catalogue
 			protected.GET("/:id", h.GetByID)   // GET /catalogue/:id
-			protected.PUT("/:id", h.Update)    // PUT /catalogue/:id
-			protected.DELETE("/:id", h.Delete) // DELETE /catalogue/:id
+
+			managerRoutes := protected.Group("")
+			managerRoutes.Use(middleware.LevelAccessRequired(token.Manager))
+			{
+				managerRoutes.POST("", h.Create)       // POST /catalogue
+				managerRoutes.PUT("/:id", h.Update)    // PUT /catalogue/:id
+				managerRoutes.DELETE("/:id", h.Delete) // DELETE /catalogue/:id
+			}
 		}
 	}
 }

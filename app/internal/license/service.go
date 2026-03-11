@@ -85,7 +85,7 @@ func (s *Service) Create(ctx context.Context, input AccountRegistrationInput) (*
 	return &bodyResponse, nil
 }
 
-func (s *Service) Exists(ctx context.Context, accountID int64) (bool, error) {
+func (s *Service) Exists(ctx context.Context, accountID int) (bool, error) {
 	_, err := s.repo.FindByID(ctx, accountID)
 	if err != nil {
 		if err.Error() == "account not found" {
@@ -96,7 +96,7 @@ func (s *Service) Exists(ctx context.Context, accountID int64) (bool, error) {
 	return true, nil
 }
 
-func (s *Service) FullDeleteAccount(ctx context.Context, id int64) error {
+func (s *Service) FullDeleteAccount(ctx context.Context, id int) error {
 	account, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return errors.New("account not found")
@@ -131,7 +131,7 @@ func (s *Service) GetAllLicenses(ctx context.Context) ([]account.Account, error)
 	return licenses, nil
 }
 
-func (s *Service) GetLicenseByID(ctx context.Context, id int64) (*account.Account, error) {
+func (s *Service) GetLicenseByID(ctx context.Context, id int) (*account.Account, error) {
 	license, err := s.repo.FindByID(ctx, id)
 
 	if err != nil {

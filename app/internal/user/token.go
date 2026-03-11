@@ -2,10 +2,11 @@ package user
 
 import (
 	"fmt"
-	"github.com/golang-jwt/jwt/v5"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 var secretKey = []byte(os.Getenv("JWT_SECRET_KEY"))
@@ -28,7 +29,7 @@ func CreateToken(user User) (string, error) {
 	return tokenString, nil
 }
 
-func ValidateToken(tokenString string) (int64, error) {
+func ValidateToken(tokenString string) (int, error) {
 	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
 
 	token, err := jwt.ParseWithClaims(tokenString, &jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
@@ -53,5 +54,5 @@ func ValidateToken(tokenString string) (int64, error) {
 		return 0, fmt.Errorf("userID not found in token")
 	}
 
-	return int64(userID), nil
+	return int(userID), nil
 }

@@ -31,14 +31,13 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 // @Tags         stores
 // @Accept       json
 // @Produce      json
-// @Param        accountID path      int64 true "Account ID"
+// @Param        accountID path      int true "Account ID"
 // @Success      200  {object}  store.Store
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
 // @Router       /store/account/{accountID} [get]
 func (h *Handler) GetByAccountID(c *gin.Context) {
-	accountIDParam := c.Param("accountID")
-	accountID, err := strconv.ParseInt(accountIDParam, 10, 64)
+	accountID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid account ID"})
 		return
@@ -59,7 +58,7 @@ func (h *Handler) GetByAccountID(c *gin.Context) {
 // @Tags         stores
 // @Accept       json
 // @Produce      json
-// @Param        id    path      int64                   true "Store ID"
+// @Param        id    path      int                   true "Store ID"
 // @Param        input body      store.UpdateStoreInput  true "Store update payload (storeName only)"
 // @Success      200   {object}  store.Store
 // @Failure      400   {object}  map[string]interface{}
@@ -67,8 +66,7 @@ func (h *Handler) GetByAccountID(c *gin.Context) {
 // @Failure      500   {object}  map[string]interface{}
 // @Router       /store/{id} [put]
 func (h *Handler) Update(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := strconv.ParseInt(idParam, 10, 64)
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid store ID"})
 		return

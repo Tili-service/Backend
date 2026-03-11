@@ -117,15 +117,14 @@ func (h *Handler) Get(c *gin.Context) {
 // @Tags         licenses
 // @Accept       json
 // @Produce      json
-// @Param        id   path      int64 true "License ID"
+// @Param        id   path      int true "License ID"
 // @Success      200  {object}  account.Account
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /registration/account/{id} [get]
 func (h *Handler) GetLicenseByID(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := strconv.ParseInt(idParam, 10, 64)
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return

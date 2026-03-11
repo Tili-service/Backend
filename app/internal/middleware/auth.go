@@ -35,6 +35,12 @@ func AuthMiddleware() gin.HandlerFunc {
 func LevelAccessRequired(level token.AccessLevel) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		accessLevel := c.GetInt("accessLevel")
+
+		if (accessLevel == 0) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "access level not found in token"})
+			c.Abort()
+			return
+		}
 		if accessLevel > int(level) {
 			c.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
 			c.Abort()

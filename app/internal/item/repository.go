@@ -17,8 +17,6 @@ func NewRepository(d *db.Db) *Repository {
 	return &Repository{db: d.DB}
 }
 
-// calcTaxAmount derives the tax amount already included in a tax-inclusive price.
-// Formula: tax_amount = price * tax / (1 + tax), rounded to 2 decimal places.
 func calcTaxAmount(price, tax decimal.Decimal) decimal.Decimal {
 	one := decimal.NewFromInt(1)
 	return price.Mul(tax).Div(one.Add(tax)).Round(2)

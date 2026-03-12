@@ -16,34 +16,29 @@ func NewRepository(d *db.Db) *Repository {
 	return &Repository{db: d.DB}
 }
 
-// create
 func (r *Repository) Create(ctx context.Context, c *Catalogue) error {
 	_, err := r.db.NewInsert().Model(c).Exec(ctx)
 	return err
 }
 
-// find all
 func (r *Repository) FindAll(ctx context.Context) ([]Catalogue, error) {
 	var catalogues []Catalogue
 	err := r.db.NewSelect().Model(&catalogues).Scan(ctx)
 	return catalogues, err
 }
 
-// find by Id
 func (r *Repository) FindByID(ctx context.Context, id int) (*Catalogue, error) {
 	c := new(Catalogue)
 	err := r.db.NewSelect().Model(c).Where("c.catalogue_id = ?", id).Scan(ctx)
 	return c, err
 }
 
-// find by name
 func (r *Repository) FindByName(ctx context.Context, name string) (*Catalogue, error) {
 	c := new(Catalogue)
 	err := r.db.NewSelect().Model(c).Where("c.name = ?", name).Scan(ctx)
 	return c, err
 }
 
-// delete
 func (r *Repository) DeleteByID(ctx context.Context, id int) error {
 	_, err := r.db.NewDelete().Model(&Catalogue{}).Where("catalogue_id = ?", id).Exec(ctx)
 	return err
@@ -54,7 +49,6 @@ func (r *Repository) DeleteByName(ctx context.Context, name string) error {
 	return err
 }
 
-// Update - Name or Descripton
 func (r *Repository) Update(ctx context.Context, id int, input CatalogueUpdate) (*Catalogue, error) {
 	catalogue := &Catalogue{}
 	err := r.db.NewSelect().Model(catalogue).Where("c.catalogue_id = ?", id).Scan(ctx)

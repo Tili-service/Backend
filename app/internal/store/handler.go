@@ -1,93 +1,142 @@
 package store
 
 import (
-	"database/sql"
-	"errors"
 	"net/http"
 	"strconv"
 
+	"tili/app/internal/middleware"
+	"tili/app/internal/profile"
+	"tili/app/internal/token"
 	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {
-	service *Service
+	service        *Service
+	profileService *profile.Service
 }
 
-func NewHandler(service *Service) *Handler {
-	return &Handler{service: service}
+func NewHandler(service *Service, profileService *profile.Service) *Handler {
+	return &Handler{service: service, profileService: profileService}
 }
 
 func (h *Handler) RegisterRoutes(router *gin.Engine) {
 	storeRoutes := router.Group("/store")
+	accountProtected := storeRoutes.Group("")
+	accountProtected.Use(middleware.AccountAuthMiddleware())
 	{
-		storeRoutes.GET("/account/:accountID", h.GetByAccountID) // GET /store/account/:accountID
-		storeRoutes.PUT("/:id", h.Update)                        // PUT /store/:id
+		accountProtected.POST("", h.CreateStore)       // POST /store
+		accountProtected.GET("/me", h.GetMyStores)   // GET /store/me
+		accountProtected.DELETE("/:id", h.DeleteStore) // DELETE /store/:id
 	}
 }
 
-// Get store by account ID
-// @Summary      Get store by account ID
-// @Description  This route retrieves the store information associated with a specific account ID. It accepts an account ID as a path parameter and returns the corresponding store details upon success.
+// GetMyStores retrieves all stores owned by the authenticated account
+// @Summary      Get my stores
+// @Description  Returns all stores owned by the currently authenticated account.
 // @Tags         stores
 // @Accept       json
 // @Produce      json
-// @Param        accountID path      int64 true "Account ID"
-// @Success      200  {object}  store.Store
+// @Security     AccountToken
+// @Success      200  {array}   Store
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /store/me [get]
+func (h *Handler) GetMyStores(c *gin.Context) {
+	accountID := c.GetInt64("accountID")
+	stores, err := h.service.FindByBuyerID(c.Request.Context(), accountID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, stores)
+}
+
+// CreateStore creates a new store for the authenticated account
+// @Summary      Create a store
+// @Description  Creates a new store linked to the authenticated account. Also creates the first admin profile with an auto-generated PIN.
+// @Tags         stores
+// @Accept       json
+// @Produce      json
+// @Security     AccountToken
+// @Param        body body      CreateStoreInput true "Store creation payload"
+// @Success      201  {object}  map[string]interface{}
 // @Failure      400  {object}  map[string]interface{}
-// @Failure      404  {object}  map[string]interface{}
-// @Router       /store/account/{accountID} [get]
-func (h *Handler) GetByAccountID(c *gin.Context) {
-	accountIDParam := c.Param("accountID")
-	accountID, err := strconv.ParseInt(accountIDParam, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid account ID"})
-		return
-	}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /store [post]
+func (h *Handler) CreateStore(c *gin.Context) {
+	accountID := c.GetInt64("accountID")
+	accountName := c.GetString("name")
 
-	store, err := h.service.FindByAccountID(c.Request.Context(), accountID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Store not found"})
-		return
-	}
-
-	c.JSON(http.StatusOK, store)
-}
-
-// Update an existing store
-// @Summary      Update a store
-// @Description  Updates the details of an existing store. The store ID is taken from the URL path and cannot be overridden. The request body must contain the new store name. Returns the updated `store.Store`.
-// @Tags         stores
-// @Accept       json
-// @Produce      json
-// @Param        id    path      int64                   true "Store ID"
-// @Param        input body      store.UpdateStoreInput  true "Store update payload (storeName only)"
-// @Success      200   {object}  store.Store
-// @Failure      400   {object}  map[string]interface{}
-// @Failure      404   {object}  map[string]interface{}
-// @Failure      500   {object}  map[string]interface{}
-// @Router       /store/{id} [put]
-func (h *Handler) Update(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := strconv.ParseInt(idParam, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid store ID"})
-		return
-	}
-
-	var input UpdateStoreInput
+	var input CreateStoreInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	input.BuyerID = accountID
 
-	store, err := h.service.Update(c.Request.Context(), id, input)
+	st, err := h.service.Create(c.Request.Context(), input)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Store not found"})
-			return
-		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, store)
+
+	adminProfile, err := h.profileService.Create(c.Request.Context(), profile.CreateProfileInput{
+		StoreID:     st.StoreID,
+		Name:        accountName,
+		LevelAccess: int(token.Admin),
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "store created but failed to create admin profile: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"store":   st,
+		"profile": adminProfile,
+	})
+}
+
+// DeleteStore deletes a store owned by the authenticated account
+// @Summary      Delete a store
+// @Description  Deletes a store and all its profiles. Only the owner can delete.
+// @Tags         stores
+// @Accept       json
+// @Produce      json
+// @Security     AccountToken
+// @Param        id path int64 true "Store ID"
+// @Success      204
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      403  {object}  map[string]interface{}
+// @Failure      404  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /store/{id} [delete]
+func (h *Handler) DeleteStore(c *gin.Context) {
+	accountID := c.GetInt64("accountID")
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store ID"})
+		return
+	}
+
+	st, err := h.service.FindByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "store not found"})
+		return
+	}
+
+	if st.BuyerID != accountID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "you are not the owner of this store"})
+		return
+	}
+
+	if err := h.profileService.DeleteByStoreID(c.Request.Context(), id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.service.Delete(c.Request.Context(), id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }

@@ -3,8 +3,9 @@ package store
 import (
 	"context"
 
-	"github.com/uptrace/bun"
 	"tili/app/pkg/db"
+
+	"github.com/uptrace/bun"
 )
 
 type Repository struct {
@@ -15,12 +16,12 @@ func NewRepository(d *db.Db) *Repository {
 	return &Repository{db: d.DB}
 }
 
-func (r *Repository) Create(ctx context.Context, u *Store) (*Store, error) {
-	_, err := r.db.NewInsert().Model(u).Exec(ctx)
+func (r *Repository) Create(ctx context.Context, s *Store) (*Store, error) {
+	_, err := r.db.NewInsert().Model(s).Exec(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return u, nil
+	return s, nil
 }
 
 func (r *Repository) FindByID(ctx context.Context, id int64) (*Store, error) {
@@ -32,13 +33,13 @@ func (r *Repository) FindByID(ctx context.Context, id int64) (*Store, error) {
 	return store, nil
 }
 
-func (r *Repository) FindByAccountID(ctx context.Context, accountID int64) (*Store, error) {
-	store := &Store{}
-	err := r.db.NewSelect().Model(store).Where("account_id = ?", accountID).Scan(ctx)
+func (r *Repository) FindByBuyerID(ctx context.Context, buyerID int64) ([]Store, error) {
+	var stores []Store
+	err := r.db.NewSelect().Model(&stores).Where("buyer_id = ?", buyerID).Scan(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return store, nil
+	return stores, nil
 }
 
 func (r *Repository) Delete(ctx context.Context, id int64) error {
@@ -46,7 +47,4 @@ func (r *Repository) Delete(ctx context.Context, id int64) error {
 	return err
 }
 
-func (r *Repository) Update(ctx context.Context, store *Store) error {
-	_, err := r.db.NewUpdate().Model(store).Where("store_id = ?", store.StoreID).Exec(ctx)
-	return err
-}
+

@@ -3,7 +3,6 @@ package license
 import (
 	"context"
 
-	"tili/app/internal/account"
 	"tili/app/pkg/db"
 
 	"github.com/uptrace/bun"
@@ -17,30 +16,21 @@ func NewRepository(d *db.Db) *Repository {
 	return &Repository{db: d.DB}
 }
 
-func (r *Repository) CreateAccount(ctx context.Context, u *account.Account) error {
-	_, err := r.db.NewInsert().Model(u).Exec(ctx)
+func (r *Repository) CreateLicence(ctx context.Context, l *Licence) error {
+	_, err := r.db.NewInsert().Model(l).Exec(ctx)
 	return err
 }
 
-func (r *Repository) Delete(ctx context.Context, id int64) error {
-	_, err := r.db.NewDelete().Model(&account.Account{}).Where("account_id = ?", id).Exec(ctx)
+func (r *Repository) FindLicencesByAccountID(ctx context.Context, accountID int64) ([]Licence, error) {
+	var licences []Licence
+	err := r.db.NewSelect().Model(&licences).Where("account_id = ?", accountID).Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return licences, nil
+}
+
+func (r *Repository) DeleteLicencesByAccountID(ctx context.Context, accountID int64) error {
+	_, err := r.db.NewDelete().Model(&Licence{}).Where("account_id = ?", accountID).Exec(ctx)
 	return err
-}
-
-func (r *Repository) FindByID(ctx context.Context, accountID int64) (*account.Account, error) {
-	account := &account.Account{}
-	err := r.db.NewSelect().Model(account).Where("account_id = ?", accountID).Scan(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return account, nil
-}
-
-func (r *Repository) GetAll(ctx context.Context) ([]account.Account, error) {
-	var accounts []account.Account
-	err := r.db.NewSelect().Model(&accounts).Scan(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return accounts, nil
 }

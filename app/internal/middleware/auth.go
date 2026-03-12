@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func AuthMiddleware() gin.HandlerFunc {
+func AccountAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authorizationHeader := c.GetHeader("Authorization")
 		if authorizationHeader == "" {
@@ -17,17 +17,40 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		tokenToSend, err := token.Validate(authorizationHeader)
+		claims, err := token.ValidateAccountToken(authorizationHeader)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid account token"})
 			c.Abort()
 			return
 		}
 
-		c.Set("userID", tokenToSend.UserID)
-		c.Set("name", tokenToSend.Name)
-		c.Set("email", tokenToSend.Email)
-		c.Set("accessLevel", tokenToSend.AccessLevel)
+		c.Set("accountID", claims.AccountID)
+		c.Set("name", claims.Name)
+		c.Set("email", claims.Email)
+		c.Next()
+	}
+}
+
+func ProfileAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authorizationHeader := c.GetHeader("Authorization")
+		if authorizationHeader == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "missing authorization header"})
+			c.Abort()
+			return
+		}
+
+		claims, err := token.ValidateProfileToken(authorizationHeader)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid profile token"})
+			c.Abort()
+			return
+		}
+
+		c.Set("profileID", claims.ProfileID)
+		c.Set("name", claims.Name)
+		c.Set("accessLevel", claims.LevelAccess)
+		c.Set("storeID", claims.StoreID)
 		c.Next()
 	}
 }

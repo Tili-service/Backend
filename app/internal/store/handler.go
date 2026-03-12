@@ -27,6 +27,8 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 		accountProtected.POST("", h.CreateStore)       // POST /store
 		accountProtected.GET("/me", h.GetMyStores)   // GET /store/me
 		accountProtected.DELETE("/:id", h.DeleteStore) // DELETE /store/:id
+		storeRoutes.GET("/", h.GetAll)                           // GET /store
+
 	}
 }
 
@@ -93,6 +95,44 @@ func (h *Handler) CreateStore(c *gin.Context) {
 		"store":   st,
 		"profile": adminProfile,
 	})
+}
+
+// Get all stores
+// @Summary      Get all stores
+// @Description  This route retrieves a list of all stores available in the system. It does not require any parameters and returns an array of store objects upon success.
+// @Tags         stores
+// @Accept       json
+// @Produce      json
+// @Success      200  {array}   store.Store
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /store [get]
+
+func (h *Handler) GetAll(c *gin.Context) {
+	stores, err := h.service.FindAll(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, stores)
+}
+
+// Get all stores
+// @Summary      Get all stores
+// @Description  This route retrieves a list of all stores available in the system. It does not require any parameters and returns an array of store objects upon success.
+// @Tags         stores
+// @Accept       json
+// @Produce      json
+// @Success      200  {array}   store.Store
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /store [get]
+
+func (h *Handler) GetAll(c *gin.Context) {
+	stores, err := h.service.FindAll(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, stores)
 }
 
 // DeleteStore deletes a store owned by the authenticated account

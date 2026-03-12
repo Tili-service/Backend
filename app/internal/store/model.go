@@ -10,7 +10,7 @@ import (
 type Store struct {
 	bun.BaseModel `bun:"table:store,alias:s" swaggerignore:"true"`
 
-	StoreID      int64     `bun:"store_id,pk,autoincrement"               json:"store_id"`
+	StoreID      int       `bun:"store_id,pk,autoincrement"               json:"store_id"`
 	Name         string    `bun:"name,notnull"                            json:"name"`
 	BuyerID      int64     `bun:"buyer_id,notnull"                        json:"buyer_id"`
 	LicenceID    uuid.UUID `bun:"licence_id,notnull,type:uuid"            json:"licence_id"`
@@ -21,10 +21,8 @@ type Store struct {
 
 type CreateStoreInput struct {
 	Name      string    `json:"name"       binding:"required"`
-	BuyerID   int64     `json:"buyer_id"`
+	BuyerID   int       `json:"buyer_id"`
 	LicenceID uuid.UUID `json:"licence_id" binding:"required"`
 	NumeroTVA string    `json:"numero_tva"`
 	Siret     string    `json:"siret"`
 }
-
-

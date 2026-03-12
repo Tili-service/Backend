@@ -31,7 +31,15 @@ func (s *Service) FindByBuyerID(ctx context.Context, buyerID int64) ([]Store, er
 	return s.repo.FindByBuyerID(ctx, buyerID)
 }
 
-func (s *Service) Delete(ctx context.Context, id int64) error {
+func (s *Service) FindAll(ctx context.Context) ([]*Store, error) {
+	stores, err := s.repo.FindAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return stores, nil
+}
+
+func (s *Service) Delete(ctx context.Context, id int) error {
 	_, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return err

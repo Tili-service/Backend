@@ -5,6 +5,8 @@ import (
 
 	"tili/app/pkg/db"
 
+	"tili/app/pkg/db"
+
 	"github.com/uptrace/bun"
 )
 
@@ -24,7 +26,7 @@ func (r *Repository) Create(ctx context.Context, s *Store) (*Store, error) {
 	return s, nil
 }
 
-func (r *Repository) FindByID(ctx context.Context, id int64) (*Store, error) {
+func (r *Repository) FindByID(ctx context.Context, id int) (*Store, error) {
 	store := &Store{}
 	err := r.db.NewSelect().Model(store).Where("store_id = ?", id).Scan(ctx)
 	if err != nil {
@@ -33,6 +35,18 @@ func (r *Repository) FindByID(ctx context.Context, id int64) (*Store, error) {
 	return store, nil
 }
 
+func (r *Repository) FindAll(ctx context.Context) ([]*Store, error) {
+	var stores []*Store
+	err := r.db.NewSelect().Model(&stores).Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return stores, nil
+}
+
+func (r *Repository) FindByAccountID(ctx context.Context, accountID int) (*Store, error) {
+	store := &Store{}
+	err := r.db.NewSelect().Model(store).Where("account_id = ?", accountID).Scan(ctx)
 func (r *Repository) FindByBuyerID(ctx context.Context, buyerID int64) ([]Store, error) {
 	var stores []Store
 	err := r.db.NewSelect().Model(&stores).Where("buyer_id = ?", buyerID).Scan(ctx)
@@ -42,7 +56,7 @@ func (r *Repository) FindByBuyerID(ctx context.Context, buyerID int64) ([]Store,
 	return stores, nil
 }
 
-func (r *Repository) Delete(ctx context.Context, id int64) error {
+func (r *Repository) Delete(ctx context.Context, id int) error {
 	_, err := r.db.NewDelete().Model(&Store{}).Where("store_id = ?", id).Exec(ctx)
 	return err
 }

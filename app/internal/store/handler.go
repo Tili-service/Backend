@@ -25,11 +25,12 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 	accountProtected := storeRoutes.Group("")
 	accountProtected.Use(middleware.AccountAuthMiddleware())
 	{
-		accountProtected.POST("", h.CreateStore)       // POST /store
-		accountProtected.GET("/me", h.GetMyStores)     // GET /store/me
-		accountProtected.DELETE("/:id", h.DeleteStore) // DELETE /store/:id
-		storeRoutes.GET("/", h.GetAll)                 // GET /store
-
+		accountProtected.POST("", h.CreateStore)        // POST /store
+		accountProtected.GET("/me", h.GetMyStores)      // GET /store/me
+		accountProtected.DELETE("/:id", h.DeleteStore)  // DELETE /store/:id
+		storeRoutes.GET("/", h.GetAll)                  // GET /store
+		accountProtected.GET("/:id", h.GetByID)         // GET /store/:id
+		accountProtected.PUT("/:id", h.updateStoreById) // PUT /store/:id
 	}
 }
 
@@ -161,4 +162,86 @@ func (h *Handler) DeleteStore(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+// GetByID retrieves a store by its ID
+// @Summary      Get a store by ID
+// @Description  Retrieves the details of a store using its ID. Only the owner can access.
+// @Tags         stores
+// @Accept       json
+// @Produce      json
+// @Security     AccountToken
+// @Param        id path int true "Store ID"
+// @Success      200  {object}  store.Store
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      403  {object}  map[string]interface{}
+// @Failure      404  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /store/{id} [get]
+func (h *Handler) GetByID(c *gin.Context) {
+	accountID := c.GetInt("accountID")
+	id, err := strconv.Atoi(c.Param("id"))
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store ID"})
+		return
+	}
+
+	store, err := h.service.FindByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "store not found"})
+		return
+	}
+
+	if store.BuyerID != accountID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "you are not the owner of this store"})
+		return
+	}
+	c.JSON(http.StatusOK, store)
+}
+
+// Update modifies an existing store
+// @Summary      Update a store
+// @Description  Modifies the information of an existing store via its ID. Only the owner can update.
+// @Tags         stores
+// @Accept       json
+// @Produce      json
+// @Security     AccountToken
+// @Param        id   path      int             true "Store ID"
+// @Param        body body      CreateStoreInput true "Store update payload"
+// @Success      200  {object}  store.Store
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      403  {object}  map[string]interface{}
+// @Failure      404  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /store/{id} [put]
+func (h *Handler) updateStoreById(c *gin.Context) {
+	accountID := c.GetInt("accountID")
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store ID"})
+		return
+	}
+
+	existing, err := h.service.FindByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "store not found"})
+		return
+	}
+	if existing.BuyerID != accountID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "you are not the owner of this store"})
+		return
+	}
+
+	var input UpdateStoreInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	store, err := h.service.Update(c.Request.Context(), id, input)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, store)
 }

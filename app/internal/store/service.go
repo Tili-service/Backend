@@ -9,26 +9,26 @@ type Service struct {
 }
 
 func NewService(repo *Repository) *Service {
-	return &Service{
-		repo: repo,
-	}
+	return &Service{repo: repo}
 }
 
 func (s *Service) Create(ctx context.Context, input CreateStoreInput) (*Store, error) {
 	store := &Store{
-		StoreName: input.StoreName,
-		AccountID: input.AccountID,
+		Name:      input.Name,
+		BuyerID:   input.BuyerID,
+		LicenceID: input.LicenceID,
+		NumeroTVA: input.NumeroTVA,
+		Siret:     input.Siret,
 	}
-
 	return s.repo.Create(ctx, store)
 }
 
-func (s *Service) FindByAccountID(ctx context.Context, accountID int) (*Store, error) {
-	store, err := s.repo.FindByAccountID(ctx, accountID)
-	if err != nil {
-		return nil, err
-	}
-	return store, nil
+func (s *Service) FindByID(ctx context.Context, id int) (*Store, error) {
+	return s.repo.FindByID(ctx, id)
+}
+
+func (s *Service) FindByBuyerID(ctx context.Context, buyerID int) ([]Store, error) {
+	return s.repo.FindByBuyerID(ctx, buyerID)
 }
 
 func (s *Service) FindAll(ctx context.Context) ([]*Store, error) {
@@ -45,17 +45,4 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 		return err
 	}
 	return s.repo.Delete(ctx, id)
-}
-
-func (s *Service) Update(ctx context.Context, id int, input UpdateStoreInput) (*Store, error) {
-	store, err := s.repo.FindByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	store.StoreName = input.StoreName
-	err = s.repo.Update(ctx, store)
-	if err != nil {
-		return nil, err
-	}
-	return store, nil
 }

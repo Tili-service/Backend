@@ -22,7 +22,7 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 	itemRoutes := router.Group("/item")
 	{
 		protected := itemRoutes.Group("")
-		protected.Use(middleware.AuthMiddleware())
+		protected.Use(middleware.ProfileAuthMiddleware())
 		{
 			protected.GET("", h.GetAll)                         // GET /item
 			protected.GET("/name/:name", h.GetByName)           // GET /item/name/:name — must be before /:id
@@ -46,13 +46,13 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 // @Tags         item
 // @Accept       json
 // @Produce      json
+// @Security     ProfileToken
 // @Param        body body      Item true "Item payload"
 // @Success      201  {object}  Item
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      403  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Security     BearerAuth
 // @Router       /item [post]
 func (h *Handler) Create(c *gin.Context) {
 	var input Item
@@ -74,6 +74,7 @@ func (h *Handler) Create(c *gin.Context) {
 // @Tags         item
 // @Accept       json
 // @Produce      json
+// @Security     ProfileToken
 // @Param        id   path      int        true "Item ID"
 // @Param        body body      ItemUpdate true "Item update payload"
 // @Success      200  {object}  Item
@@ -82,7 +83,6 @@ func (h *Handler) Create(c *gin.Context) {
 // @Failure      403  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Security     BearerAuth
 // @Router       /item/{id} [put]
 func (h *Handler) Update(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
@@ -108,6 +108,7 @@ func (h *Handler) Update(c *gin.Context) {
 // @Description  Deletes an item from the system via its ID. Requires Manager level access.
 // @Tags         item
 // @Produce      json
+// @Security     ProfileToken
 // @Param        id   path      int  true  "Item ID"
 // @Success      204  {object}  nil
 // @Failure      400  {object}  map[string]interface{}
@@ -115,7 +116,6 @@ func (h *Handler) Update(c *gin.Context) {
 // @Failure      403  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Security     BearerAuth
 // @Router       /item/{id} [delete]
 func (h *Handler) Delete(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
@@ -135,10 +135,10 @@ func (h *Handler) Delete(c *gin.Context) {
 // @Description  Retrieves the complete list of items
 // @Tags         item
 // @Produce      json
+// @Security     ProfileToken
 // @Success      200  {array}   Item
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Security     BearerAuth
 // @Router       /item [get]
 func (h *Handler) GetAll(c *gin.Context) {
 	items, err := h.service.GetAll(c.Request.Context())
@@ -154,13 +154,13 @@ func (h *Handler) GetAll(c *gin.Context) {
 // @Description  Retrieves the details of an item using its ID
 // @Tags         item
 // @Produce      json
+// @Security     ProfileToken
 // @Param        id   path      int  true  "Item ID"
 // @Success      200  {object}  Item
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Security     BearerAuth
 // @Router       /item/{id} [get]
 func (h *Handler) GetByID(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
@@ -181,12 +181,12 @@ func (h *Handler) GetByID(c *gin.Context) {
 // @Description  Retrieves the details of an item using its name
 // @Tags         item
 // @Produce      json
+// @Security     ProfileToken
 // @Param        name path      string  true  "Item name"
 // @Success      200  {object}  Item
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Security     BearerAuth
 // @Router       /item/name/{name} [get]
 func (h *Handler) GetByName(c *gin.Context) {
 	name := c.Param("name")
@@ -203,13 +203,13 @@ func (h *Handler) GetByName(c *gin.Context) {
 // @Description  Retrieves the list of items belonging to a specific category using the category ID
 // @Tags         item
 // @Produce      json
+// @Security     ProfileToken
 // @Param        id   path      int  true  "Category ID"
 // @Success      200  {array}   Item
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Security     BearerAuth
 // @Router       /item/categorie/{id} [get]
 func (h *Handler) GetByCategorieID(c *gin.Context) {
 	categorieID, err := strconv.Atoi(c.Param("id"))

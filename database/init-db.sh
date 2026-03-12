@@ -4,6 +4,7 @@ set -e
 
 files=(
     "account.sql"
+    "licence.sql"
     "categories.sql"
     "image.sql"
     "catalog.sql"
@@ -11,7 +12,7 @@ files=(
     "payment.sql"
     "sales.sql"
     "store.sql"
-    "user.sql"
+    "profile.sql"
 )
 
 for f in "${files[@]}"; do

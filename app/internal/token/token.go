@@ -20,63 +20,121 @@ const (
 	UserLevel  AccessLevel = 4
 )
 
-type Claims struct {
-	UserID      int
-	Name        string
-	Email       string
-	AccessLevel int
+type AccountClaims struct {
+	AccountID int
+	Name      string
+	Email     string
 }
 
-func Create(userID int, name, email string, accessLevel int) (string, error) {
+type ProfileClaims struct {
+	ProfileID   int
+	Name        string
+	LevelAccess int
+	StoreID     int
+}
+
+func CreateAccountToken(accountID int, name, email string) (string, error) {
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
-			"userID":      userID,
-			"name":        name,
-			"email":       email,
-			"accessLevel": accessLevel,
-			"exp":         time.Now().Add(time.Hour * 24).Unix(),
+			"accountID": accountID,
+			"name":      name,
+			"email":     email,
+			"type":      "account",
+			"exp":       time.Now().Add(time.Hour * 24).Unix(),
 		})
 
 	tokenString, err := t.SignedString(secretKey)
 	if err != nil {
-		return "", fmt.Errorf("failed to sign token: %w", err)
+		return "", fmt.Errorf("failed to sign account token: %w", err)
 	}
-
 	return tokenString, nil
 }
 
-func Validate(tokenString string) (Claims, error) {
+func ValidateAccountToken(tokenString string) (AccountClaims, error) {
 	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
 
 	t, err := jwt.ParseWithClaims(tokenString, &jwt.MapClaims{}, func(t *jwt.Token) (interface{}, error) {
 		return secretKey, nil
 	})
 	if err != nil {
-		return Claims{}, fmt.Errorf("invalid token: %w", err)
+		return AccountClaims{}, fmt.Errorf("invalid token: %w", err)
 	}
 	if !t.Valid {
-		return Claims{}, fmt.Errorf("token is not valid")
+		return AccountClaims{}, fmt.Errorf("token is not valid")
 	}
 
 	claims, ok := t.Claims.(*jwt.MapClaims)
 	if !ok {
-		return Claims{}, fmt.Errorf("invalid claims")
+		return AccountClaims{}, fmt.Errorf("invalid claims")
 	}
 
-	userID, ok := (*claims)["userID"].(float64)
+	accountID, ok := (*claims)["accountID"].(float64)
 	if !ok {
-		return Claims{}, fmt.Errorf("userID not found in token")
+		return AccountClaims{}, fmt.Errorf("accountID not found in token")
 	}
 
-	accessLevel, ok := (*claims)["accessLevel"].(float64)
+	return AccountClaims{
+		AccountID: int(accountID),
+		Name:      (*claims)["name"].(string),
+		Email:     (*claims)["email"].(string),
+	}, nil
+}
+
+func CreateProfileToken(profileID int, name string, levelAccess int, storeID int) (string, error) {
+	t := jwt.NewWithClaims(jwt.SigningMethodHS256,
+		jwt.MapClaims{
+			"profileID":   profileID,
+			"name":        name,
+			"levelAccess": levelAccess,
+			"storeID":     storeID,
+			"type":        "profile",
+			"exp":         time.Now().Add(time.Hour * 12).Unix(),
+		})
+
+	tokenString, err := t.SignedString(secretKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to sign profile token: %w", err)
+	}
+	return tokenString, nil
+}
+
+func ValidateProfileToken(tokenString string) (ProfileClaims, error) {
+	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+
+	t, err := jwt.ParseWithClaims(tokenString, &jwt.MapClaims{}, func(t *jwt.Token) (interface{}, error) {
+		return secretKey, nil
+	})
+	if err != nil {
+		return ProfileClaims{}, fmt.Errorf("invalid token: %w", err)
+	}
+	if !t.Valid {
+		return ProfileClaims{}, fmt.Errorf("token is not valid")
+	}
+
+	claims, ok := t.Claims.(*jwt.MapClaims)
 	if !ok {
-		return Claims{}, fmt.Errorf("accessLevel not found in token")
+		return ProfileClaims{}, fmt.Errorf("invalid claims")
 	}
 
-	return Claims{
-		UserID:      int(userID),
+	profileID, ok := (*claims)["profileID"].(float64)
+	if !ok {
+		return ProfileClaims{}, fmt.Errorf("profileID not found in token")
+	}
+
+	levelAccess, ok := (*claims)["levelAccess"].(float64)
+	if !ok {
+		return ProfileClaims{}, fmt.Errorf("levelAccess not found in token")
+	}
+
+	storeID, ok := (*claims)["storeID"].(float64)
+	if !ok {
+		return ProfileClaims{}, fmt.Errorf("storeID not found in token")
+	}
+
+	return ProfileClaims{
+		ProfileID:   int(profileID),
 		Name:        (*claims)["name"].(string),
-		Email:       (*claims)["email"].(string),
-		AccessLevel: int(accessLevel),
+		LevelAccess: int(levelAccess),
+		StoreID:     int(storeID),
 	}, nil
 }

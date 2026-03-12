@@ -4,9 +4,10 @@ import (
 	"log"
 
 	_ "tili/app/docs"
+	"tili/app/internal/account"
 	"tili/app/internal/license"
+	"tili/app/internal/profile"
 	"tili/app/internal/store"
-	"tili/app/internal/user"
 	"tili/app/pkg/db"
 
 	"github.com/gin-gonic/gin"
@@ -14,29 +15,45 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-// @securityDefinitions.apikey BearerAuth
+// @title           Tili API
+// @version         1.0
+// @host            localhost:8080
+// @basePath        /
+
+// @securityDefinitions.apikey AccountToken
 // @in header
 // @name Authorization
-// @description Type 'Bearer {token}' to authorize
+// @description JWT obtenu après login account (POST /account/login)
+
+// @securityDefinitions.apikey ProfileToken
+// @in header
+// @name Authorization
+// @description JWT obtenu après login profil avec PIN (POST /profile/login/pin)
 func main() {
 	db := db.NewDb()
 
-	userRepo := user.NewRepository(db)
-	userService := user.NewService(userRepo)
-	userHandler := user.NewHandler(userService)
+	profileRepo := profile.NewRepository(db)
+	profileService := profile.NewService(profileRepo)
+	profileHandler := profile.NewHandler(profileService)
 
 	storeRepo := store.NewRepository(db)
 	storeService := store.NewService(storeRepo)
-	storeHandler := store.NewHandler(storeService)
+	storeHandler := store.NewHandler(storeService, profileService)
 
 	licenseRepo := license.NewRepository(db)
-	licenseService := license.NewService(licenseRepo, userService, storeService)
+	licenseService := license.NewService(licenseRepo)
 	licenseHandler := license.NewHandler(licenseService)
+
+	accountRepo := account.NewRepository(db)
+	accountService := account.NewService(accountRepo, storeService, profileService, licenseService)
+	accountHandler := account.NewHandler(accountService)
+
 	r := gin.Default()
 
-	userHandler.RegisterRoutes(r)
+	profileHandler.RegisterRoutes(r)
 	storeHandler.RegisterRoutes(r)
 	licenseHandler.RegisterRoutes(r)
+	accountHandler.RegisterRoutes(r)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 

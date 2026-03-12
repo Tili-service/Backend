@@ -5,6 +5,8 @@ import (
 
 	_ "tili/app/docs"
 	"tili/app/internal/catalogue"
+	"tili/app/internal/item"
+	"tili/app/internal/categorie"
 	"tili/app/internal/license"
 	"tili/app/internal/store"
 	"tili/app/internal/user"
@@ -38,6 +40,13 @@ func main() {
 	catalogueService := catalogue.NewService(catalogueRepo)
 	catalogueHandler := catalogue.NewHandler(catalogueService)
 
+	itemRepo := item.NewRepository(db)
+	itemService := item.NewService(itemRepo)
+	itemHandler := item.NewHandler(itemService)
+
+	categorieRepo := categorie.NewRepository(db)
+	categorieService := categorie.NewService(categorieRepo)
+	categorieHandler := categorie.NewHandler(categorieService)
 
 	r := gin.Default()
 
@@ -45,6 +54,8 @@ func main() {
 	storeHandler.RegisterRoutes(r)
 	licenseHandler.RegisterRoutes(r)
 	catalogueHandler.RegisterRoutes(r)
+	itemHandler.RegisterRoutes(r)
+	categorieHandler.RegisterRoutes(r)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 

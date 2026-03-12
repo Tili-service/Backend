@@ -4,5 +4,5 @@ CREATE TABLE item (
     price DECIMAL(10, 2) NOT NULL,
     tax DECIMAL(5, 4) NOT NULL,
     tax_amount DECIMAL(10, 2) NOT NULL,
-    categorie_id INTEGER REFERENCES categorie(categorie_id) NOT NULL,
-)
+    categorie_id INTEGER REFERENCES categorie(categorie_id) NOT NULL
+);

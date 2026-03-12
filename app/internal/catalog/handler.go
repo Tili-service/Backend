@@ -22,7 +22,7 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 	catalogRoutes := router.Group("/catalog")
 	{
 		protected := catalogRoutes.Group("")
-		protected.Use(middleware.AuthMiddleware())
+		protected.Use(middleware.ProfileAuthMiddleware())
 		{
 			protected.GET("", h.GetAll)      // GET /catalog
 			protected.GET("/:id", h.GetByID) // GET /catalog/:id
@@ -44,6 +44,7 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 // @Tags         catalog
 // @Accept       json
 // @Produce      json
+// @Security     ProfileToken
 // @Param        body body      catalogUpdate true "catalog payload"
 // @Success      201  {object}  catalog
 // @Failure      400  {object}  map[string]interface{}
@@ -69,6 +70,7 @@ func (h *Handler) Create(c *gin.Context) {
 // @Description  Retrieves the complete list of catalogs
 // @Tags         catalog
 // @Produce      json
+ // @Security     ProfileToken
 // @Success      200  {array}   catalog
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
@@ -87,6 +89,7 @@ func (h *Handler) GetAll(c *gin.Context) {
 // @Description  Retrieves the details of a catalog using its ID
 // @Tags         catalog
 // @Produce      json
+ // @Security     ProfileToken
 // @Param        id   path      int  true  "catalog ID"
 // @Success      200  {object}  catalog
 // @Failure      400  {object}  map[string]interface{}
@@ -113,6 +116,7 @@ func (h *Handler) GetByID(c *gin.Context) {
 // @Tags         catalog
 // @Accept       json
 // @Produce      json
+// @Security     ProfileToken
 // @Param        id   path      int             true "catalog ID"
 // @Param        body body      catalogUpdate true "catalog update payload"
 // @Success      200  {object}  catalog
@@ -145,6 +149,7 @@ func (h *Handler) Update(c *gin.Context) {
 // @Description  Deletes a catalog from the system via its ID
 // @Tags         catalog
 // @Produce      json
+// @Security     ProfileToken
 // @Param        id   path      int  true  "catalog ID"
 // @Success      204  {object}  nil
 // @Failure      400  {object}  map[string]interface{}

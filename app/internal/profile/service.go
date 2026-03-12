@@ -28,7 +28,7 @@ func generatePIN(length int) (string, error) {
 	return fmt.Sprintf("%0*d", length, n), nil
 }
 
-func (s *Service) generateUniquePin(ctx context.Context, storeID int64) (string, error) {
+func (s *Service) generateUniquePin(ctx context.Context, storeID int) (string, error) {
 	for i := 0; i < 100; i++ {
 		pin, err := generatePIN(6)
 		if err != nil {
@@ -77,11 +77,11 @@ func (s *Service) Create(ctx context.Context, input CreateProfileInput) (*Profil
 	}, nil
 }
 
-func (s *Service) GetByID(ctx context.Context, id int64) (*Profile, error) {
+func (s *Service) GetByID(ctx context.Context, id int) (*Profile, error) {
 	return s.repo.FindByID(ctx, id)
 }
 
-func (s *Service) Delete(ctx context.Context, id int64) error {
+func (s *Service) Delete(ctx context.Context, id int) error {
 	_, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return errors.New("profile not found")
@@ -89,11 +89,11 @@ func (s *Service) Delete(ctx context.Context, id int64) error {
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *Service) DeleteByStoreID(ctx context.Context, storeID int64) error {
+func (s *Service) DeleteByStoreID(ctx context.Context, storeID int) error {
 	return s.repo.DeleteByStoreID(ctx, storeID)
 }
 
-func (s *Service) LoginWithPin(ctx context.Context, storeID int64, pin string) (*Profile, error) {
+func (s *Service) LoginWithPin(ctx context.Context, storeID int, pin string) (*Profile, error) {
 	p, err := s.repo.FindByStoreAndPin(ctx, storeID, pin)
 	if err != nil {
 		return nil, errors.New("invalid pin")

@@ -107,7 +107,7 @@ func (h *Handler) Login(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /account [get]
 func (h *Handler) GetAccount(c *gin.Context) {
-	accountID := c.GetInt64("accountID")
+	accountID := c.GetInt("accountID")
 	acc, err := h.service.GetByID(c.Request.Context(), accountID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve account"})
@@ -128,7 +128,7 @@ func (h *Handler) GetAccount(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /account [delete]
 func (h *Handler) Delete(c *gin.Context) {
-	accountID := c.GetInt64("accountID")
+	accountID := c.GetInt("accountID")
 
 	exist, err := h.service.Exists(c.Request.Context(), accountID)
 	if err != nil {

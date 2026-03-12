@@ -22,7 +22,7 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 	categorieRoutes := router.Group("/categorie")
 	{
 		protected := categorieRoutes.Group("")
-		protected.Use(middleware.AuthMiddleware())
+		protected.Use(middleware.ProfileAuthMiddleware())
 		{
 			protected.GET("", h.GetAll)               // GET /categorie
 			protected.GET("/type/:type", h.GetByType) // GET /categorie/type/:type — must be before /:id
@@ -46,13 +46,13 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 // @Tags         categorie
 // @Accept       json
 // @Produce      json
+// @Security     ProfileToken
 // @Param        body body      Categorie true "Categorie payload"
 // @Success      201  {object}  Categorie
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      403  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Security     BearerAuth
 // @Router       /categorie [post]
 func (h *Handler) Create(c *gin.Context) {
 	var input Categorie
@@ -73,10 +73,10 @@ func (h *Handler) Create(c *gin.Context) {
 // @Description  Retrieves the complete list of categories
 // @Tags         categorie
 // @Produce      json
+// @Security     ProfileToken
 // @Success      200  {array}   Categorie
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Security     BearerAuth
 // @Router       /categorie [get]
 func (h *Handler) GetAll(c *gin.Context) {
 	categories, err := h.service.FindAll(c.Request.Context())
@@ -92,12 +92,12 @@ func (h *Handler) GetAll(c *gin.Context) {
 // @Description  Retrieves the details of a categorie using its ID
 // @Tags         categorie
 // @Produce      json
+// @Security     ProfileToken
 // @Param        id   path      int  true  "Categorie ID"
 // @Success      200  {object}  Categorie
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
-// @Security     BearerAuth
 // @Router       /categorie/{id} [get]
 func (h *Handler) GetByID(c *gin.Context) {
 	idStr := c.Param("id")
@@ -119,11 +119,11 @@ func (h *Handler) GetByID(c *gin.Context) {
 // @Description  Retrieves the details of a categorie using its type
 // @Tags         categorie
 // @Produce      json
+// @Security     ProfileToken
 // @Param        type path      string  true  "Categorie type"
 // @Success      200  {object}  Categorie
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
-// @Security     BearerAuth
 // @Router       /categorie/type/{type} [get]
 func (h *Handler) GetByType(c *gin.Context) {
 	typ := c.Param("type")
@@ -149,7 +149,7 @@ func (h *Handler) GetByType(c *gin.Context) {
 // @Failure      403  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Security     BearerAuth
+// @Security     ProfileToken
 // @Router       /categorie/{id} [put]
 func (h *Handler) Update(c *gin.Context) {
 	idStr := c.Param("id")
@@ -183,7 +183,7 @@ func (h *Handler) Update(c *gin.Context) {
 // @Failure      403  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Security     BearerAuth
+// @Security     ProfileToken
 // @Router       /categorie/{id} [delete]
 func (h *Handler) DeleteByID(c *gin.Context) {
 	idStr := c.Param("id")
@@ -211,7 +211,7 @@ func (h *Handler) DeleteByID(c *gin.Context) {
 // @Failure      403  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Security     BearerAuth
+// @Security     ProfileToken
 // @Router       /categorie/type/{type} [delete]
 func (h *Handler) DeleteByType(c *gin.Context) {
 	typ := c.Param("type")

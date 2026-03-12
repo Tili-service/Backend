@@ -27,12 +27,11 @@ type AccountClaims struct {
 }
 
 type ProfileClaims struct {
-	ProfileID   int64
+	ProfileID   int
 	Name        string
 	LevelAccess int
-	StoreID     int64
+	StoreID     int
 }
-
 
 func CreateAccountToken(accountID int, name, email string) (string, error) {
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256,
@@ -75,14 +74,13 @@ func ValidateAccountToken(tokenString string) (AccountClaims, error) {
 	}
 
 	return AccountClaims{
-		AccountID: int64(accountID),
+		AccountID: int(accountID),
 		Name:      (*claims)["name"].(string),
 		Email:     (*claims)["email"].(string),
 	}, nil
 }
 
-
-func CreateProfileToken(profileID int64, name string, levelAccess int, storeID int64) (string, error) {
+func CreateProfileToken(profileID int, name string, levelAccess int, storeID int) (string, error) {
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
 			"profileID":   profileID,

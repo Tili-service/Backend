@@ -23,11 +23,11 @@ func (s *Service) Create(ctx context.Context, input CreateStoreInput) (*Store, e
 	return s.repo.Create(ctx, store)
 }
 
-func (s *Service) FindByID(ctx context.Context, id int64) (*Store, error) {
+func (s *Service) FindByID(ctx context.Context, id int) (*Store, error) {
 	return s.repo.FindByID(ctx, id)
 }
 
-func (s *Service) FindByBuyerID(ctx context.Context, buyerID int64) ([]Store, error) {
+func (s *Service) FindByBuyerID(ctx context.Context, buyerID int) ([]Store, error) {
 	return s.repo.FindByBuyerID(ctx, buyerID)
 }
 
@@ -46,5 +46,3 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 	}
 	return s.repo.Delete(ctx, id)
 }
-
-

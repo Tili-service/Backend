@@ -5,8 +5,6 @@ import (
 
 	"tili/app/pkg/db"
 
-	"tili/app/pkg/db"
-
 	"github.com/uptrace/bun"
 )
 
@@ -44,10 +42,7 @@ func (r *Repository) FindAll(ctx context.Context) ([]*Store, error) {
 	return stores, nil
 }
 
-func (r *Repository) FindByAccountID(ctx context.Context, accountID int) (*Store, error) {
-	store := &Store{}
-	err := r.db.NewSelect().Model(store).Where("account_id = ?", accountID).Scan(ctx)
-func (r *Repository) FindByBuyerID(ctx context.Context, buyerID int64) ([]Store, error) {
+func (r *Repository) FindByBuyerID(ctx context.Context, buyerID int) ([]Store, error) {
 	var stores []Store
 	err := r.db.NewSelect().Model(&stores).Where("buyer_id = ?", buyerID).Scan(ctx)
 	if err != nil {
@@ -60,5 +55,3 @@ func (r *Repository) Delete(ctx context.Context, id int) error {
 	_, err := r.db.NewDelete().Model(&Store{}).Where("store_id = ?", id).Exec(ctx)
 	return err
 }
-
-

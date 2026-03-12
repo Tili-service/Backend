@@ -15,15 +15,15 @@ func NewService(repo *Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) DeleteByAccountID(ctx context.Context, accountID int64) error {
+func (s *Service) DeleteByAccountID(ctx context.Context, accountID int) error {
 	return s.repo.DeleteLicencesByAccountID(ctx, accountID)
 }
 
-func (s *Service) GetByAccountID(ctx context.Context, accountID int64) ([]Licence, error) {
+func (s *Service) GetByAccountID(ctx context.Context, accountID int) ([]Licence, error) {
 	return s.repo.FindLicencesByAccountID(ctx, accountID)
 }
 
-func (s *Service) Create(ctx context.Context, accountID int64, input CreateLicenceInput) (*Licence, error) {
+func (s *Service) Create(ctx context.Context, accountID int, input CreateLicenceInput) (*Licence, error) {
 	lic := &Licence{
 		LicenceID:   uuid.New(),
 		AccountID:   accountID,

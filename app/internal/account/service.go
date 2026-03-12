@@ -11,7 +11,7 @@ import (
 )
 
 type LicenseDeleter interface {
-	DeleteByAccountID(ctx context.Context, accountID int64) error
+	DeleteByAccountID(ctx context.Context, accountID int) error
 }
 
 type Service struct {
@@ -66,7 +66,7 @@ func (s *Service) Login(ctx context.Context, input LoginInput) (*Account, []stor
 	return acc, stores, nil
 }
 
-func (s *Service) Exists(ctx context.Context, accountID int64) (bool, error) {
+func (s *Service) Exists(ctx context.Context, accountID int) (bool, error) {
 	_, err := s.repo.FindByID(ctx, accountID)
 	if err != nil {
 		return false, nil
@@ -74,7 +74,7 @@ func (s *Service) Exists(ctx context.Context, accountID int64) (bool, error) {
 	return true, nil
 }
 
-func (s *Service) FullDelete(ctx context.Context, id int64) error {
+func (s *Service) FullDelete(ctx context.Context, id int) error {
 	stores, err := s.storeService.FindByBuyerID(ctx, id)
 	if err != nil {
 		return errors.New("failed to find stores")
@@ -100,6 +100,6 @@ func (s *Service) FullDelete(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (s *Service) GetByID(ctx context.Context, id int64) (*Account, error) {
+func (s *Service) GetByID(ctx context.Context, id int) (*Account, error) {
 	return s.repo.FindByID(ctx, id)
 }

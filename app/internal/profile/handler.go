@@ -31,13 +31,13 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 			managerRoutes := protected.Group("")
 			managerRoutes.Use(middleware.LevelAccessRequired(token.Manager))
 			{
-				managerRoutes.POST("", h.Create)    // POST /profile
+				managerRoutes.POST("", h.Create) // POST /profile
 			}
 
 			adminRoutes := protected.Group("")
 			adminRoutes.Use(middleware.LevelAccessRequired(token.Admin))
 			{
-				adminRoutes.DELETE("/:id", h.Delete)           // DELETE /profile/:id
+				adminRoutes.DELETE("/:id", h.Delete) // DELETE /profile/:id
 			}
 		}
 	}
@@ -87,7 +87,7 @@ func (h *Handler) loginWithPin(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /profile/me [get]
 func (h *Handler) me(c *gin.Context) {
-	profileID := c.GetInt64("profileID")
+	profileID := c.GetInt("profileID")
 	p, err := h.service.GetByID(c.Request.Context(), profileID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve profile"})
@@ -109,7 +109,7 @@ func (h *Handler) me(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /profile [post]
 func (h *Handler) Create(c *gin.Context) {
-	storeID := c.GetInt64("storeID")
+	storeID := c.GetInt("storeID")
 	var input CreateProfileInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -132,13 +132,13 @@ func (h *Handler) Create(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Security     ProfileToken
-// @Param        id path int64 true "Profile ID"
+// @Param        id path int true "Profile ID"
 // @Success      204
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /profile/{id} [delete]
 func (h *Handler) Delete(c *gin.Context) {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return

@@ -12,7 +12,7 @@ type Store struct {
 
 	StoreID      int       `bun:"store_id,pk,autoincrement"               json:"store_id"`
 	Name         string    `bun:"name,notnull"                            json:"name"`
-	BuyerID      int64     `bun:"buyer_id,notnull"                        json:"buyer_id"`
+	BuyerID      int       `bun:"buyer_id,notnull"                        json:"buyer_id"`
 	LicenceID    uuid.UUID `bun:"licence_id,notnull,type:uuid"            json:"licence_id"`
 	DateCreation time.Time `bun:"date_creation,default:current_timestamp" json:"date_creation"`
 	NumeroTVA    string    `bun:"numero_tva"                              json:"numero_tva,omitempty"`

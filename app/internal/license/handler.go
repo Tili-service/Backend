@@ -36,7 +36,7 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /licences [get]
 func (h *Handler) GetLicences(c *gin.Context) {
-	accountID := c.GetInt64("accountID")
+	accountID := c.GetInt("accountID")
 	licences, err := h.service.GetByAccountID(c.Request.Context(), accountID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -58,7 +58,7 @@ func (h *Handler) GetLicences(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /licences [post]
 func (h *Handler) CreateLicence(c *gin.Context) {
-	accountID := c.GetInt64("accountID")
+	accountID := c.GetInt("accountID")
 
 	var input CreateLicenceInput
 	if err := c.ShouldBindJSON(&input); err != nil {

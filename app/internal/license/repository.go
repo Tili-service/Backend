@@ -21,7 +21,7 @@ func (r *Repository) CreateLicence(ctx context.Context, l *Licence) error {
 	return err
 }
 
-func (r *Repository) FindLicencesByAccountID(ctx context.Context, accountID int64) ([]Licence, error) {
+func (r *Repository) FindLicencesByAccountID(ctx context.Context, accountID int) ([]Licence, error) {
 	var licences []Licence
 	err := r.db.NewSelect().Model(&licences).Where("account_id = ?", accountID).Scan(ctx)
 	if err != nil {
@@ -30,7 +30,7 @@ func (r *Repository) FindLicencesByAccountID(ctx context.Context, accountID int6
 	return licences, nil
 }
 
-func (r *Repository) DeleteLicencesByAccountID(ctx context.Context, accountID int64) error {
+func (r *Repository) DeleteLicencesByAccountID(ctx context.Context, accountID int) error {
 	_, err := r.db.NewDelete().Model(&Licence{}).Where("account_id = ?", accountID).Exec(ctx)
 	return err
 }

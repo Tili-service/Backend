@@ -31,6 +31,14 @@ func (s *Service) FindByAccountID(ctx context.Context, accountID int) (*Store, e
 	return store, nil
 }
 
+func (s *Service) FindAll(ctx context.Context) ([]*Store, error) {
+	stores, err := s.repo.FindAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return stores, nil
+}
+
 func (s *Service) Delete(ctx context.Context, id int) error {
 	_, err := s.repo.FindByID(ctx, id)
 	if err != nil {

@@ -21,6 +21,7 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 	storeRoutes := router.Group("/store")
 	{
 		storeRoutes.GET("/account/:accountID", h.GetByAccountID) // GET /store/account/:accountID
+		storeRoutes.GET("/", h.GetAll)                           // GET /store
 		storeRoutes.PUT("/:id", h.Update)                        // PUT /store/:id
 	}
 }
@@ -37,7 +38,8 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 // @Failure      404  {object}  map[string]interface{}
 // @Router       /store/account/{accountID} [get]
 func (h *Handler) GetByAccountID(c *gin.Context) {
-	accountID, err := strconv.Atoi(c.Param("id"))
+	accountID, err := strconv.Atoi(c.Param("accountID"))
+	println("id %d", accountID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid account ID"})
 		return
@@ -50,6 +52,25 @@ func (h *Handler) GetByAccountID(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, store)
+}
+
+// Get all stores
+// @Summary      Get all stores
+// @Description  This route retrieves a list of all stores available in the system. It does not require any parameters and returns an array of store objects upon success.
+// @Tags         stores
+// @Accept       json
+// @Produce      json
+// @Success      200  {array}   store.Store
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /store [get]
+
+func (h *Handler) GetAll(c *gin.Context) {
+	stores, err := h.service.FindAll(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, stores)
 }
 
 // Update an existing store

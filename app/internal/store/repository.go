@@ -33,6 +33,15 @@ func (r *Repository) FindByID(ctx context.Context, id int) (*Store, error) {
 	return store, nil
 }
 
+func (r *Repository) FindAll(ctx context.Context) ([]*Store, error) {
+	var stores []*Store
+	err := r.db.NewSelect().Model(&stores).Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return stores, nil
+}
+
 func (r *Repository) FindByAccountID(ctx context.Context, accountID int) (*Store, error) {
 	store := &Store{}
 	err := r.db.NewSelect().Model(store).Where("account_id = ?", accountID).Scan(ctx)

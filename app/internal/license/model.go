@@ -13,11 +13,11 @@ type AccountRegistrationInput struct {
 }
 
 type AccountDeleting struct {
-	AccountID int64 `json:"account_id"          binding:"required"`
+	AccountID int `json:"account_id"          binding:"required"`
 }
 
 type bodyResponse struct {
-	AccountID      int64     `json:"account_id"`
+	AccountID      int       `json:"account_id"`
 	UserAccessCode string    `json:"user_access_code"`
 	ExpiresAt      time.Time `json:"expires_at"`
 }

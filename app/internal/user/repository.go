@@ -27,13 +27,13 @@ func (r *Repository) FindAll(ctx context.Context) ([]User, error) {
 	return users, err
 }
 
-func (r *Repository) FindByID(ctx context.Context, id int64) (*User, error) {
+func (r *Repository) FindByID(ctx context.Context, id int) (*User, error) {
 	u := new(User)
 	err := r.db.NewSelect().Model(u).Where("u.user_id = ?", id).Scan(ctx)
 	return u, err
 }
 
-func (r *Repository) FindByStoreID(ctx context.Context, storeID int64) (*User, error) {
+func (r *Repository) FindByStoreID(ctx context.Context, storeID int) (*User, error) {
 	u := new(User)
 	err := r.db.NewSelect().Model(u).Where("u.store_id = ?", storeID).Scan(ctx)
 	return u, err
@@ -50,7 +50,7 @@ func (r *Repository) Update(ctx context.Context, u *User) error {
 	return err
 }
 
-func (r *Repository) Delete(ctx context.Context, id int64) error {
+func (r *Repository) Delete(ctx context.Context, id int) error {
 	_, err := r.db.NewDelete().Model(&User{}).Where("user_id = ?", id).Exec(ctx)
 	return err
 }

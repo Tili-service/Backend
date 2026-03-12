@@ -23,7 +23,7 @@ func (s *Service) Create(ctx context.Context, input CreateStoreInput) (*Store, e
 	return s.repo.Create(ctx, store)
 }
 
-func (s *Service) FindByAccountID(ctx context.Context, accountID int64) (*Store, error) {
+func (s *Service) FindByAccountID(ctx context.Context, accountID int) (*Store, error) {
 	store, err := s.repo.FindByAccountID(ctx, accountID)
 	if err != nil {
 		return nil, err
@@ -31,7 +31,15 @@ func (s *Service) FindByAccountID(ctx context.Context, accountID int64) (*Store,
 	return store, nil
 }
 
-func (s *Service) Delete(ctx context.Context, id int64) error {
+func (s *Service) FindAll(ctx context.Context) ([]*Store, error) {
+	stores, err := s.repo.FindAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return stores, nil
+}
+
+func (s *Service) Delete(ctx context.Context, id int) error {
 	_, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return err
@@ -39,7 +47,7 @@ func (s *Service) Delete(ctx context.Context, id int64) error {
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *Service) Update(ctx context.Context, id int64, input UpdateStoreInput) (*Store, error) {
+func (s *Service) Update(ctx context.Context, id int, input UpdateStoreInput) (*Store, error) {
 	store, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err

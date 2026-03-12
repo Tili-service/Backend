@@ -38,7 +38,7 @@ func (s *Service) GetAll(ctx context.Context) ([]User, error) {
 	return s.repo.FindAll(ctx)
 }
 
-func (s *Service) GetByID(ctx context.Context, id int64) (*User, error) {
+func (s *Service) GetByID(ctx context.Context, id int) (*User, error) {
 	u, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -46,7 +46,7 @@ func (s *Service) GetByID(ctx context.Context, id int64) (*User, error) {
 	return u, nil
 }
 
-func (s *Service) Update(ctx context.Context, id int64, input UpdateUserInput) (*User, error) {
+func (s *Service) Update(ctx context.Context, id int, input UpdateUserInput) (*User, error) {
 	u, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -67,7 +67,7 @@ func (s *Service) Update(ctx context.Context, id int64, input UpdateUserInput) (
 	return u, nil
 }
 
-func (s *Service) FindByStoreID(ctx context.Context, storeID int64) (*User, error) {
+func (s *Service) FindByStoreID(ctx context.Context, storeID int) (*User, error) {
 	u, err := s.repo.FindByStoreID(ctx, storeID)
 	if err != nil {
 		return nil, err
@@ -75,7 +75,7 @@ func (s *Service) FindByStoreID(ctx context.Context, storeID int64) (*User, erro
 	return u, nil
 }
 
-func (s *Service) Delete(ctx context.Context, id int64) error {
+func (s *Service) Delete(ctx context.Context, id int) error {
 	_, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return errors.New("user not found")

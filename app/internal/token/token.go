@@ -21,13 +21,13 @@ const (
 )
 
 type Claims struct {
-	UserID      int64
+	UserID      int
 	Name        string
 	Email       string
 	AccessLevel int
 }
 
-func Create(userID int64, name, email string, accessLevel int) (string, error) {
+func Create(userID int, name, email string, accessLevel int) (string, error) {
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
 			"userID":      userID,
@@ -74,7 +74,7 @@ func Validate(tokenString string) (Claims, error) {
 	}
 
 	return Claims{
-		UserID:      int64(userID),
+		UserID:      int(userID),
 		Name:        (*claims)["name"].(string),
 		Email:       (*claims)["email"].(string),
 		AccessLevel: int(accessLevel),

@@ -22,12 +22,12 @@ func (r *Repository) CreateAccount(ctx context.Context, u *account.Account) erro
 	return err
 }
 
-func (r *Repository) Delete(ctx context.Context, id int64) error {
+func (r *Repository) Delete(ctx context.Context, id int) error {
 	_, err := r.db.NewDelete().Model(&account.Account{}).Where("account_id = ?", id).Exec(ctx)
 	return err
 }
 
-func (r *Repository) FindByID(ctx context.Context, accountID int64) (*account.Account, error) {
+func (r *Repository) FindByID(ctx context.Context, accountID int) (*account.Account, error) {
 	account := &account.Account{}
 	err := r.db.NewSelect().Model(account).Where("account_id = ?", accountID).Scan(ctx)
 	if err != nil {

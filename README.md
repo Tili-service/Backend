@@ -1,5 +1,13 @@
 # Tili-backend
 
+## Coding Style
+
+**To run the coding style execute this script**
+
+```bash
+./scripts/go_coding_style_checker.sh
+```
+
 ## Commit Message Guidelines
 
 ### Format

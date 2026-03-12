@@ -9,8 +9,8 @@ import (
 type User struct {
 	bun.BaseModel `bun:"table:user,alias:u" swaggerignore:"true"`
 
-	UserID       int64        `bun:"user_id,pk,autoincrement" json:"user_id"`
-	StoreID      int64        `bun:"store_id"                 json:"store_id"`
+	UserID       int          `bun:"user_id,pk,autoincrement" json:"user_id"`
+	StoreID      int          `bun:"store_id"                 json:"store_id"`
 	Name         string       `bun:"name,notnull"             json:"name"`
 	Email        string       `bun:"email,unique,notnull"     json:"email"`
 	PasswordHash string       `bun:"password,notnull"    json:"-"`
@@ -20,7 +20,7 @@ type User struct {
 }
 
 type CreateUserInput struct {
-	StoreID     int64  `json:"store_id"`
+	StoreID     int    `json:"store_id"`
 	Name        string `json:"name"          binding:"required"`
 	Email       string `json:"email"         binding:"required,email"`
 	Password    string `json:"password"      binding:"required,min=6"`

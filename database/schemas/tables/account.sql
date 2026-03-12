@@ -1,6 +1,7 @@
 CREATE TABLE account (
     account_id SERIAL PRIMARY KEY,
-    licence_id UUID NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

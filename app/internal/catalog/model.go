@@ -1,18 +1,18 @@
-package catalogue
+package catalog
 
 import (
 	"github.com/uptrace/bun"
 )
 
-type Catalogue struct {
-	bun.BaseModel `bun:"table:catalogue,alias:c" swaggerignore:"true"`
+type catalog struct {
+	bun.BaseModel `bun:"table:catalog,alias:c" swaggerignore:"true"`
 
-	CatalogueID int    `bun:"catalogue_id,pk,autoincrement"                     json:"catalogue_id"`
+	catalogID   int    `bun:"catalog_id,pk,autoincrement"                     json:"catalog_id"`
 	Name        string `bun:"name,notnull"                                      json:"name"`
 	Description string `bun:"description" json:"description"`
 }
 
-type CatalogueUpdate struct {
+type catalogUpdate struct {
 	Name        *string `json:"name"`
 	Description *string `json:"description"`
 }

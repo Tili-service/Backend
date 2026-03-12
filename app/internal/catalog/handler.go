@@ -1,4 +1,4 @@
-package catalogue
+package catalog
 
 import (
 	"net/http"
@@ -19,138 +19,138 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) RegisterRoutes(router *gin.Engine) {
-	catalogueRoutes := router.Group("/catalogue")
+	catalogRoutes := router.Group("/catalog")
 	{
-		protected := catalogueRoutes.Group("")
+		protected := catalogRoutes.Group("")
 		protected.Use(middleware.AuthMiddleware())
 		{
-			protected.GET("", h.GetAll)      // GET /catalogue
-			protected.GET("/:id", h.GetByID) // GET /catalogue/:id
+			protected.GET("", h.GetAll)      // GET /catalog
+			protected.GET("/:id", h.GetByID) // GET /catalog/:id
 
 			managerRoutes := protected.Group("")
 			managerRoutes.Use(middleware.LevelAccessRequired(token.Manager))
 			{
-				managerRoutes.POST("", h.Create)       // POST /catalogue
-				managerRoutes.PUT("/:id", h.Update)    // PUT /catalogue/:id
-				managerRoutes.DELETE("/:id", h.Delete) // DELETE /catalogue/:id
+				managerRoutes.POST("", h.Create)       // POST /catalog
+				managerRoutes.PUT("/:id", h.Update)    // PUT /catalog/:id
+				managerRoutes.DELETE("/:id", h.Delete) // DELETE /catalog/:id
 			}
 		}
 	}
 }
 
-// Create adds a new catalogue
-// @Summary      Create a catalogue
-// @Description  Creates a new catalogue in the system
-// @Tags         catalogue
+// Create adds a new catalog
+// @Summary      Create a catalog
+// @Description  Creates a new catalog in the system
+// @Tags         catalog
 // @Accept       json
 // @Produce      json
-// @Param        body body      CatalogueUpdate true "Catalogue payload"
-// @Success      201  {object}  Catalogue
+// @Param        body body      catalogUpdate true "catalog payload"
+// @Success      201  {object}  catalog
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Router       /catalogue [post]
+// @Router       /catalog [post]
 func (h *Handler) Create(c *gin.Context) {
-	var input CatalogueUpdate
+	var input catalogUpdate
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	catalogue, err := h.service.Create(c.Request.Context(), input)
+	catalog, err := h.service.Create(c.Request.Context(), input)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, catalogue)
+	c.JSON(http.StatusCreated, catalog)
 }
 
-// GetAll retrieves the list of all catalogues
-// @Summary      List catalogues
-// @Description  Retrieves the complete list of catalogues
-// @Tags         catalogue
+// GetAll retrieves the list of all catalogs
+// @Summary      List catalogs
+// @Description  Retrieves the complete list of catalogs
+// @Tags         catalog
 // @Produce      json
-// @Success      200  {array}   Catalogue
+// @Success      200  {array}   catalog
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Router       /catalogue [get]
+// @Router       /catalog [get]
 func (h *Handler) GetAll(c *gin.Context) {
-	catalogues, err := h.service.GetAll(c.Request.Context())
+	catalogs, err := h.service.GetAll(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, catalogues)
+	c.JSON(http.StatusOK, catalogs)
 }
 
-// GetByID retrieves a catalogue by its ID
-// @Summary      Retrieve a catalogue
-// @Description  Retrieves the details of a catalogue using its ID
-// @Tags         catalogue
+// GetByID retrieves a catalog by its ID
+// @Summary      Retrieve a catalog
+// @Description  Retrieves the details of a catalog using its ID
+// @Tags         catalog
 // @Produce      json
-// @Param        id   path      int  true  "Catalogue ID"
-// @Success      200  {object}  Catalogue
+// @Param        id   path      int  true  "catalog ID"
+// @Success      200  {object}  catalog
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
-// @Router       /catalogue/{id} [get]
+// @Router       /catalog/{id} [get]
 func (h *Handler) GetByID(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	catalogue, err := h.service.GetByID(c.Request.Context(), id)
+	catalog, err := h.service.GetByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "catalogue not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "catalog not found"})
 		return
 	}
-	c.JSON(http.StatusOK, catalogue)
+	c.JSON(http.StatusOK, catalog)
 }
 
-// Update modifies an existing catalogue
-// @Summary      Update a catalogue
-// @Description  Modifies the information of an existing catalogue via its ID
-// @Tags         catalogue
+// Update modifies an existing catalog
+// @Summary      Update a catalog
+// @Description  Modifies the information of an existing catalog via its ID
+// @Tags         catalog
 // @Accept       json
 // @Produce      json
-// @Param        id   path      int             true "Catalogue ID"
-// @Param        body body      CatalogueUpdate true "Catalogue update payload"
-// @Success      200  {object}  Catalogue
+// @Param        id   path      int             true "catalog ID"
+// @Param        body body      catalogUpdate true "catalog update payload"
+// @Success      200  {object}  catalog
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Router       /catalogue/{id} [put]
+// @Router       /catalog/{id} [put]
 func (h *Handler) Update(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	var input CatalogueUpdate
+	var input catalogUpdate
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	catalogue, err := h.service.Update(c.Request.Context(), id, input)
+	catalog, err := h.service.Update(c.Request.Context(), id, input)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, catalogue)
+	c.JSON(http.StatusOK, catalog)
 }
 
-// Delete removes a catalogue
-// @Summary      Delete a catalogue
-// @Description  Deletes a catalogue from the system via its ID
-// @Tags         catalogue
+// Delete removes a catalog
+// @Summary      Delete a catalog
+// @Description  Deletes a catalog from the system via its ID
+// @Tags         catalog
 // @Produce      json
-// @Param        id   path      int  true  "Catalogue ID"
+// @Param        id   path      int  true  "catalog ID"
 // @Success      204  {object}  nil
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Router       /catalogue/{id} [delete]
+// @Router       /catalog/{id} [delete]
 func (h *Handler) Delete(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {

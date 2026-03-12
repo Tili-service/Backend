@@ -4,7 +4,7 @@ import (
 	"log"
 
 	_ "tili/app/docs"
-	"tili/app/internal/catalogue"
+	"tili/app/internal/catalog"
 	"tili/app/internal/categorie"
 	"tili/app/internal/item"
 	"tili/app/internal/license"
@@ -36,9 +36,9 @@ func main() {
 	licenseService := license.NewService(licenseRepo, userService, storeService)
 	licenseHandler := license.NewHandler(licenseService)
 
-	catalogueRepo := catalogue.NewRepository(db)
-	catalogueService := catalogue.NewService(catalogueRepo)
-	catalogueHandler := catalogue.NewHandler(catalogueService)
+	catalogRepo := catalog.NewRepository(db)
+	catalogService := catalog.NewService(catalogRepo)
+	catalogHandler := catalog.NewHandler(catalogService)
 
 	itemRepo := item.NewRepository(db)
 	itemService := item.NewService(itemRepo)
@@ -53,7 +53,7 @@ func main() {
 	userHandler.RegisterRoutes(r)
 	storeHandler.RegisterRoutes(r)
 	licenseHandler.RegisterRoutes(r)
-	catalogueHandler.RegisterRoutes(r)
+	catalogHandler.RegisterRoutes(r)
 	itemHandler.RegisterRoutes(r)
 	categorieHandler.RegisterRoutes(r)
 

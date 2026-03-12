@@ -225,17 +225,17 @@ func (h *Handler) login(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /users/me [get]
 func (h *Handler) me(c *gin.Context) {
-    userID, exists := c.Get("userID")
-    if !exists {
-        c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-        return
-    }
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
 
-    id, ok := userID.(int)
-    if !ok {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user id"})
-        return
-    }
+	id, ok := userID.(int)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user id"})
+		return
+	}
 	u, err := h.service.GetByID(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user"})

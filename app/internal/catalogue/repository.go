@@ -29,7 +29,7 @@ func (r *Repository) FindAll(ctx context.Context) ([]Catalogue, error) {
 	return catalogues, err
 }
 
-//find by Id
+// find by Id
 func (r *Repository) FindByID(ctx context.Context, id int) (*Catalogue, error) {
 	c := new(Catalogue)
 	err := r.db.NewSelect().Model(c).Where("c.catalogue_id = ?", id).Scan(ctx)
@@ -54,23 +54,22 @@ func (r *Repository) DeleteByName(ctx context.Context, name string) error {
 	return err
 }
 
-
 // Update - Name or Descripton
 func (r *Repository) Update(ctx context.Context, id int, input CatalogueUpdate) (*Catalogue, error) {
 	catalogue := &Catalogue{}
-    err := r.db.NewSelect().Model(catalogue).Where("c.catalogue_id = ?", id).Scan(ctx)
-    if err != nil {
-        return nil, err
-    }
-    if input.Name != nil {
-        catalogue.Name = *input.Name
-    }
-    if input.Description != nil {
-        catalogue.Description = *input.Description
-    }
-    _, err = r.db.NewUpdate().Model(catalogue).WherePK().Exec(ctx)
-    if err != nil {
-        return nil, err
-    }
-    return catalogue, nil
+	err := r.db.NewSelect().Model(catalogue).Where("c.catalogue_id = ?", id).Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if input.Name != nil {
+		catalogue.Name = *input.Name
+	}
+	if input.Description != nil {
+		catalogue.Description = *input.Description
+	}
+	_, err = r.db.NewUpdate().Model(catalogue).WherePK().Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return catalogue, nil
 }

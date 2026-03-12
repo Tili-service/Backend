@@ -1,6 +1,5 @@
 package catalogue
 
-
 import (
 	"context"
 	"errors"
@@ -15,11 +14,11 @@ func NewService(repo *Repository) *Service {
 }
 
 func (s *Service) Create(ctx context.Context, input CatalogueUpdate) (*Catalogue, error) {
-	if (input.Name == nil || *input.Name == "") {
+	if input.Name == nil || *input.Name == "" {
 		return nil, errors.New("name is required")
 	}
 	c := &Catalogue{
-		Name: *input.Name,
+		Name:        *input.Name,
 		Description: *input.Description,
 	}
 	if err := s.repo.Create(ctx, c); err != nil {
@@ -29,23 +28,23 @@ func (s *Service) Create(ctx context.Context, input CatalogueUpdate) (*Catalogue
 }
 
 func (s *Service) Update(ctx context.Context, id int, input CatalogueUpdate) (*Catalogue, error) {
-	if ((input.Name == nil || *input.Name == "") && (input.Description == nil || *input.Description == "")) {
+	if (input.Name == nil || *input.Name == "") && (input.Description == nil || *input.Description == "") {
 		return nil, errors.New("at least one field is required")
 	}
 	c, err := s.repo.FindByID(ctx, id)
-	if (err != nil) {
+	if err != nil {
 		return nil, errors.New("catalogue not found")
 	}
 	c, err = s.repo.Update(ctx, id, input)
-	if (err != nil) {
+	if err != nil {
 		return nil, err
 	}
 	return c, nil
 }
 
-func (s *Service) Delete(ctx context.Context, id int)  error {
+func (s *Service) Delete(ctx context.Context, id int) error {
 	_, err := s.repo.FindByID(ctx, id)
-	if (err != nil) {
+	if err != nil {
 		return errors.New("catalogue not found")
 	}
 	return s.repo.DeleteByID(ctx, id)
@@ -57,7 +56,7 @@ func (s *Service) GetAll(ctx context.Context) ([]Catalogue, error) {
 
 func (s *Service) GetByID(ctx context.Context, id int) (*Catalogue, error) {
 	c, err := s.repo.FindByID(ctx, id)
-	if (err != nil) {
+	if err != nil {
 		return nil, errors.New("catalogue not found")
 	}
 	return c, nil

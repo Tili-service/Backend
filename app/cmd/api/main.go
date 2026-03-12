@@ -5,8 +5,8 @@ import (
 
 	_ "tili/app/docs"
 	"tili/app/internal/catalogue"
-	"tili/app/internal/item"
 	"tili/app/internal/categorie"
+	"tili/app/internal/item"
 	"tili/app/internal/license"
 	"tili/app/internal/store"
 	"tili/app/internal/user"

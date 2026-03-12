@@ -24,9 +24,9 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 		protected := itemRoutes.Group("")
 		protected.Use(middleware.AuthMiddleware())
 		{
-			protected.GET("", h.GetAll)               // GET /item
-			protected.GET("/name/:name", h.GetByName) // GET /item/name/:name — must be before /:id
-			protected.GET("/:id", h.GetByID)          // GET /item/:id
+			protected.GET("", h.GetAll)                         // GET /item
+			protected.GET("/name/:name", h.GetByName)           // GET /item/name/:name — must be before /:id
+			protected.GET("/:id", h.GetByID)                    // GET /item/:id
 			protected.GET("/categorie/:id", h.GetByCategorieID) // GET /item/categorie/:id
 
 			managerRoutes := protected.Group("")

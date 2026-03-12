@@ -24,8 +24,8 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 		protected := catalogueRoutes.Group("")
 		protected.Use(middleware.AuthMiddleware())
 		{
-			protected.GET("", h.GetAll)        // GET /catalogue
-			protected.GET("/:id", h.GetByID)   // GET /catalogue/:id
+			protected.GET("", h.GetAll)      // GET /catalogue
+			protected.GET("/:id", h.GetByID) // GET /catalogue/:id
 
 			managerRoutes := protected.Group("")
 			managerRoutes.Use(middleware.LevelAccessRequired(token.Manager))

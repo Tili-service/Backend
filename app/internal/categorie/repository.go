@@ -57,7 +57,7 @@ func (r *Repository) DeleteById(ctx context.Context, id int) error {
 	cat := &Categorie{}
 	err := r.db.NewSelect().Model(cat).Where("cat.categorie_id = ?", id).Scan(ctx)
 	if err != nil {
-		return  err
+		return err
 	}
 	_, er := r.db.NewDelete().Model(cat).Where("cat.categorie_id = ?", id).Exec(ctx)
 	return er
@@ -67,7 +67,7 @@ func (r *Repository) DeleteByType(ctx context.Context, typ string) error {
 	cat := &Categorie{}
 	err := r.db.NewSelect().Model(cat).Where("cat.type = ?", typ).Scan(ctx)
 	if err != nil {
-		return  err
+		return err
 	}
 	_, er := r.db.NewDelete().Model(cat).Where("cat.type = ?", typ).Exec(ctx)
 	return er

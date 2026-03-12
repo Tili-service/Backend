@@ -54,3 +54,8 @@ func (r *Repository) PinExistsInStore(ctx context.Context, storeID int, pin stri
 		Exists(ctx)
 	return exists, err
 }
+
+func (r *Repository) Update(ctx context.Context, p *Profile) error {
+	_, err := r.db.NewUpdate().Model(p).Where("profile_id = ?", p.ProfileID).Exec(ctx)
+	return err
+}

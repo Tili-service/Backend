@@ -6,7 +6,7 @@ files=(
     "account.sql"
     "categories.sql"
     "image.sql"
-    "catalogue.sql"
+    "catalog.sql"
     "item.sql"
     "payment.sql"
     "sales.sql"

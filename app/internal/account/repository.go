@@ -43,3 +43,11 @@ func (r *Repository) Delete(ctx context.Context, id int) error {
 	_, err := r.db.NewDelete().Model(&Account{}).Where("account_id = ?", id).Exec(ctx)
 	return err
 }
+
+func (r *Repository) Update(ctx context.Context, a *Account) (*Account, error) {
+	_, err := r.db.NewUpdate().Model(a).Where("account_id = ?", a.AccountID).Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return a, nil
+}

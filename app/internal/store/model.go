@@ -28,8 +28,8 @@ type CreateStoreInput struct {
 }
 
 type UpdateStoreInput struct {
-	Name      *string    `json:"name,omitempty"`
-	BuyerID   int       `json:"buyer_id"`
-	NumeroTVA *string    `json:"numero_tva,omitempty"`
-	Siret     *string    `json:"siret,omitempty"`
+	Name      *string `json:"name,omitempty"`
+	BuyerID   int     `json:"buyer_id"`
+	NumeroTVA *string `json:"numero_tva,omitempty"`
+	Siret     *string `json:"siret,omitempty"`
 }

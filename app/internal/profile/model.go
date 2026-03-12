@@ -37,7 +37,7 @@ type PinLoginInput struct {
 
 type updateProfileInput struct {
 	Name        *string `json:"name,omitempty"`
-	Pin 	    *string `json:"pin,omitempty"`
+	Pin         *string `json:"pin,omitempty"`
 	LevelAccess *int    `json:"level_access,omitempty"`
 	IsActive    *bool   `json:"is_active,omitempty"`
 }

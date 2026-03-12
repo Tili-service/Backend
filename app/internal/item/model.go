@@ -18,5 +18,12 @@ type Item struct {
 	Tax_amount decimal.Decimal `bun:"tax_amount,notnull,type:decimal(10,2)" json:"tax_amount"`
 
 	CategorieID int        `bun:"categorie_id,notnull"   json:"categorie_id"`
-    Categorie   *categorie.Categorie `bun:"rel:belongs-to,join:categorie_id=categorie_id" json:"categorie,omitempty" swaggerignore:"true"`
+    Categorie   *categorie.Categorie `bun:"rel:belongs-to,join:categorie_id=categorie_id" json:"categorie,omitempty"`
+}
+
+type ItemUpdate struct {
+	Name *string `json:"name"`
+	Price *decimal.Decimal  `json:"price"`
+	Tax *decimal.Decimal `json:"tax"`
+	CategorieID *int        `json:"categorie_id"`
 }

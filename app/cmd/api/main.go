@@ -19,9 +19,7 @@ import (
 )
 
 // @title           Tili API
-// @version         1.0
-// @host            localhost:8080
-// @basePath        /
+// @version         0.1
 
 // @securityDefinitions.apikey AccountToken
 // @in header
@@ -50,7 +48,6 @@ func main() {
 	accountRepo := account.NewRepository(db)
 	accountService := account.NewService(accountRepo, storeService, profileService, licenseService)
 	accountHandler := account.NewHandler(accountService)
-
 
 	catalogRepo := catalog.NewRepository(db)
 	catalogService := catalog.NewService(catalogRepo)

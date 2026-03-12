@@ -70,7 +70,7 @@ func (h *Handler) Create(c *gin.Context) {
 // @Description  Retrieves the complete list of catalogs
 // @Tags         catalog
 // @Produce      json
- // @Security     ProfileToken
+// @Security     ProfileToken
 // @Success      200  {array}   catalog
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
@@ -89,7 +89,7 @@ func (h *Handler) GetAll(c *gin.Context) {
 // @Description  Retrieves the details of a catalog using its ID
 // @Tags         catalog
 // @Produce      json
- // @Security     ProfileToken
+// @Security     ProfileToken
 // @Param        id   path      int  true  "catalog ID"
 // @Success      200  {object}  catalog
 // @Failure      400  {object}  map[string]interface{}

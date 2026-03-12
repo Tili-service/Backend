@@ -9,7 +9,7 @@ import (
 type Account struct {
 	bun.BaseModel `bun:"table:account,alias:a" swaggerignore:"true"`
 
-	AccountID int     `bun:"account_id,pk,autoincrement"          json:"account_id"`
+	AccountID int       `bun:"account_id,pk,autoincrement"          json:"account_id"`
 	Email     string    `bun:"email,unique,notnull"                 json:"email"`
 	Password  string    `bun:"password,notnull"                     json:"-"`
 	Name      string    `bun:"name,notnull"                         json:"name"`

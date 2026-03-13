@@ -100,3 +100,29 @@ func (s *Service) LoginWithPin(ctx context.Context, storeID int, pin string) (*P
 	}
 	return p, nil
 }
+
+func (s *Service) Update(ctx context.Context, id int, input updateProfileInput) (*Profile, error) {
+	profile, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, errors.New("profile not found")
+	}
+
+	if input.Name != nil {
+		profile.Name = *input.Name
+	}
+	if input.Pin != nil {
+		profile.Pin = *input.Pin
+	}
+	if input.LevelAccess != nil {
+		profile.LevelAccess = *input.LevelAccess
+	}
+	if input.IsActive != nil {
+		profile.IsActive = *input.IsActive
+	}
+
+	err = s.repo.Update(ctx, profile)
+	if err != nil {
+		return nil, errors.New("failed to update profile")
+	}
+	return profile, nil
+}

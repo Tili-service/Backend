@@ -34,3 +34,10 @@ type PinLoginInput struct {
 	StoreID int    `json:"store_id" binding:"required"`
 	Pin     string `json:"pin"      binding:"required"`
 }
+
+type updateProfileInput struct {
+	Name        *string `json:"name,omitempty"`
+	Pin         *string `json:"pin,omitempty"`
+	LevelAccess *int    `json:"level_access,omitempty"`
+	IsActive    *bool   `json:"is_active,omitempty"`
+}

@@ -21,3 +21,8 @@ type CreateLicenceInput struct {
 	DurationDays int    `json:"duration_days" binding:"required,min=1"`
 	Transaction  string `json:"transaction"`
 }
+
+type UpdateLicenceInput struct {
+	Transaction *string `json:"transaction,omitempty"`
+	IsActive    *bool   `json:"is_active,omitempty"`
+}

@@ -53,6 +53,10 @@ func (h *Handler) GetLicences(c *gin.Context) {
 	c.JSON(http.StatusOK, licences)
 }
 
+type PaymentLinkResponse struct {
+	URL string `json:"url"`
+}
+
 // CreatePaymentLink creates a new payment link to buy a licence for the current account
 // @Summary      Create a payment link
 // @Description  Creates a new payment link for the authenticated account.
@@ -61,7 +65,7 @@ func (h *Handler) GetLicences(c *gin.Context) {
 // @Produce      json
 // @Security     AccountToken
 // @Param        body body      CreatePaymentLinkInput true "Payment link creation payload"
-// @Success      201  {object}  Licence
+// @Success      201  {object}  PaymentLinkResponse
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /licences/payment [post]
@@ -75,13 +79,13 @@ func (h *Handler) CreatePaymentLink(c *gin.Context) {
 		return
 	}
 
-	lic, err := h.service.CreatePaymentLink(c.Request.Context(), accountID, customerID, input)
+	url, err := h.service.CreatePaymentLink(c.Request.Context(), accountID, customerID, input)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, lic)
+	c.JSON(http.StatusCreated, PaymentLinkResponse{URL: url})
 }
 
 // HandleStripeWebhook processes incoming Stripe webhook events, specifically handling completed checkout sessions to create licences.

@@ -74,9 +74,8 @@ func (h *Handler) CreateStore(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	input.BuyerID = accountID
 
-	st, err := h.service.Create(c.Request.Context(), input)
+	st, err := h.service.Create(c.Request.Context(), input, accountID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

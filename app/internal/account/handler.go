@@ -83,7 +83,7 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	accountToken, err := token.CreateAccountToken(acc.AccountID, acc.Name, acc.Email)
+	accountToken, err := token.CreateAccountToken(acc.AccountID, acc.Name, acc.Email, acc.StripeCustomerID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create token"})
 		return

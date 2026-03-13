@@ -119,6 +119,20 @@ func (s *Service) FullDelete(ctx context.Context, id int) error {
 	return nil
 }
 
+func (s *Service) Update(ctx context.Context, id int, input UpdateAccountInput) (*Account, error) {
+	acc, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, errors.New("account not found")
+	}
+	if input.Name != nil {
+		acc.Name = *input.Name
+	}
+	if input.Email != nil {
+		acc.Email = *input.Email
+	}
+	return s.repo.Update(ctx, acc)
+}
+
 func (s *Service) GetByID(ctx context.Context, id int) (*Account, error) {
 	return s.repo.FindByID(ctx, id)
 }

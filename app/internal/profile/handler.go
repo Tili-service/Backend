@@ -31,7 +31,8 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 			managerRoutes := protected.Group("")
 			managerRoutes.Use(middleware.LevelAccessRequired(token.Manager))
 			{
-				managerRoutes.POST("", h.Create) // POST /profile
+				managerRoutes.POST("", h.Create)    // POST /profile
+				managerRoutes.PUT("/:id", h.Update) // PUT /profile/:id
 			}
 
 			adminRoutes := protected.Group("")
@@ -148,4 +149,38 @@ func (h *Handler) Delete(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusNoContent)
+}
+
+// Update modifies an existing profile
+// @Summary      Update a profile
+// @Description  Updates profile fields (name, PIN, level access, active status). Requires manager+ access.
+// @Tags         profile
+// @Accept       json
+// @Produce      json
+// @Security     ProfileToken
+// @Param        id   path      int                true  "Profile ID"
+// @Param        body body      updateProfileInput true  "Profile update payload"
+// @Success      200  {object}  Profile
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      404  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /profile/{id} [put]
+func (h *Handler) Update(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	var input updateProfileInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	p, err := h.service.Update(c.Request.Context(), id, input)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, p)
 }

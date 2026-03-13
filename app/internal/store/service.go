@@ -46,3 +46,22 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 	}
 	return s.repo.Delete(ctx, id)
 }
+
+func (s *Service) Update(ctx context.Context, id int, input UpdateStoreInput) (*Store, error) {
+	store, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if input.Name != nil {
+		store.Name = *input.Name
+	}
+	if input.NumeroTVA != nil {
+		store.NumeroTVA = *input.NumeroTVA
+	}
+	if input.Siret != nil {
+		store.Siret = *input.Siret
+	}
+
+	return s.repo.Update(ctx, store)
+}

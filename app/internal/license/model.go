@@ -28,3 +28,8 @@ type CreateLicenceInput struct {
 type CreatePaymentLinkInput struct {
 	Offer string `json:"offer" binding:"required"`
 }
+
+type UpdateLicenceInput struct {
+	Transaction *string `json:"transaction,omitempty"`
+	IsActive    *bool   `json:"is_active,omitempty"`
+}

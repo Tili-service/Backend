@@ -28,6 +28,7 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 		{
 			protected.GET("", h.GetAccount) // GET /account
 			protected.DELETE("", h.Delete)  // DELETE /account
+			protected.PUT("", h.Update)     // PUT /account
 		}
 	}
 }
@@ -146,4 +147,37 @@ func (h *Handler) Delete(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusNoContent, nil)
+}
+
+// Update modifies the current account information
+// @Summary      Update account
+// @Description  Updates the name and/or email of the currently authenticated account.
+// @Tags         account
+// @Accept       json
+// @Produce      json
+// @Security     AccountToken
+// @Param        body body      UpdateAccountInput true "Account update payload"
+// @Success      200  {object}  Account
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      404  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /account [put]
+func (h *Handler) Update(c *gin.Context) {
+	accountID := c.GetInt("accountID")
+	var input UpdateAccountInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	acc, err := h.service.Update(c.Request.Context(), accountID, input)
+	if err != nil {
+		switch err.Error() {
+		case "account not found":
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
+	c.JSON(http.StatusOK, acc)
 }

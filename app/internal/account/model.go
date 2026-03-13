@@ -9,12 +9,12 @@ import (
 type Account struct {
 	bun.BaseModel `bun:"table:account,alias:a" swaggerignore:"true"`
 
-	AccountID int       `bun:"account_id,pk,autoincrement"          json:"account_id"`
-	Email     string    `bun:"email,unique,notnull"                 json:"email"`
-	Password  string    `bun:"password,notnull"                     json:"-"`
-	Name      string    `bun:"name,notnull"                         json:"name"`
-	StripeCustomerID string `bun:"stripe_customer_id"                   json:"stripe_customer_id,omitempty"`
-	CreatedAt time.Time `bun:"created_at,default:current_timestamp" json:"created_at"`
+	AccountID        int       `bun:"account_id,pk,autoincrement"          json:"account_id"`
+	Email            string    `bun:"email,unique,notnull"                 json:"email"`
+	Password         string    `bun:"password,notnull"                     json:"-"`
+	Name             string    `bun:"name,notnull"                         json:"name"`
+	StripeCustomerID string    `bun:"stripe_customer_id"                   json:"stripe_customer_id,omitempty"`
+	CreatedAt        time.Time `bun:"created_at,default:current_timestamp" json:"created_at"`
 }
 
 type RegistrationInput struct {

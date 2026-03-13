@@ -25,6 +25,7 @@ func AccountAuthMiddleware() gin.HandlerFunc {
 		}
 
 		c.Set("accountID", claims.AccountID)
+		c.Set("customerID", claims.CustomerID)
 		c.Set("name", claims.Name)
 		c.Set("email", claims.Email)
 		c.Next()

@@ -52,7 +52,7 @@ func (s *Service) Create(ctx context.Context, input RegistrationInput) (*Account
 
 	c, err := customer.New(params)
 	if err != nil {
-		return nil, fmt.Errorf("erreur lors de la création du client Stripe: %v", err)
+		return nil, fmt.Errorf("erreur lors de la création du client Stripe: %w", err)
 	}
 	acc := &Account{
 		Email:            input.Email,

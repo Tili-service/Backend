@@ -23,5 +23,5 @@ type CreateLicenceInput struct {
 }
 
 type CreatePaymentLinkInput struct {
-	Offer string `json:"offer"`
+	Offer string `json:"offer" binding:"required"`
 }

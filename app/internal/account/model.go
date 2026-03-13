@@ -13,7 +13,7 @@ type Account struct {
 	Email            string    `bun:"email,unique,notnull"                 json:"email"`
 	Password         string    `bun:"password,notnull"                     json:"-"`
 	Name             string    `bun:"name,notnull"                         json:"name"`
-	StripeCustomerID string    `bun:"stripe_customer_id"                   json:"stripe_customer_id,omitempty"`
+	StripeCustomerID string    `bun:"stripe_customer_id"                   json:"-"`
 	CreatedAt        time.Time `bun:"created_at,default:current_timestamp" json:"created_at"`
 }
 

@@ -75,11 +75,26 @@ func ValidateAccountToken(tokenString string) (AccountClaims, error) {
 		return AccountClaims{}, fmt.Errorf("accountID not found in token")
 	}
 
+	name, ok := (*claims)["name"].(string)
+	if !ok {
+		return AccountClaims{}, fmt.Errorf("name not found or invalid in token")
+	}
+	email, ok := (*claims)["email"].(string)
+	if !ok {
+		return AccountClaims{}, fmt.Errorf("email not found or invalid in token")
+	}
+	customerID := ""
+	if rawCustomerID, exists := (*claims)["customerID"]; exists {
+		if cid, ok := rawCustomerID.(string); ok {
+			customerID = cid
+		}
+	}
+
 	return AccountClaims{
 		AccountID:  int(accountID),
-		Name:       (*claims)["name"].(string),
-		Email:      (*claims)["email"].(string),
-		CustomerID: (*claims)["customerID"].(string),
+		Name:       name,
+		Email:      email,
+		CustomerID: customerID,
 	}, nil
 }
 

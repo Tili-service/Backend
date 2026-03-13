@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"sync"
 
 	"tili/app/internal/middleware"
 
@@ -16,7 +17,9 @@ import (
 )
 
 type Handler struct {
-	service *Service
+	service               *Service
+	mu                    sync.Mutex
+	processedTransactions map[string]struct{}
 }
 
 func NewHandler(service *Service) *Handler {
@@ -125,10 +128,34 @@ func (h *Handler) HandleStripeWebhook(c *gin.Context) {
 			return
 		}
 
-		accountIDStr := session.Metadata["account_id"]
-		offer := session.Metadata["offer"]
+		h.mu.Lock()
+		if h.processedTransactions == nil {
+			h.processedTransactions = make(map[string]struct{})
+		}
+		if _, exists := h.processedTransactions[session.ID]; exists {
+			h.mu.Unlock()
+			c.Status(http.StatusOK)
+			return
+		}
+		h.processedTransactions[session.ID] = struct{}{}
+		h.mu.Unlock()
 
+		accountIDStr, ok := session.Metadata["account_id"]
+		if !ok || accountIDStr == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Metadata account_id manquante ou invalide"})
+			return
+		}
 		accountID, _ := strconv.Atoi(accountIDStr)
+		accountID, errConv := strconv.Atoi(accountIDStr)
+		if errConv != nil || accountID <= 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Metadata account_id invalide"})
+			return
+		}
+		offer, ok := session.Metadata["offer"]
+		if !ok || offer == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Metadata offer manquante ou invalide"})
+			return
+		}
 
 		var durationDays int
 		switch offer {
@@ -138,6 +165,9 @@ func (h *Handler) HandleStripeWebhook(c *gin.Context) {
 			durationDays = 182
 		case "annuel":
 			durationDays = 365
+		default:
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Offre invalide"})
+			return
 		}
 
 		input := CreateLicenceInput{
@@ -147,7 +177,7 @@ func (h *Handler) HandleStripeWebhook(c *gin.Context) {
 
 		_, err = h.service.Create(c.Request.Context(), accountID, input)
 		if err != nil {
-			fmt.Printf("Erreur création licence: %v\n", err)
+			fmt.Printf("Erreur création licence: %w\n", err)
 		} else {
 			fmt.Printf("✅ Licence créée avec succès pour le compte %d\n", accountID)
 		}

@@ -12,8 +12,7 @@ import (
 )
 
 type Service struct {
-	repo    *Repository
-	session *stripe.Client
+	repo *Repository
 }
 
 func NewService(repo *Repository) *Service {
@@ -84,7 +83,7 @@ func (s *Service) CreatePaymentLink(ctx context.Context, accountID int, customer
 
 	sess, err := session.New(params)
 	if err != nil {
-		return "", fmt.Errorf("erreur stripe: %v", err)
+		return "", fmt.Errorf("erreur stripe: %w", err)
 	}
 
 	return sess.URL, nil

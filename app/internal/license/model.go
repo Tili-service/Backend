@@ -21,3 +21,7 @@ type CreateLicenceInput struct {
 	DurationDays int    `json:"duration_days" binding:"required,min=1"`
 	Transaction  string `json:"transaction"`
 }
+
+type CreatePaymentLinkInput struct {
+	Offer string `json:"offer"`
+}

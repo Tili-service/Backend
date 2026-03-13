@@ -1,11 +1,18 @@
 package license
 
 import (
+	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"strconv"
 
 	"tili/app/internal/middleware"
 
 	"github.com/gin-gonic/gin"
+	"github.com/stripe/stripe-go/v84"
+	"github.com/stripe/stripe-go/v84/webhook"
 )
 
 type Handler struct {
@@ -21,8 +28,9 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 	accountRoutes.Use(middleware.AccountAuthMiddleware())
 	{
 		accountRoutes.GET("", h.GetLicences)
-		accountRoutes.POST("", h.CreateLicence)
+		accountRoutes.POST("payment", h.CreatePaymentLink)
 	}
+	router.POST("/api/webhooks/stripe", h.HandleStripeWebhook)
 }
 
 // GetLicences retrieves all licences for the current account
@@ -45,32 +53,100 @@ func (h *Handler) GetLicences(c *gin.Context) {
 	c.JSON(http.StatusOK, licences)
 }
 
-// CreateLicence creates a new licence for the current account
-// @Summary      Buy a licence
-// @Description  Creates a new licence for the authenticated account. The licence_id can then be used when creating a store.
+// CreatePaymentLink creates a new payment link to buy a licence for the current account
+// @Summary      Create a payment link
+// @Description  Creates a new payment link for the authenticated account.
 // @Tags         licence
 // @Accept       json
 // @Produce      json
 // @Security     AccountToken
-// @Param        body body      CreateLicenceInput true "Licence creation payload"
+// @Param        body body      CreatePaymentLinkInput true "Payment link creation payload"
 // @Success      201  {object}  Licence
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Router       /licences [post]
-func (h *Handler) CreateLicence(c *gin.Context) {
+// @Router       /licences/payment [post]
+func (h *Handler) CreatePaymentLink(c *gin.Context) {
 	accountID := c.GetInt("accountID")
+	customerID := c.GetString("customerID")
 
-	var input CreateLicenceInput
+	var input CreatePaymentLinkInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	lic, err := h.service.Create(c.Request.Context(), accountID, input)
+	lic, err := h.service.CreatePaymentLink(c.Request.Context(), accountID, customerID, input)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusCreated, lic)
+}
+
+// HandleStripeWebhook processes incoming Stripe webhook events, specifically handling completed checkout sessions to create licences.
+// @Summary      Handle Stripe webhook
+// @Description  Endpoint to receive and process Stripe webhook events, creating licences upon successful checkout sessions.
+// @Tags         licence
+// @Accept       json
+// @Produce      json
+// @Param        body body      string true "Raw Stripe webhook payload"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      503  {object}  map[string]interface{}
+// @Router       /api/webhooks/stripe [post]
+func (h *Handler) HandleStripeWebhook(c *gin.Context) {
+	const MaxBodyBytes = int64(65536)
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxBodyBytes)
+	payload, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Erreur de lecture"})
+		return
+	}
+
+	sigHeader := c.GetHeader("Stripe-Signature")
+	endpointSecret := os.Getenv("STRIPE_WEBHOOK_SECRET")
+
+	event, err := webhook.ConstructEvent(payload, sigHeader, endpointSecret)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Signature invalide"})
+		return
+	}
+
+	if event.Type == "checkout.session.completed" {
+		var session stripe.CheckoutSession
+		err := json.Unmarshal(event.Data.Raw, &session)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Erreur parsing JSON"})
+			return
+		}
+
+		accountIDStr := session.Metadata["account_id"]
+		offer := session.Metadata["offer"]
+
+		accountID, _ := strconv.Atoi(accountIDStr)
+
+		var durationDays int
+		switch offer {
+		case "mensuel":
+			durationDays = 30
+		case "semestriel":
+			durationDays = 182
+		case "annuel":
+			durationDays = 365
+		}
+
+		input := CreateLicenceInput{
+			DurationDays: durationDays,
+			Transaction:  session.ID,
+		}
+
+		_, err = h.service.Create(c.Request.Context(), accountID, input)
+		if err != nil {
+			fmt.Printf("Erreur création licence: %v\n", err)
+		} else {
+			fmt.Printf("✅ Licence créée avec succès pour le compte %d\n", accountID)
+		}
+	}
+	c.Status(http.StatusOK)
 }

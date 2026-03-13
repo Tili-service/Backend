@@ -93,7 +93,7 @@ func (h *Handler) GetAll(c *gin.Context) {
 // @Tags         categorie
 // @Produce      json
 // @Security     ProfileToken
-// @Param        id   path      int  true  "Categorie ID"
+// @Param        id   path      int  true  "Categorie ID"  example(1)
 // @Success      200  {object}  Categorie
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
@@ -120,7 +120,7 @@ func (h *Handler) GetByID(c *gin.Context) {
 // @Tags         categorie
 // @Produce      json
 // @Security     ProfileToken
-// @Param        type path      string  true  "Categorie type"
+// @Param        type path      string  true  "Categorie type"  example(Electronics)
 // @Success      200  {object}  Categorie
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
@@ -141,7 +141,7 @@ func (h *Handler) GetByType(c *gin.Context) {
 // @Tags         categorie
 // @Accept       json
 // @Produce      json
-// @Param        id   path      int       true "Categorie ID"
+// @Param        id   path      int       true "Categorie ID"  example(1)
 // @Param        body body      Categorie true "Categorie update payload"
 // @Success      200  {object}  Categorie
 // @Failure      400  {object}  map[string]interface{}
@@ -176,7 +176,7 @@ func (h *Handler) Update(c *gin.Context) {
 // @Description  Deletes a categorie from the system via its ID. Requires Manager level access.
 // @Tags         categorie
 // @Produce      json
-// @Param        id   path      int  true  "Categorie ID"
+// @Param        id   path      int  true  "Categorie ID"  example(1)
 // @Success      204  {object}  nil
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
@@ -205,7 +205,7 @@ func (h *Handler) DeleteByID(c *gin.Context) {
 // @Description  Deletes a categorie from the system via its type. Requires Manager level access.
 // @Tags         categorie
 // @Produce      json
-// @Param        type path      string  true  "Categorie type"
+// @Param        type path      string  true  "Categorie type"  example(Electronics)
 // @Success      204  {object}  nil
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      403  {object}  map[string]interface{}

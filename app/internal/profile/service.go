@@ -126,3 +126,55 @@ func (s *Service) Update(ctx context.Context, id int, input updateProfileInput) 
 	}
 	return profile, nil
 }
+
+func (s *Service) GetProfilesByStoreId(ctx context.Context, storeID int) ([]*Profile, error) {
+	return s.repo.FindAllProfilesByStoreID(ctx, storeID)
+}
+
+func (s *Service) UpdateProfileByIdAndStoreId(ctx context.Context, idProfile int, storeId int, input updateProfileInput) (*Profile, error) {
+	profile, err := s.repo.FindByID(ctx, idProfile)
+	if err != nil {
+		return nil, errors.New("profile not found")
+	}
+
+	if profile.StoreID != storeId {
+		return nil, errors.New("profile does not belong to the specified store")
+	}
+
+	if input.Name != nil {
+		profile.Name = *input.Name
+	}
+	if input.Pin != nil {
+		profile.Pin = *input.Pin
+	}
+	if input.LevelAccess != nil {
+		profile.LevelAccess = *input.LevelAccess
+	}
+	if input.IsActive != nil {
+		profile.IsActive = *input.IsActive
+	}
+
+	err = s.repo.Update(ctx, profile)
+	if err != nil {
+		return nil, errors.New("failed to update profile")
+	}
+	return profile, nil
+}
+
+func (s *Service) DeactivateProfile(ctx context.Context, idProfile int, storeId int) (*Profile, error) {
+	profile, err := s.repo.FindByID(ctx, idProfile)
+	if err != nil {
+		return nil, errors.New("profile not found")
+	}
+
+	if profile.StoreID != storeId {
+		return nil, errors.New("profile does not belong to the specified store")
+	}
+	profile.IsActive = false
+
+	err = s.repo.Update(ctx, profile)
+	if err != nil {
+		return nil, errors.New("failed to deactivate profile")
+	}
+	return profile, nil
+}

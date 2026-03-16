@@ -33,6 +33,9 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 			{
 				managerRoutes.POST("", h.Create)    // POST /profile
 				managerRoutes.PUT("/:id", h.Update) // PUT /profile/:id
+				managerRoutes.GET("/allProfilesByStoreId/:id", h.GetProfilesByStoreId) // GET /profile/allProfilesByStoreId/:id
+				managerRoutes.PUT("/updateProfile/:id/:storeId", h.UpdateProfileByIdAndStoreId) // PUT /profile/updateProfile/:id/:storeId
+				managerRoutes.PUT("/deactivateProfile/:id/:storeId", h.DeactivateProfile) // PUT /profile/deactivateProfile/:id/:storeId
 			}
 
 			adminRoutes := protected.Group("")
@@ -183,4 +186,109 @@ func (h *Handler) Update(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, p)
+}
+
+// GetProfilesByStoreId retrieves all profiles for a given store ID
+// @Summary      Get profiles by store ID
+// @Description  Retrieves a list of profiles belonging to the specified store. Requires manager+ access.
+// @Tags         profile
+// @Accept       json
+// @Produce      json
+// @Security     ProfileToken
+// @Param        id   path      int  true  "Store ID"
+// @Success      200  {array}   Profile
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /profile/allProfilesByStoreId/{id} [get]
+func (h *Handler) GetProfilesByStoreId(c *gin.Context) {
+	storeId, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store ID"})
+		return
+	}
+
+	profiles, err := h.service.GetProfilesByStoreId(c.Request.Context(), storeId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, profiles)
+}
+
+// UpdateProfileByIdAndStoreId modifies an existing profile using its ID and store ID
+// @Summary      Update a profile by ID and store ID
+// @Description  Updates profile fields (name, PIN, level access, active status) for a specific store. Requires manager+ access.
+// @Tags         profile
+// @Accept       json
+// @Produce      json
+// @Security     ProfileToken
+// @Param        id      path      int                true  "Profile ID"
+// @Param        storeId path      int                true  "Store ID"
+// @Param        body    body      updateProfileInput true  "Profile update payload"
+// @Success      200     {object}  Profile
+// @Failure      400     {object}  map[string]interface{}
+// @Failure      500     {object}  map[string]interface{}
+// @Router       /profile/updateProfile/{id}/{storeId} [put]
+func (h *Handler) UpdateProfileByIdAndStoreId(c *gin.Context) {
+	idProfile, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid profile ID"})
+		return
+	}
+	storeId, err := strconv.Atoi(c.Param("storeId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store ID"})
+		return
+	}
+	var input updateProfileInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	profile, err := h.service.UpdateProfileByIdAndStoreId(c.Request.Context(), idProfile, storeId, input)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, profile)
+}
+
+// DeactivateProfile deactivates a profile by its ID and store ID
+// @Summary      Deactivate a profile
+// @Description  Sets the is_active status of a profile to false. Requires manager+ access.
+// @Tags         profile
+// @Accept       json
+// @Produce      json
+// @Security     ProfileToken
+// @Param        id      path      int  true  "Profile ID"
+// @Param        storeId path      int  true  "Store ID"
+// @Success      200     {object}  Profile
+// @Failure      400     {object}  map[string]interface{}
+// @Failure      500     {object}  map[string]interface{}
+// @Router       /profile/deactivateProfile/{id}/{storeId} [put]
+func (h *Handler) DeactivateProfile(c *gin.Context) {
+	idProfile, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid profile ID"})
+		return
+	}
+	storeId, err := strconv.Atoi(c.Param("storeId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store ID"})
+		return
+	}
+
+	input := updateProfileInput{
+		IsActive: func(b bool) *bool { return &b }(false),
+	}
+
+	profile, err := h.service.UpdateProfileByIdAndStoreId(c.Request.Context(), idProfile, storeId, input)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, profile)
 }

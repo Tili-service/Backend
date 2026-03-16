@@ -9,7 +9,6 @@ type PayementMethod struct {
 	Name             string `bun:"name,notnull"                        json:"name"               example:"Credit Card"`
 }
 
-// PayementMethodInput is the request body for creating or updating a payment method
 type PayementMethodInput struct {
 	Name string `json:"name" example:"Credit Card"`
 }

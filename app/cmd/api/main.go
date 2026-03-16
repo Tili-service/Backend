@@ -9,10 +9,9 @@ import (
 	"tili/app/internal/categorie"
 	"tili/app/internal/item"
 	"tili/app/internal/license"
+	"tili/app/internal/payementmethod"
 	"tili/app/internal/profile"
 	"tili/app/internal/store"
-	"tili/app/internal/payementmethod"
-
 
 	"tili/app/pkg/db"
 

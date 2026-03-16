@@ -84,6 +84,6 @@ func main() {
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
-	log.Println("Serveur démarré sur http://localhost:8080")
-	r.Run(":8080")
+	log.Println("Serveur démarré sur http://localhost:8000")
+	r.Run(":8000")
 }

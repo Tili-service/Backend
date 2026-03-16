@@ -12,10 +12,10 @@ func NewService(repo *Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) Create(ctx context.Context, input CreateStoreInput) (*Store, error) {
+func (s *Service) Create(ctx context.Context, input CreateStoreInput, accountID int) (*Store, error) {
 	store := &Store{
 		Name:      input.Name,
-		BuyerID:   input.BuyerID,
+		BuyerID:   accountID,
 		LicenceID: input.LicenceID,
 		NumeroTVA: input.NumeroTVA,
 		Siret:     input.Siret,

@@ -3,8 +3,12 @@ package account
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"golang.org/x/crypto/bcrypt"
+
+	"github.com/stripe/stripe-go/v84"
+	"github.com/stripe/stripe-go/v84/customer"
 
 	"tili/app/internal/profile"
 	"tili/app/internal/store"
@@ -36,10 +40,25 @@ func (s *Service) Create(ctx context.Context, input RegistrationInput) (*Account
 		return nil, err
 	}
 
+	_, err = s.repo.FindByEmail(ctx, input.Email)
+	if err == nil {
+		return nil, errors.New("email already exists")
+	}
+
+	params := &stripe.CustomerParams{
+		Name:  stripe.String(input.Name),
+		Email: stripe.String(input.Email),
+	}
+
+	c, err := customer.New(params)
+	if err != nil {
+		return nil, fmt.Errorf("erreur lors de la création du client Stripe: %w", err)
+	}
 	acc := &Account{
-		Email:    input.Email,
-		Password: string(hashed),
-		Name:     input.Name,
+		Email:            input.Email,
+		Password:         string(hashed),
+		Name:             input.Name,
+		StripeCustomerID: c.ID,
 	}
 	if err := s.repo.Create(ctx, acc); err != nil {
 		return nil, err

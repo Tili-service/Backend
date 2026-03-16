@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	_ "tili/app/docs"
 	"tili/app/internal/account"
@@ -16,6 +17,8 @@ import (
 	"tili/app/pkg/db"
 
 	"github.com/gin-gonic/gin"
+	"github.com/stripe/stripe-go/v84"
+
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -34,6 +37,7 @@ import (
 // @description JWT obtenu après login profil avec PIN (POST /profile/login/pin)
 func main() {
 	db := db.NewDb()
+	stripe.Key = os.Getenv("STRIPE_API_KEY")
 
 	profileRepo := profile.NewRepository(db)
 	profileService := profile.NewService(profileRepo)

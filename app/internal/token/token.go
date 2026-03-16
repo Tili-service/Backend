@@ -21,9 +21,10 @@ const (
 )
 
 type AccountClaims struct {
-	AccountID int
-	Name      string
-	Email     string
+	AccountID  int
+	Name       string
+	Email      string
+	CustomerID string
 }
 
 type ProfileClaims struct {
@@ -33,14 +34,15 @@ type ProfileClaims struct {
 	StoreID     int
 }
 
-func CreateAccountToken(accountID int, name, email string) (string, error) {
+func CreateAccountToken(accountID int, name, email string, customerID string) (string, error) {
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
-			"accountID": accountID,
-			"name":      name,
-			"email":     email,
-			"type":      "account",
-			"exp":       time.Now().Add(time.Hour * 24).Unix(),
+			"accountID":  accountID,
+			"name":       name,
+			"email":      email,
+			"customerID": customerID,
+			"type":       "account",
+			"exp":        time.Now().Add(time.Hour * 24).Unix(),
 		})
 
 	tokenString, err := t.SignedString(secretKey)
@@ -73,10 +75,26 @@ func ValidateAccountToken(tokenString string) (AccountClaims, error) {
 		return AccountClaims{}, fmt.Errorf("accountID not found in token")
 	}
 
+	name, ok := (*claims)["name"].(string)
+	if !ok {
+		return AccountClaims{}, fmt.Errorf("name not found or invalid in token")
+	}
+	email, ok := (*claims)["email"].(string)
+	if !ok {
+		return AccountClaims{}, fmt.Errorf("email not found or invalid in token")
+	}
+	customerID := ""
+	if rawCustomerID, exists := (*claims)["customerID"]; exists {
+		if cid, ok := rawCustomerID.(string); ok {
+			customerID = cid
+		}
+	}
+
 	return AccountClaims{
-		AccountID: int(accountID),
-		Name:      (*claims)["name"].(string),
-		Email:     (*claims)["email"].(string),
+		AccountID:  int(accountID),
+		Name:       name,
+		Email:      email,
+		CustomerID: customerID,
 	}, nil
 }
 

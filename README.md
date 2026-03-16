@@ -56,3 +56,16 @@ Indicates the affected module:
 - Explain **what** and **why**, not how
 - Wrap at 72 characters
 - Separate from subject with blank line
+
+## Developpement
+
+### Stripe-CLI
+
+You can use Stripe CLI to test webhook payment, without exposing the app
+
+Download stripe CLI here [Stripe-cli]([stripe](https://github.com/stripe/stripe-cli))
+
+```bash
+stripe login
+stripe listen --forward-to localhost:8080/api/webhooks/stripe
+```

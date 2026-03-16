@@ -24,7 +24,11 @@ func (r *Repository) CreateLicence(ctx context.Context, l *Licence) error {
 
 func (r *Repository) FindLicencesByAccountID(ctx context.Context, accountID int) ([]Licence, error) {
 	var licences []Licence
-	err := r.db.NewSelect().Model(&licences).Where("account_id = ?", accountID).Scan(ctx)
+	err := r.db.NewSelect().
+		Model(&licences).
+		Relation("Store").
+		Where("l.account_id = ?", accountID).
+		Scan(ctx)
 	if err != nil {
 		return nil, err
 	}

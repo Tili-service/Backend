@@ -9,8 +9,10 @@ import (
 	"tili/app/internal/categorie"
 	"tili/app/internal/item"
 	"tili/app/internal/license"
+	"tili/app/internal/payementmethod"
 	"tili/app/internal/profile"
 	"tili/app/internal/store"
+
 	"tili/app/pkg/db"
 
 	"github.com/gin-gonic/gin"
@@ -61,6 +63,10 @@ func main() {
 	categorieService := categorie.NewService(categorieRepo)
 	categorieHandler := categorie.NewHandler(categorieService)
 
+	payementmethodRepo := payementmethod.NewRepository(db)
+	payementmethodService := payementmethod.NewService(payementmethodRepo)
+	payementmethodHandler := payementmethod.NewHandler(payementmethodService)
+
 	r := gin.Default()
 
 	profileHandler.RegisterRoutes(r)
@@ -70,6 +76,7 @@ func main() {
 	catalogHandler.RegisterRoutes(r)
 	itemHandler.RegisterRoutes(r)
 	categorieHandler.RegisterRoutes(r)
+	payementmethodHandler.RegisterRoutes(r)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 

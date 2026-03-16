@@ -90,7 +90,7 @@ func (h *Handler) GetAll(c *gin.Context) {
 // @Tags         catalog
 // @Produce      json
 // @Security     ProfileToken
-// @Param        id   path      int  true  "catalog ID"
+// @Param        id   path      int  true  "catalog ID"  example(1)
 // @Success      200  {object}  catalog
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
@@ -117,7 +117,7 @@ func (h *Handler) GetByID(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Security     ProfileToken
-// @Param        id   path      int             true "catalog ID"
+// @Param        id   path      int             true "catalog ID"  example(1)
 // @Param        body body      catalogUpdate true "catalog update payload"
 // @Success      200  {object}  catalog
 // @Failure      400  {object}  map[string]interface{}
@@ -150,7 +150,7 @@ func (h *Handler) Update(c *gin.Context) {
 // @Tags         catalog
 // @Produce      json
 // @Security     ProfileToken
-// @Param        id   path      int  true  "catalog ID"
+// @Param        id   path      int  true  "catalog ID"  example(1)
 // @Success      204  {object}  nil
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}

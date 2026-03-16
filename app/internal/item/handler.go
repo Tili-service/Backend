@@ -75,7 +75,7 @@ func (h *Handler) Create(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Security     ProfileToken
-// @Param        id   path      int        true "Item ID"
+// @Param        id   path      int        true "Item ID"     example(1)
 // @Param        body body      ItemUpdate true "Item update payload"
 // @Success      200  {object}  Item
 // @Failure      400  {object}  map[string]interface{}
@@ -109,7 +109,7 @@ func (h *Handler) Update(c *gin.Context) {
 // @Tags         item
 // @Produce      json
 // @Security     ProfileToken
-// @Param        id   path      int  true  "Item ID"
+// @Param        id   path      int  true  "Item ID"  example(1)
 // @Success      204  {object}  nil
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
@@ -155,7 +155,7 @@ func (h *Handler) GetAll(c *gin.Context) {
 // @Tags         item
 // @Produce      json
 // @Security     ProfileToken
-// @Param        id   path      int  true  "Item ID"
+// @Param        id   path      int  true  "Item ID"  example(1)
 // @Success      200  {object}  Item
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
@@ -182,7 +182,7 @@ func (h *Handler) GetByID(c *gin.Context) {
 // @Tags         item
 // @Produce      json
 // @Security     ProfileToken
-// @Param        name path      string  true  "Item name"
+// @Param        name path      string  true  "Item name"  example(Laptop Pro 15)
 // @Success      200  {object}  Item
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
@@ -204,7 +204,7 @@ func (h *Handler) GetByName(c *gin.Context) {
 // @Tags         item
 // @Produce      json
 // @Security     ProfileToken
-// @Param        id   path      int  true  "Category ID"
+// @Param        id   path      int  true  "Category ID"  example(1)
 // @Success      200  {array}   Item
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}

@@ -59,3 +59,9 @@ func (r *Repository) Update(ctx context.Context, p *Profile) error {
 	_, err := r.db.NewUpdate().Model(p).Where("profile_id = ?", p.ProfileID).Exec(ctx)
 	return err
 }
+
+func (r *Repository) FindAllProfilesByStoreID(ctx context.Context, storeID int) ([]*Profile, error) {
+	var profiles []*Profile
+	err := r.db.NewSelect().Model(&profiles).Where("store_id = ?", storeID).Scan(ctx)
+	return profiles, err
+}

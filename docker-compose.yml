@@ -25,7 +25,7 @@ services:
     build: ./app
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "8000:8000"
     environment:
       - POSTGRES_HOST=db
       - POSTGRES_PORT=${POSTGRES_PORT}
@@ -39,6 +39,7 @@ services:
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - STRIPE_API_KEY=${STRIPE_API_KEY}
+      - BACKEND_PORT=${BACKEND_PORT}
     depends_on:
       db:
         condition: service_healthy

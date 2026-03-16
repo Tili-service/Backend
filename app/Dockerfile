@@ -10,5 +10,5 @@ RUN go build -o tili-backend cmd/api/main.go
 FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /app/tili-backend .
-EXPOSE 8080
+EXPOSE 8000
 CMD ["./tili-backend"]

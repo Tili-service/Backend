@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"os"
-
 	_ "tili/app/docs"
 	"tili/app/internal/account"
 	"tili/app/internal/catalog"
@@ -84,6 +83,6 @@ func main() {
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
-	log.Println("Serveur démarré sur http://localhost:8000")
-	r.Run(":8000")
+	log.Println("Serveur démarré sur http://localhost:" + os.Getenv("BACKEND_PORT"))
+	r.Run(":" + os.Getenv("BACKEND_PORT"))
 }

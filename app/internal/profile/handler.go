@@ -31,11 +31,11 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 			managerRoutes := protected.Group("")
 			managerRoutes.Use(middleware.LevelAccessRequired(token.Manager))
 			{
-				managerRoutes.POST("", h.Create)    // POST /profile
-				managerRoutes.PUT("/:id", h.Update) // PUT /profile/:id
-				managerRoutes.GET("/allProfilesByStoreId/:id", h.GetProfilesByStoreId) // GET /profile/allProfilesByStoreId/:id
+				managerRoutes.POST("", h.Create)                                                // POST /profile
+				managerRoutes.PUT("/:id", h.Update)                                             // PUT /profile/:id
+				managerRoutes.GET("/allProfilesByStoreId/:id", h.GetProfilesByStoreId)          // GET /profile/allProfilesByStoreId/:id
 				managerRoutes.PUT("/updateProfile/:id/:storeId", h.UpdateProfileByIdAndStoreId) // PUT /profile/updateProfile/:id/:storeId
-				managerRoutes.PUT("/deactivateProfile/:id/:storeId", h.DeactivateProfile) // PUT /profile/deactivateProfile/:id/:storeId
+				managerRoutes.PUT("/deactivateProfile/:id/:storeId", h.DeactivateProfile)       // PUT /profile/deactivateProfile/:id/:storeId
 			}
 
 			adminRoutes := protected.Group("")

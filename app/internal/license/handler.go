@@ -12,9 +12,9 @@ import (
 	"tili/app/internal/middleware"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v84"
 	"github.com/stripe/stripe-go/v84/webhook"
-	"github.com/google/uuid"
 )
 
 type Handler struct {

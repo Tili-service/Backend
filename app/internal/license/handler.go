@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"sync"
 
 	"tili/app/internal/middleware"
 
@@ -18,9 +17,7 @@ import (
 )
 
 type Handler struct {
-	service               *Service
-	mu                    sync.Mutex
-	processedTransactions map[string]struct{}
+	service *Service
 }
 
 func NewHandler(service *Service) *Handler {
@@ -131,18 +128,6 @@ func (h *Handler) HandleStripeWebhook(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Erreur parsing JSON"})
 			return
 		}
-
-		h.mu.Lock()
-		if h.processedTransactions == nil {
-			h.processedTransactions = make(map[string]struct{})
-		}
-		if _, exists := h.processedTransactions[session.ID]; exists {
-			h.mu.Unlock()
-			c.Status(http.StatusOK)
-			return
-		}
-		h.processedTransactions[session.ID] = struct{}{}
-		h.mu.Unlock()
 
 		accountIDStr, ok := session.Metadata["account_id"]
 		if !ok || accountIDStr == "" {

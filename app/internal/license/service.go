@@ -92,9 +92,10 @@ func (s *Service) CreatePaymentLink(ctx context.Context, accountID int, customer
 	if priceID == "" {
 		return "", fmt.Errorf("config manquante pour l'offre: %s", input.Offer)
 	}
-	if customerID == "" {
-		return "", fmt.Errorf("customerID manquant dans le token")
-	}
+	var customerPtr *string
+ 	if customerID != "" {
+ 		customerPtr = stripe.String(customerID)
+ 	}
 
 	params := &stripe.CheckoutSessionParams{
 		PaymentMethodTypes: stripe.StringSlice([]string{"card"}),
@@ -107,7 +108,7 @@ func (s *Service) CreatePaymentLink(ctx context.Context, accountID int, customer
 		Mode:       stripe.String(string(stripe.CheckoutSessionModeSubscription)),
 		SuccessURL: stripe.String(os.Getenv("APP_URL") + "/admin/licenses?success=true"),
 		CancelURL:  stripe.String(os.Getenv("APP_URL") + "/admin/licenses?canceled=true"),
-		Customer:   stripe.String(customerID),
+		Customer:   customerPtr,
 		Metadata: map[string]string{
 			"account_id": fmt.Sprintf("%d", accountID),
 			"offer":      input.Offer,

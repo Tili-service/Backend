@@ -30,11 +30,15 @@ func (s *Service) Update(ctx context.Context, id int, input PayementMethod) (*Pa
 	if input.Name == "" {
 		return nil, errors.New("name is required")
 	}
+	_, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, errors.New("payement method not found")
+	}
 	pm := &PayementMethod{
 		PayementMethodID: id,
 		Name:             input.Name,
 	}
-	if err := s.repo.Update(ctx, pm); err != nil {
+	if err = s.repo.Update(ctx, pm); err != nil {
 		return nil, err
 	}
 	return pm, nil

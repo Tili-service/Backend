@@ -2,6 +2,7 @@ package payementmethod
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 
 	"tili/app/pkg/db"
@@ -22,6 +23,9 @@ func (r *Repository) Create(ctx context.Context, pm *PayementMethod) error {
 	err := r.db.NewSelect().Model(existing).Where("name = ?", pm.Name).Scan(ctx)
 	if err == nil {
 		return errors.New("payement method already exists")
+	}
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return err
 	}
 	_, err = r.db.NewInsert().Model(pm).Exec(ctx)
 	return err
@@ -61,6 +65,16 @@ func (r *Repository) Update(ctx context.Context, pm *PayementMethod) error {
 	if err == nil && existingPM.PayementMethodID != pm.PayementMethodID {
 		return errors.New("payement method name already in use")
 	}
-	_, err = r.db.NewUpdate().Model(pm).Where("payement_method_id = ?", pm.PayementMethodID).Exec(ctx)
-	return err
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+	res, err := r.db.NewUpdate().Model(pm).Where("payement_method_id = ?", pm.PayementMethodID).Exec(ctx)
+	if err != nil {
+		return err
+	}
+	rowsAffected, _ := res.RowsAffected()
+	if rowsAffected == 0 {
+		return errors.New("payement method not found")
+	}
+	return nil
 }

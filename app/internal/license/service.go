@@ -93,9 +93,9 @@ func (s *Service) CreatePaymentLink(ctx context.Context, accountID int, customer
 		return "", fmt.Errorf("config manquante pour l'offre: %s", input.Offer)
 	}
 	var customerPtr *string
- 	if customerID != "" {
- 		customerPtr = stripe.String(customerID)
- 	}
+	if customerID != "" {
+		customerPtr = stripe.String(customerID)
+	}
 
 	params := &stripe.CheckoutSessionParams{
 		PaymentMethodTypes: stripe.StringSlice([]string{"card"}),

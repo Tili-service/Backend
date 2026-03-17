@@ -2,9 +2,14 @@ package item
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 
 	"github.com/shopspring/decimal"
+)
+
+var (
+	ErrItemNotFound = errors.New("item not found")
 )
 
 type Service struct {
@@ -43,7 +48,10 @@ func (s *Service) Create(ctx context.Context, inputItem Item) (*Item, error) {
 func (s *Service) Update(ctx context.Context, id int, input ItemUpdate) (*Item, error) {
 	c, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		return nil, errors.New("item not found")
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrItemNotFound
+		}
+		return nil, err
 	}
 	c, err = s.repo.Update(ctx, id, input)
 	if err != nil {
@@ -52,10 +60,17 @@ func (s *Service) Update(ctx context.Context, id int, input ItemUpdate) (*Item, 
 	return c, nil
 }
 
+func (s *Service) GetByCategorieID(ctx context.Context, id int) ([]Item, error) {
+	return s.repo.FindByCategorieID(ctx, id)
+}
+
 func (s *Service) Delete(ctx context.Context, id int) error {
 	_, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		return errors.New("item not found")
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrItemNotFound
+		}
+		return err
 	}
 	return s.repo.DeleteByID(ctx, id)
 }
@@ -67,7 +82,10 @@ func (s *Service) GetAll(ctx context.Context) ([]Item, error) {
 func (s *Service) GetByID(ctx context.Context, id int) (*Item, error) {
 	c, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		return nil, errors.New("item not found")
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrItemNotFound
+		}
+		return nil, err
 	}
 	return c, nil
 }
@@ -75,15 +93,10 @@ func (s *Service) GetByID(ctx context.Context, id int) (*Item, error) {
 func (s *Service) GetByName(ctx context.Context, name string) (*Item, error) {
 	c, err := s.repo.FindByName(ctx, name)
 	if err != nil {
-		return nil, errors.New("item not found")
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrItemNotFound
+		}
+		return nil, err
 	}
 	return c, nil
-}
-
-func (s *Service) GetByCategorieID(ctx context.Context, categorieID int) ([]Item, error) {
-	items, err := s.repo.FindByCategorieID(ctx, categorieID)
-	if err != nil {
-		return nil, errors.New("no items found for this category")
-	}
-	return items, nil
 }

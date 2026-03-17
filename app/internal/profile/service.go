@@ -112,7 +112,10 @@ func (s *Service) LoginWithPin(ctx context.Context, storeID int, pin string) (*P
 func (s *Service) Update(ctx context.Context, id int, input updateProfileInput) (*Profile, error) {
 	profile, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		return nil, ErrProfileNotFound
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrProfileNotFound
+		}
+		return nil, err
 	}
 
 	if input.Name != nil {
@@ -142,7 +145,10 @@ func (s *Service) GetProfilesByStoreId(ctx context.Context, storeID int) ([]*Pro
 func (s *Service) UpdateProfileByIdAndStoreId(ctx context.Context, idProfile int, storeId int, input updateProfileInput) (*Profile, error) {
 	profile, err := s.repo.FindByID(ctx, idProfile)
 	if err != nil {
-		return nil, ErrProfileNotFound
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrProfileNotFound
+		}
+		return nil, err
 	}
 
 	if profile.StoreID != storeId {

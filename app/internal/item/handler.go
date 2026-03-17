@@ -225,7 +225,6 @@ func (h *Handler) GetByName(c *gin.Context) {
 // @Success      200  {array}   Item
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
-// @Failure      404  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /item/categorie/{id} [get]
 func (h *Handler) GetByCategorieID(c *gin.Context) {

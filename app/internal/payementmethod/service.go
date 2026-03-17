@@ -47,6 +47,9 @@ func (s *Service) Update(ctx context.Context, id int, input PayementMethod) (*Pa
 		Name:             input.Name,
 	}
 	if err = s.repo.Update(ctx, pm); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrPayementMethodNotFound
+		}
 		return nil, err
 	}
 	return pm, nil

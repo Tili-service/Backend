@@ -2,6 +2,7 @@ package license
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -134,7 +135,6 @@ func (h *Handler) HandleStripeWebhook(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Metadata account_id manquante ou invalide"})
 			return
 		}
-		accountID, _ := strconv.Atoi(accountIDStr)
 		accountID, errConv := strconv.Atoi(accountIDStr)
 		if errConv != nil || accountID <= 0 {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Metadata account_id invalide"})
@@ -195,7 +195,11 @@ func (h *Handler) GetByID(c *gin.Context) {
 
 	lic, err := h.service.GetByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "licence not found"})
+		if errors.Is(err, ErrLicenceNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "licence not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	if lic.AccountID != accountID {
@@ -228,14 +232,15 @@ func (h *Handler) Delete(c *gin.Context) {
 	}
 
 	if err := h.service.Delete(c.Request.Context(), accountID, id); err != nil {
-		switch err.Error() {
-		case "licence not found":
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-		case "forbidden":
-			c.JSON(http.StatusForbidden, gin.H{"error": "you are not the owner of this licence"})
-		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if errors.Is(err, ErrLicenceNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "licence not found"})
+			return
 		}
+		if errors.Is(err, ErrForbidden) {
+			c.JSON(http.StatusForbidden, gin.H{"error": "you are not the owner of this licence"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	c.Status(http.StatusNoContent)
@@ -272,14 +277,15 @@ func (h *Handler) Update(c *gin.Context) {
 
 	lic, err := h.service.Update(c.Request.Context(), accountID, id, input)
 	if err != nil {
-		switch err.Error() {
-		case "licence not found":
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-		case "forbidden":
-			c.JSON(http.StatusForbidden, gin.H{"error": "you are not the owner of this licence"})
-		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if errors.Is(err, ErrLicenceNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "licence not found"})
+			return
 		}
+		if errors.Is(err, ErrForbidden) {
+			c.JSON(http.StatusForbidden, gin.H{"error": "you are not the owner of this licence"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, lic)

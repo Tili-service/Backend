@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -104,7 +105,11 @@ func (h *Handler) GetByID(c *gin.Context) {
 	}
 	catalog, err := h.service.GetByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "catalog not found"})
+		if errors.Is(err, ErrCatalogNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "catalog not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, catalog)
@@ -164,6 +169,10 @@ func (h *Handler) Delete(c *gin.Context) {
 	}
 	err = h.service.Delete(c.Request.Context(), id)
 	if err != nil {
+		if errors.Is(err, ErrCatalogNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "catalog not found"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

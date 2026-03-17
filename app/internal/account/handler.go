@@ -1,6 +1,7 @@
 package account
 
 import (
+	"errors"
 	"net/http"
 
 	"tili/app/internal/middleware"
@@ -42,6 +43,7 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 // @Param        body body      RegistrationInput true "Account registration payload"
 // @Success      201  {object}  Account
 // @Failure      400  {object}  map[string]interface{}
+// @Failure      409  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /account [post]
 func (h *Handler) Create(c *gin.Context) {
@@ -53,6 +55,10 @@ func (h *Handler) Create(c *gin.Context) {
 
 	acc, err := h.service.Create(c.Request.Context(), input)
 	if err != nil {
+		if errors.Is(err, ErrEmailExists) {
+			c.JSON(http.StatusConflict, gin.H{"error": ErrEmailExists.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -171,12 +177,11 @@ func (h *Handler) Update(c *gin.Context) {
 	}
 	acc, err := h.service.Update(c.Request.Context(), accountID, input)
 	if err != nil {
-		switch err.Error() {
-		case "account not found":
+		if errors.Is(err, ErrAccountNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
 		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, acc)

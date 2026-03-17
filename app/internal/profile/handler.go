@@ -1,6 +1,7 @@
 package profile
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -148,6 +149,10 @@ func (h *Handler) Delete(c *gin.Context) {
 		return
 	}
 	if err := h.service.Delete(c.Request.Context(), id); err != nil {
+		if errors.Is(err, ErrProfileNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "profile not found"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

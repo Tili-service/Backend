@@ -2,6 +2,12 @@ package store
 
 import (
 	"context"
+	"database/sql"
+	"errors"
+)
+
+var (
+	ErrStoreNotFound = errors.New("store not found")
 )
 
 type Service struct {
@@ -24,7 +30,14 @@ func (s *Service) Create(ctx context.Context, input CreateStoreInput, accountID 
 }
 
 func (s *Service) FindByID(ctx context.Context, id int) (*Store, error) {
-	return s.repo.FindByID(ctx, id)
+	s2, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrStoreNotFound
+		}
+		return nil, err
+	}
+	return s2, nil
 }
 
 func (s *Service) FindByBuyerID(ctx context.Context, buyerID int) ([]Store, error) {
@@ -42,6 +55,9 @@ func (s *Service) FindAll(ctx context.Context) ([]*Store, error) {
 func (s *Service) Delete(ctx context.Context, id int) error {
 	_, err := s.repo.FindByID(ctx, id)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrStoreNotFound
+		}
 		return err
 	}
 	return s.repo.Delete(ctx, id)
@@ -50,6 +66,9 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 func (s *Service) Update(ctx context.Context, id int, input UpdateStoreInput) (*Store, error) {
 	store, err := s.repo.FindByID(ctx, id)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrStoreNotFound
+		}
 		return nil, err
 	}
 

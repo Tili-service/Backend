@@ -1,6 +1,7 @@
 package payementmethod
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -96,8 +97,8 @@ func (h *Handler) Update(c *gin.Context) {
 	}
 	pm, err := h.service.Update(c.Request.Context(), id, PayementMethod{Name: input.Name})
 	if err != nil {
-		if err.Error() == "payement method not found" {
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		if errors.Is(err, ErrPayementMethodNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "payement method not found"})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -129,8 +130,8 @@ func (h *Handler) Delete(c *gin.Context) {
 		return
 	}
 	if err := h.service.DeleteByID(c.Request.Context(), id); err != nil {
-		if err.Error() == "payement method not found" {
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		if errors.Is(err, ErrPayementMethodNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "payement method not found"})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -177,8 +178,8 @@ func (h *Handler) GetByName(c *gin.Context) {
 	name := c.Param("name")
 	pm, err := h.service.GetByName(c.Request.Context(), name)
 	if err != nil {
-		if err.Error() == "payement method not found" {
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		if errors.Is(err, ErrPayementMethodNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "payement method not found"})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

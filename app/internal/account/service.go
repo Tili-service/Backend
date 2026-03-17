@@ -2,6 +2,7 @@ package account
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 
@@ -12,6 +13,11 @@ import (
 
 	"tili/app/internal/profile"
 	"tili/app/internal/store"
+)
+
+var (
+	ErrAccountNotFound = errors.New("account not found")
+	ErrEmailExists     = errors.New("email already exists")
 )
 
 type LicenseDeleter interface {
@@ -42,7 +48,10 @@ func (s *Service) Create(ctx context.Context, input RegistrationInput) (*Account
 
 	_, err = s.repo.FindByEmail(ctx, input.Email)
 	if err == nil {
-		return nil, errors.New("email already exists")
+		return nil, ErrEmailExists
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return nil, err
 	}
 
 	params := &stripe.CustomerParams{
@@ -88,7 +97,10 @@ func (s *Service) Login(ctx context.Context, input LoginInput) (*Account, []stor
 func (s *Service) Exists(ctx context.Context, accountID int) (bool, error) {
 	_, err := s.repo.FindByID(ctx, accountID)
 	if err != nil {
-		return false, nil
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
 	}
 	return true, nil
 }
@@ -122,7 +134,10 @@ func (s *Service) FullDelete(ctx context.Context, id int) error {
 func (s *Service) Update(ctx context.Context, id int, input UpdateAccountInput) (*Account, error) {
 	acc, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		return nil, errors.New("account not found")
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrAccountNotFound
+		}
+		return nil, err
 	}
 	if input.Name != nil {
 		acc.Name = *input.Name

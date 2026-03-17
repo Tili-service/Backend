@@ -74,7 +74,7 @@ func (r *Repository) Update(ctx context.Context, pm *PayementMethod) error {
 	}
 	rowsAffected, _ := res.RowsAffected()
 	if rowsAffected == 0 {
-		return errors.New("payement method not found")
+		return sql.ErrNoRows
 	}
 	return nil
 }

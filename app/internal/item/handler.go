@@ -1,6 +1,7 @@
 package item
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -97,6 +98,10 @@ func (h *Handler) Update(c *gin.Context) {
 	}
 	item, err := h.service.Update(c.Request.Context(), id, input)
 	if err != nil {
+		if errors.Is(err, ErrItemNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "item not found"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -124,6 +129,10 @@ func (h *Handler) Delete(c *gin.Context) {
 		return
 	}
 	if err := h.service.Delete(c.Request.Context(), id); err != nil {
+		if errors.Is(err, ErrItemNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "item not found"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -170,7 +179,11 @@ func (h *Handler) GetByID(c *gin.Context) {
 	}
 	item, err := h.service.GetByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		if errors.Is(err, ErrItemNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "item not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, item)
@@ -192,7 +205,11 @@ func (h *Handler) GetByName(c *gin.Context) {
 	name := c.Param("name")
 	item, err := h.service.GetByName(c.Request.Context(), name)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		if errors.Is(err, ErrItemNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "item not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, item)
@@ -208,19 +225,21 @@ func (h *Handler) GetByName(c *gin.Context) {
 // @Success      200  {array}   Item
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
-// @Failure      404  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /item/categorie/{id} [get]
 func (h *Handler) GetByCategorieID(c *gin.Context) {
 	categorieID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid category id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid category ID"})
 		return
 	}
 	items, err := h.service.GetByCategorieID(c.Request.Context(), categorieID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+	if items == nil {
+		items = []Item{}
 	}
 	c.JSON(http.StatusOK, items)
 }

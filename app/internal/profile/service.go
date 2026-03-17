@@ -3,9 +3,14 @@ package profile
 import (
 	"context"
 	"crypto/rand"
+	"database/sql"
 	"errors"
 	"fmt"
 	"math/big"
+)
+
+var (
+	ErrProfileNotFound = errors.New("profile not found")
 )
 
 type Service struct {
@@ -84,7 +89,10 @@ func (s *Service) GetByID(ctx context.Context, id int) (*Profile, error) {
 func (s *Service) Delete(ctx context.Context, id int) error {
 	_, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		return errors.New("profile not found")
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrProfileNotFound
+		}
+		return err
 	}
 	return s.repo.Delete(ctx, id)
 }
@@ -104,7 +112,10 @@ func (s *Service) LoginWithPin(ctx context.Context, storeID int, pin string) (*P
 func (s *Service) Update(ctx context.Context, id int, input updateProfileInput) (*Profile, error) {
 	profile, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		return nil, errors.New("profile not found")
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrProfileNotFound
+		}
+		return nil, err
 	}
 
 	if input.Name != nil {
@@ -134,7 +145,10 @@ func (s *Service) GetProfilesByStoreId(ctx context.Context, storeID int) ([]*Pro
 func (s *Service) UpdateProfileByIdAndStoreId(ctx context.Context, idProfile int, storeId int, input updateProfileInput) (*Profile, error) {
 	profile, err := s.repo.FindByID(ctx, idProfile)
 	if err != nil {
-		return nil, errors.New("profile not found")
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrProfileNotFound
+		}
+		return nil, err
 	}
 
 	if profile.StoreID != storeId {

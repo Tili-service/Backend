@@ -4,8 +4,10 @@ COPY go.mod go.sum ./
 RUN go mod tidy
 RUN go install github.com/swaggo/swag/cmd/swag@latest
 COPY . .
-RUN swag init --generalInfo cmd/api/main.go --output docs
-RUN go build -o tili-backend cmd/api/main.go
+RUN swag init --generalInfo cmd/main.go --output docs
+RUN go build -o tili-backend cmd/main.go
+
+
 
 FROM alpine:latest
 WORKDIR /app

@@ -2,6 +2,7 @@ package license
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"os"
@@ -10,6 +11,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v84"
 	"github.com/stripe/stripe-go/v84/checkout/session"
+)
+
+var (
+	ErrLicenceNotFound = errors.New("licence not found")
+	ErrForbidden       = errors.New("forbidden")
 )
 
 type Service struct {
@@ -29,16 +35,26 @@ func (s *Service) GetByAccountID(ctx context.Context, accountID int) ([]Licence,
 }
 
 func (s *Service) GetByID(ctx context.Context, id uuid.UUID) (*Licence, error) {
-	return s.repo.FindByID(ctx, id)
+	lic, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrLicenceNotFound
+		}
+		return nil, err
+	}
+	return lic, nil
 }
 
 func (s *Service) Delete(ctx context.Context, accountID int, id uuid.UUID) error {
 	lic, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		return errors.New("licence not found")
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrLicenceNotFound
+		}
+		return err
 	}
 	if lic.AccountID != accountID {
-		return errors.New("forbidden")
+		return ErrForbidden
 	}
 	return s.repo.Delete(ctx, id)
 }
@@ -46,10 +62,13 @@ func (s *Service) Delete(ctx context.Context, accountID int, id uuid.UUID) error
 func (s *Service) Update(ctx context.Context, accountID int, id uuid.UUID, input UpdateLicenceInput) (*Licence, error) {
 	lic, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		return nil, errors.New("licence not found")
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrLicenceNotFound
+		}
+		return nil, err
 	}
 	if lic.AccountID != accountID {
-		return nil, errors.New("forbidden")
+		return nil, ErrForbidden
 	}
 	if input.Transaction != nil {
 		lic.Transaction = *input.Transaction

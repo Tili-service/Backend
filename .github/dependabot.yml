@@ -1,7 +1,7 @@
 version: 2
 updates:
   - package-ecosystem: "gomod"
-    directory: "/"         # Location of go.mod (use "/" for root)
+    directory: "/app"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10

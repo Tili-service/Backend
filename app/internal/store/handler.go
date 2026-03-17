@@ -1,6 +1,7 @@
 package store
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -141,7 +142,11 @@ func (h *Handler) DeleteStore(c *gin.Context) {
 
 	st, err := h.service.FindByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "store not found"})
+		if errors.Is(err, ErrStoreNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "store not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -156,6 +161,10 @@ func (h *Handler) DeleteStore(c *gin.Context) {
 	}
 
 	if err := h.service.Delete(c.Request.Context(), id); err != nil {
+		if errors.Is(err, ErrStoreNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "store not found"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -188,7 +197,11 @@ func (h *Handler) GetByID(c *gin.Context) {
 
 	store, err := h.service.FindByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "store not found"})
+		if errors.Is(err, ErrStoreNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "store not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -224,7 +237,11 @@ func (h *Handler) updateStoreById(c *gin.Context) {
 
 	existing, err := h.service.FindByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "store not found"})
+		if errors.Is(err, ErrStoreNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "store not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	if existing.BuyerID != accountID {

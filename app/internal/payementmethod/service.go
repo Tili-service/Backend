@@ -2,7 +2,12 @@ package payementmethod
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+)
+
+var (
+	ErrPayementMethodNotFound = errors.New("payement method not found")
 )
 
 type Service struct {
@@ -32,7 +37,10 @@ func (s *Service) Update(ctx context.Context, id int, input PayementMethod) (*Pa
 	}
 	_, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		return nil, errors.New("payement method not found")
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrPayementMethodNotFound
+		}
+		return nil, err
 	}
 	pm := &PayementMethod{
 		PayementMethodID: id,
@@ -47,7 +55,10 @@ func (s *Service) Update(ctx context.Context, id int, input PayementMethod) (*Pa
 func (s *Service) Delete(ctx context.Context, name string) error {
 	_, err := s.repo.FindByName(ctx, name)
 	if err != nil {
-		return errors.New("payement method not found")
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrPayementMethodNotFound
+		}
+		return err
 	}
 	return s.repo.DeleteByName(ctx, name)
 }
@@ -55,7 +66,10 @@ func (s *Service) Delete(ctx context.Context, name string) error {
 func (s *Service) DeleteByID(ctx context.Context, id int) error {
 	_, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		return errors.New("payement method not found")
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrPayementMethodNotFound
+		}
+		return err
 	}
 	return s.repo.DeleteByID(ctx, id)
 }
@@ -67,7 +81,10 @@ func (s *Service) GetAll(ctx context.Context) ([]PayementMethod, error) {
 func (s *Service) GetByName(ctx context.Context, name string) (*PayementMethod, error) {
 	pm, err := s.repo.FindByName(ctx, name)
 	if err != nil {
-		return nil, errors.New("payement method not found")
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrPayementMethodNotFound
+		}
+		return nil, err
 	}
 	return pm, nil
 }

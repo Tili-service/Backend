@@ -1,6 +1,7 @@
 package categorie
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -108,7 +109,11 @@ func (h *Handler) GetByID(c *gin.Context) {
 	}
 	categorie, err := h.service.FindByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "categorie not found"})
+		if errors.Is(err, ErrCategorieNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "categorie not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, categorie)
@@ -129,7 +134,11 @@ func (h *Handler) GetByType(c *gin.Context) {
 	typ := c.Param("type")
 	categorie, err := h.service.FindByType(c.Request.Context(), typ)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "categorie not found"})
+		if errors.Is(err, ErrCategorieNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "categorie not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, categorie)
@@ -165,6 +174,10 @@ func (h *Handler) Update(c *gin.Context) {
 	}
 	categorie, err := h.service.Update(c.Request.Context(), id, input)
 	if err != nil {
+		if errors.Is(err, ErrCategorieNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "categorie not found"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -194,6 +207,10 @@ func (h *Handler) DeleteByID(c *gin.Context) {
 	}
 	err = h.service.DeleteByID(c.Request.Context(), id)
 	if err != nil {
+		if errors.Is(err, ErrCategorieNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "categorie not found"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -217,6 +234,10 @@ func (h *Handler) DeleteByType(c *gin.Context) {
 	typ := c.Param("type")
 	err := h.service.DeleteByType(c.Request.Context(), typ)
 	if err != nil {
+		if errors.Is(err, ErrCategorieNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "categorie not found"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

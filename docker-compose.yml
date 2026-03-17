@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:16-alpine
+    container_name: tili-db
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
@@ -19,10 +20,11 @@ services:
       - ./database/schemas/tables:/docker-entrypoint-initdb.d/tables
       - pgdata:/var/lib/postgresql/data
     networks:
-      - backend
+      - tili-network
 
   backend:
     build: ./app
+    container_name: tili-backend
     restart: unless-stopped
     ports:
       - "8000:8000"
@@ -44,10 +46,11 @@ services:
       db:
         condition: service_healthy
     networks:
-      - backend
+      - tili-network
 
 networks:
-  backend:
+  tili-network:
+    external: true
 
 volumes:
   pgdata:

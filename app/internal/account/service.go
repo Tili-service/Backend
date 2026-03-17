@@ -50,6 +50,9 @@ func (s *Service) Create(ctx context.Context, input RegistrationInput) (*Account
 	if err == nil {
 		return nil, ErrEmailExists
 	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return nil, err
+	}
 
 	params := &stripe.CustomerParams{
 		Name:  stripe.String(input.Name),
@@ -131,7 +134,10 @@ func (s *Service) FullDelete(ctx context.Context, id int) error {
 func (s *Service) Update(ctx context.Context, id int, input UpdateAccountInput) (*Account, error) {
 	acc, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		return nil, ErrAccountNotFound
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrAccountNotFound
+		}
+		return nil, err
 	}
 	if input.Name != nil {
 		acc.Name = *input.Name

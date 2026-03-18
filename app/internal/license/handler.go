@@ -166,7 +166,7 @@ func (h *Handler) HandleStripeWebhook(c *gin.Context) {
 
 		_, err = h.service.Create(c.Request.Context(), accountID, input)
 		if err != nil {
-			fmt.Printf("Erreur création licence: %w\n", err)
+			fmt.Printf("Erreur création licence: %v\n", err)
 		}
 	}
 	c.Status(http.StatusOK)

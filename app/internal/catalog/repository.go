@@ -61,7 +61,7 @@ func (r *Repository) Update(ctx context.Context, id int, input catalogUpdate) (*
 	if input.Description != nil {
 		catalog.Description = *input.Description
 	}
-	_, err = r.db.NewUpdate().Model(catalog).WherePK().Exec(ctx)
+	_, err = r.db.NewUpdate().Model(catalog).Where("catalog_id = ?", id).Exec(ctx)
 	if err != nil {
 		return nil, err
 	}

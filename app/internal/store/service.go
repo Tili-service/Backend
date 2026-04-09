@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -44,6 +46,17 @@ func (s *Service) FindByBuyerID(ctx context.Context, buyerID int) ([]Store, erro
 	return s.repo.FindByBuyerID(ctx, buyerID)
 }
 
+func (s *Service) FindByLicenceID(ctx context.Context, licenceID uuid.UUID) (*Store, error) {
+	st, err := s.repo.FindByLicenceID(ctx, licenceID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrStoreNotFound
+		}
+		return nil, err
+	}
+	return st, nil
+}
+
 func (s *Service) FindAll(ctx context.Context) ([]*Store, error) {
 	stores, err := s.repo.FindAll(ctx)
 	if err != nil {
@@ -60,6 +73,10 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 		}
 		return err
 	}
+	return s.repo.Delete(ctx, id)
+}
+
+func (s *Service) DeleteByID(ctx context.Context, id int) error {
 	return s.repo.Delete(ctx, id)
 }
 

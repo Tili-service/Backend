@@ -51,6 +51,7 @@ func main() {
 
 	licenseRepo := license.NewRepository(db, redisClient)
 	licenseService := license.NewService(licenseRepo)
+	licenseService.SetDependencies(storeService, profileService)
 	licenseHandler := license.NewHandler(licenseService)
 
 	accountRepo := account.NewRepository(db, redisClient)

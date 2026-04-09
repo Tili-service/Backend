@@ -68,6 +68,15 @@ func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (*Licence, erro
 	return l, nil
 }
 
+func (r *Repository) FindByTransaction(ctx context.Context, transaction string) (*Licence, error) {
+	l := &Licence{}
+	err := r.db.NewSelect().Model(l).Where("transaction = ?", transaction).Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return l, nil
+}
+
 func (r *Repository) Delete(ctx context.Context, id uuid.UUID) error {
 	_, err := r.db.NewDelete().Model(&Licence{}).Where("licence_id = ?", id).Exec(ctx)
 	_ = cache.DeletePrefix(ctx, r.cache, "license:")

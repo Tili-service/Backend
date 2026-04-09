@@ -17,7 +17,11 @@ type Repository struct {
 	cache *redis.Client
 }
 
-func NewRepository(d *db.Db, cacheClient *redis.Client) *Repository {
+func NewRepository(d *db.Db, cacheClients ...*redis.Client) *Repository {
+	var cacheClient *redis.Client
+	if len(cacheClients) > 0 {
+		cacheClient = cacheClients[0]
+	}
 	return &Repository{db: d.DB, cache: cacheClient}
 }
 
@@ -42,7 +46,6 @@ func (r *Repository) FindByID(ctx context.Context, id int) (*Store, error) {
 		return nil, err
 	}
 	_ = cache.Set(ctx, r.cache, key, store, cache.DefaultTTL)
-	_ = cache.Set(ctx, r.cache, fmt.Sprintf("store:buyer:%d", store.BuyerID), store, cache.DefaultTTL)
 	return store, nil
 }
 

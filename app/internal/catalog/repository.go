@@ -17,7 +17,11 @@ type Repository struct {
 	cache *redis.Client
 }
 
-func NewRepository(d *db.Db, cacheClient *redis.Client) *Repository {
+func NewRepository(d *db.Db, cacheClients ...*redis.Client) *Repository {
+	var cacheClient *redis.Client
+	if len(cacheClients) > 0 {
+		cacheClient = cacheClients[0]
+	}
 	return &Repository{db: d.DB, cache: cacheClient}
 }
 

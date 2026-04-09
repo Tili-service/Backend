@@ -38,6 +38,7 @@ import (
 func main() {
 	db := db.NewDb()
 	redisClient := cache.NewRedisClient(os.Getenv("REDIS_URL"))
+	defer redisClient.Close()
 	stripe.Key = os.Getenv("STRIPE_API_KEY")
 
 	profileRepo := profile.NewRepository(db, redisClient)

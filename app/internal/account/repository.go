@@ -2,7 +2,6 @@ package account
 
 import (
 	"context"
-	"fmt"
 
 	"tili/app/pkg/cache"
 	"tili/app/pkg/db"
@@ -17,7 +16,11 @@ type Repository struct {
 	cache *redis.Client
 }
 
-func NewRepository(d *db.Db, cacheClient *redis.Client) *Repository {
+func NewRepository(d *db.Db, cacheClients ...*redis.Client) *Repository {
+	var cacheClient *redis.Client
+	if len(cacheClients) > 0 {
+		cacheClient = cacheClients[0]
+	}
 	return &Repository{db: d.DB, cache: cacheClient}
 }
 
@@ -28,32 +31,20 @@ func (r *Repository) Create(ctx context.Context, a *Account) error {
 }
 
 func (r *Repository) FindByID(ctx context.Context, id int) (*Account, error) {
-	key := fmt.Sprintf("account:id:%d", id)
 	a := &Account{}
-	if hit, err := cache.Get(ctx, r.cache, key, a); err == nil && hit {
-		return a, nil
-	}
 	err := r.db.NewSelect().Model(a).Where("account_id = ?", id).Scan(ctx)
 	if err != nil {
 		return nil, err
 	}
-	_ = cache.Set(ctx, r.cache, key, a, cache.DefaultTTL)
-	_ = cache.Set(ctx, r.cache, fmt.Sprintf("account:email:%s", a.Email), a, cache.DefaultTTL)
 	return a, nil
 }
 
 func (r *Repository) FindByEmail(ctx context.Context, email string) (*Account, error) {
-	key := fmt.Sprintf("account:email:%s", email)
 	a := &Account{}
-	if hit, err := cache.Get(ctx, r.cache, key, a); err == nil && hit {
-		return a, nil
-	}
 	err := r.db.NewSelect().Model(a).Where("email = ?", email).Scan(ctx)
 	if err != nil {
 		return nil, err
 	}
-	_ = cache.Set(ctx, r.cache, key, a, cache.DefaultTTL)
-	_ = cache.Set(ctx, r.cache, fmt.Sprintf("account:id:%d", a.AccountID), a, cache.DefaultTTL)
 	return a, nil
 }
 

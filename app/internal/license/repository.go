@@ -21,7 +21,11 @@ type Repository struct {
 
 const licencesByAccountTTL = 20 * time.Second
 
-func NewRepository(d *db.Db, cacheClient *redis.Client) *Repository {
+func NewRepository(d *db.Db, cacheClients ...*redis.Client) *Repository {
+	var cacheClient *redis.Client
+	if len(cacheClients) > 0 {
+		cacheClient = cacheClients[0]
+	}
 	return &Repository{db: d.DB, cache: cacheClient}
 }
 
@@ -56,17 +60,11 @@ func (r *Repository) DeleteLicencesByAccountID(ctx context.Context, accountID in
 }
 
 func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (*Licence, error) {
-	key := fmt.Sprintf("license:id:%s", id.String())
 	l := &Licence{}
-	if hit, err := cache.Get(ctx, r.cache, key, l); err == nil && hit {
-		return l, nil
-	}
 	err := r.db.NewSelect().Model(l).Where("licence_id = ?", id).Scan(ctx)
 	if err != nil {
 		return nil, err
 	}
-	_ = cache.Set(ctx, r.cache, key, l, cache.DefaultTTL)
-	_ = cache.Set(ctx, r.cache, fmt.Sprintf("license:account:%d", l.AccountID), l, cache.DefaultTTL)
 	return l, nil
 }
 

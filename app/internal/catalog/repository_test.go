@@ -25,10 +25,10 @@ func TestRepository_FindByID(t *testing.T) {
 
 	repo := &Repository{db: bunDB}
 
-	rows := sqlmock.NewRows([]string{"name", "description"}).
-		AddRow("Winter 2026 Collection", "All items available for the winter 2026 season")
+	rows := sqlmock.NewRows([]string{"catalog_id", "name", "description"}).
+		AddRow(1, "Winter 2026 Collection", "All items available for the winter 2026 season")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "c"."name", "c"."description" FROM "catalog" AS "c" WHERE (c.catalog_id = 1)`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "c"."catalog_id", "c"."name", "c"."description" FROM "catalog" AS "c" WHERE (c.catalog_id = 1)`)).
 		WillReturnRows(rows)
 
 	ctx := context.Background()
@@ -52,8 +52,8 @@ func TestRepository_Create(t *testing.T) {
 		Description: "Summer clothes",
 	}
 
-	mock.ExpectExec(regexp.QuoteMeta(`INSERT INTO "catalog"`)).
-		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "catalog"`)).
+		WillReturnRows(sqlmock.NewRows([]string{"catalog_id"}).AddRow(1))
 
 	ctx := context.Background()
 	err := repo.Create(ctx, c)
@@ -68,11 +68,11 @@ func TestRepository_FindAll(t *testing.T) {
 
 	repo := &Repository{db: bunDB}
 
-	rows := sqlmock.NewRows([]string{"name", "description"}).
-		AddRow("Cat 1", "Desc 1").
-		AddRow("Cat 2", "Desc 2")
+	rows := sqlmock.NewRows([]string{"catalog_id", "name", "description"}).
+		AddRow(1, "Cat 1", "Desc 1").
+		AddRow(2, "Cat 2", "Desc 2")
 
-	mock.ExpectQuery(`^SELECT "c"."name", "c"."description" FROM "catalog" AS "c"$`).
+	mock.ExpectQuery(`^SELECT "c"."catalog_id", "c"."name", "c"."description" FROM "catalog" AS "c"$`).
 		WillReturnRows(rows)
 
 	ctx := context.Background()
@@ -90,8 +90,8 @@ func TestRepository_FindByName(t *testing.T) {
 
 	repo := &Repository{db: bunDB}
 
-	rows := sqlmock.NewRows([]string{"name", "description"}).
-		AddRow("Test Cat", "Test Desc")
+	rows := sqlmock.NewRows([]string{"catalog_id", "name", "description"}).
+		AddRow(1, "Test Cat", "Test Desc")
 
 	mock.ExpectQuery(`^SELECT .* FROM "catalog" AS "c" WHERE \(c.name = \?|'Test Cat'\)`).
 		WillReturnRows(rows)
@@ -144,8 +144,8 @@ func TestRepository_Update(t *testing.T) {
 	repo := &Repository{db: bunDB}
 
 	// Mock FindByID inside Update
-	rows := sqlmock.NewRows([]string{"name", "description"}).
-		AddRow("Old Name", "Old Desc")
+	rows := sqlmock.NewRows([]string{"catalog_id", "name", "description"}).
+		AddRow(1, "Old Name", "Old Desc")
 	mock.ExpectQuery(`^SELECT .* FROM "catalog" AS "c" WHERE \(c\.catalog_id = \?|1\)$`).
 		WillReturnRows(rows)
 

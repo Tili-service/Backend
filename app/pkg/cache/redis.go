@@ -80,16 +80,25 @@ func DeletePrefix(ctx context.Context, client *redis.Client, prefix string) erro
 	}
 
 	iter := client.Scan(ctx, 0, prefix+"*", 0).Iterator()
-	keys := make([]string, 0)
+	const batchSize = 200
+	keys := make([]string, 0, batchSize)
 	for iter.Next(ctx) {
 		keys = append(keys, iter.Val())
+		if len(keys) >= batchSize {
+			if err := client.Del(ctx, keys...).Err(); err != nil {
+				return err
+			}
+			keys = keys[:0]
+		}
 	}
 	if err := iter.Err(); err != nil {
 		return err
 	}
-	if len(keys) == 0 {
-		return nil
+	if len(keys) > 0 {
+		if err := client.Del(ctx, keys...).Err(); err != nil {
+			return err
+		}
 	}
 
-	return client.Del(ctx, keys...).Err()
+	return nil
 }

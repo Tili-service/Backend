@@ -3,6 +3,7 @@ package item
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"tili/app/pkg/cache"
 	"tili/app/pkg/db"
@@ -18,7 +19,11 @@ type Repository struct {
 	cache *redis.Client
 }
 
-func NewRepository(d *db.Db, cacheClient *redis.Client) *Repository {
+func NewRepository(d *db.Db, cacheClients ...*redis.Client) *Repository {
+	var cacheClient *redis.Client
+	if len(cacheClients) > 0 {
+		cacheClient = cacheClients[0]
+	}
 	return &Repository{db: d.DB, cache: cacheClient}
 }
 
@@ -93,7 +98,7 @@ func (r *Repository) FindByCategorieID(ctx context.Context, categorieID int) ([]
 }
 
 func (r *Repository) FindByPrice(ctx context.Context, price float64) ([]Item, error) {
-	key := fmt.Sprintf("item:price:%v", price)
+	key := "item:price:" + strconv.FormatFloat(price, 'f', 2, 64)
 	var items []Item
 	if hit, err := cache.Get(ctx, r.cache, key, &items); err == nil && hit {
 		return items, nil

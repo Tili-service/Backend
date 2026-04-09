@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: run coding style checker
         run : |
@@ -33,3 +33,38 @@ jobs:
             echo "No coding style errors found."
             exit 0
           fi
+
+  check-build:
+    needs: check-coding-style
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v6
+
+      - name: set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 1.26
+
+      - name: install dependencies
+        run: |
+          go mod tidy
+          go install github.com/swaggo/swag/cmd/swag@latest
+
+      - name: generate API documentation
+        run: |
+          swag init --generalInfo cmd/main.go --output docs
+
+      - name: build the application
+        run: |
+          go build -o tili-backend cmd/main.go
+
+      - name: Create build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-artifact
+          path: |
+            ./tili-backend
+            ./docs
+          include-hidden-files: true
+

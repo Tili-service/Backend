@@ -71,3 +71,27 @@ jobs:
             ./app/docs
           include-hidden-files: true
 
+  check-tests:
+    needs: check-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v6
+      - name: set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 1.26
+      - name: install dependencies
+        working-directory: ./app
+        run: |
+          go mod tidy
+      - name: run tests
+        working-directory: ./app
+        run: |
+          go test -v ./... -coverprofile=coverage.out
+      - name: upload test coverage
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-coverage
+          path: ./app/coverage.out
+

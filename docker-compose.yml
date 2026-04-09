@@ -1,4 +1,18 @@
 services:
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - cache:/data
+    networks:
+      - tili-network
+
   db:
     image: postgres:16-alpine
     container_name: tili-db
@@ -41,6 +55,7 @@ services:
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - STRIPE_API_KEY=${STRIPE_API_KEY}
+      - REDIS_URL=redis:6379
       - BACKEND_PORT=${BACKEND_PORT}
     depends_on:
       db:

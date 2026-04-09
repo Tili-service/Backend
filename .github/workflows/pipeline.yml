@@ -48,15 +48,18 @@ jobs:
 
       - name: install dependencies
         run: |
+          cd app
           go mod tidy
           go install github.com/swaggo/swag/cmd/swag@latest
 
       - name: generate API documentation
         run: |
+          cd app
           swag init --generalInfo cmd/main.go --output docs
 
       - name: build the application
         run: |
+          cd app
           go build -o tili-backend cmd/main.go
 
       - name: Create build artifact
@@ -64,7 +67,7 @@ jobs:
         with:
           name: build-artifact
           path: |
-            ./tili-backend
-            ./docs
+            ./app/tili-backend
+            ./app/docs
           include-hidden-files: true
 

@@ -2,6 +2,7 @@ package sale
 
 import (
 	"context"
+	"time"
 )
 
 type Service struct {
@@ -13,10 +14,15 @@ func NewService(repo *Repository) *Service {
 }
 
 func (s *Service) CreateSale(ctx context.Context, input CreateSaleInput) (*Sales, error) {
+	ts := input.TimeStamp
+	if ts.IsZero() {
+		ts = time.Now()
+	}
+
 	sale := &Sales{
 		Element:          input.Element,
 		Price:            input.Price,
-		TimeStamp:        input.TimeStamp,
+		TimeStamp:        ts,
 		PayementMethodID: input.PayementMethodID,
 	}
 	return s.repo.Create(ctx, sale)

@@ -18,3 +18,17 @@ type Sales struct {
 	PayementMethodID int                            `bun:"payement_method_id"                                 json:"payement_method_id"`
 	PayementMethod   *payementmethod.PayementMethod `bun:"rel:belongs-to,join:payement_method_id=payement_method_id" json:"payement_method,omitempty"`
 }
+
+type CreateSaleInput struct {
+	Element          map[string]interface{} `json:"element" binding:"required"`
+	Price            float64                `json:"price" binding:"required"`
+	TimeStamp        time.Time              `json:"time_stamp"`
+	PayementMethodID int                    `json:"payement_method_id" binding:"required"`
+}
+
+type UpdateSaleInput struct {
+	Element          *map[string]interface{} `json:"element,omitempty"`
+	Price            *float64                `json:"price,omitempty"`
+	TimeStamp        *time.Time              `json:"time_stamp,omitempty"`
+	PayementMethodID *int                    `json:"payement_method_id,omitempty"`
+}

@@ -11,8 +11,8 @@ import (
 	"tili/app/internal/license"
 	"tili/app/internal/payementmethod"
 	"tili/app/internal/profile"
-	"tili/app/internal/store"
 	"tili/app/internal/sale"
+	"tili/app/internal/store"
 
 	"tili/app/pkg/db"
 

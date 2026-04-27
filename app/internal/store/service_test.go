@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
@@ -158,6 +159,41 @@ func TestService_FindByBuyerID_Success(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, stores, 1)
 	assert.Equal(t, "Buyer Store", stores[0].Name)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestService_FindByLicenceID_Success(t *testing.T) {
+	bunDB, mock := setupMockDB(t)
+	defer bunDB.Close()
+
+	repo := NewRepository(&db.Db{DB: bunDB})
+	svc := NewService(repo)
+
+	licenceID := uuid.New()
+	rows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation"}).AddRow(1, "Licence Store", 12, licenceID, time.Now())
+	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(licence_id = .+\)$`).WillReturnRows(rows)
+
+	store, err := svc.FindByLicenceID(context.Background(), licenceID)
+
+	assert.NoError(t, err)
+	if assert.NotNil(t, store) {
+		assert.Equal(t, licenceID, store.LicenceID)
+	}
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestService_DeleteByID_Success(t *testing.T) {
+	bunDB, mock := setupMockDB(t)
+	defer bunDB.Close()
+
+	repo := NewRepository(&db.Db{DB: bunDB})
+	svc := NewService(repo)
+
+	mock.ExpectExec(`^DELETE FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
+
+	err := svc.DeleteByID(context.Background(), 1)
+
+	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 

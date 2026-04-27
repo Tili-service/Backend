@@ -2,16 +2,22 @@ package license
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stripe/stripe-go/v84"
+	"github.com/stripe/stripe-go/v84/webhook"
 
+	"tili/app/internal/profile"
+	"tili/app/internal/store"
 	"tili/app/pkg/db"
 )
 
@@ -21,6 +27,7 @@ func setupLicenseHandler(t *testing.T) (*Handler, sqlmock.Sqlmock) {
 
 	repo := NewRepository(&db.Db{DB: bunDB})
 	svc := NewService(repo)
+	svc.SetDependencies(store.NewService(store.NewRepository(&db.Db{DB: bunDB})), profile.NewService(profile.NewRepository(&db.Db{DB: bunDB})))
 	return NewHandler(svc), mock
 }
 
@@ -65,6 +72,93 @@ func TestLicenseHandler_HandleStripeWebhook_InvalidSignature(t *testing.T) {
 	r.POST("/api/webhooks/stripe", h.HandleStripeWebhook)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/webhooks/stripe", bytes.NewBufferString("{}"))
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestLicenseHandler_HandleStripeWebhook_CheckoutCompleted_Success(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	h, mock := setupLicenseHandler(t)
+	r.POST("/api/webhooks/stripe", h.HandleStripeWebhook)
+
+	secret := "whsec_test"
+	t.Setenv("STRIPE_WEBHOOK_SECRET", secret)
+
+	payload := `{"id":"evt_test","object":"event","api_version":"2026-02-25.clover","type":"checkout.session.completed","data":{"object":{"id":"cs_test_create_1","object":"checkout.session","metadata":{"account_id":"1","offer":"mensuel"}}}}`
+	signed := webhook.GenerateTestSignedPayload(&webhook.UnsignedPayload{
+		Payload:   []byte(payload),
+		Secret:    secret,
+		Timestamp: time.Now(),
+		Scheme:    "v1",
+	})
+
+	mock.ExpectExec(`^INSERT INTO "licence"`).WillReturnResult(sqlmock.NewResult(1, 1))
+
+	req := httptest.NewRequest(http.MethodPost, "/api/webhooks/stripe", bytes.NewBuffer(signed.Payload))
+	req.Header.Set("Stripe-Signature", signed.Header)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestLicenseHandler_HandleStripeWebhook_SubscriptionDeleted_Success(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	h, mock := setupLicenseHandler(t)
+	r.POST("/api/webhooks/stripe", h.HandleStripeWebhook)
+
+	secret := "whsec_test"
+	t.Setenv("STRIPE_WEBHOOK_SECRET", secret)
+
+	licID := uuid.New()
+	rows := sqlmock.NewRows([]string{"licence_id", "account_id", "transaction"}).AddRow(licID, 1, "sub_123")
+	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l" WHERE \(transaction = .+\)$`).WillReturnRows(rows)
+	mock.ExpectExec(`^DELETE FROM "licence" AS "l" WHERE \(licence_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
+
+	payload := `{"id":"evt_test","object":"event","api_version":"2026-02-25.clover","type":"customer.subscription.deleted","data":{"object":{"id":"sub_123","object":"subscription"}}}`
+	signed := webhook.GenerateTestSignedPayload(&webhook.UnsignedPayload{
+		Payload:   []byte(payload),
+		Secret:    secret,
+		Timestamp: time.Now(),
+		Scheme:    "v1",
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/webhooks/stripe", bytes.NewBuffer(signed.Payload))
+	req.Header.Set("Stripe-Signature", signed.Header)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestLicenseHandler_HandleStripeWebhook_SubscriptionDeleted_MissingID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	h, _ := setupLicenseHandler(t)
+	r.POST("/api/webhooks/stripe", h.HandleStripeWebhook)
+
+	secret := "whsec_test"
+	t.Setenv("STRIPE_WEBHOOK_SECRET", secret)
+
+	payload := `{"id":"evt_test","object":"event","api_version":"2026-02-25.clover","type":"customer.subscription.deleted","data":{"object":{"object":"subscription"}}}`
+	signed := webhook.GenerateTestSignedPayload(&webhook.UnsignedPayload{
+		Payload:   []byte(payload),
+		Secret:    secret,
+		Timestamp: time.Now(),
+		Scheme:    "v1",
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/webhooks/stripe", bytes.NewBuffer(signed.Payload))
+	req.Header.Set("Stripe-Signature", signed.Header)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -244,5 +338,84 @@ func TestLicenseHandler_Update_Forbidden(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestLicenseHandler_RefundLicense_InvalidUUID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	h, _ := setupLicenseHandler(t)
+	r.Use(withLicenseAccountContext())
+	r.POST("/licences/refund-license", h.RefundLicense)
+
+	req := httptest.NewRequest(http.MethodPost, "/licences/refund-license?licenceId=bad-id", nil)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestLicenseHandler_RefundLicense_NotFound(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	h, mock := setupLicenseHandler(t)
+	r.Use(withLicenseAccountContext())
+	r.POST("/licences/refund-license", h.RefundLicense)
+
+	licID := uuid.New()
+	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l" WHERE \(licence_id = .+\)$`).WillReturnError(sql.ErrNoRows)
+
+	req := httptest.NewRequest(http.MethodPost, "/licences/refund-license?licenceId="+licID.String(), nil)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestLicenseHandler_RefundLicense_Success(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	h, mock := setupLicenseHandler(t)
+	r.Use(withLicenseAccountContext())
+	r.POST("/licences/refund-license", h.RefundLicense)
+
+	origRetrieveCheckoutSession := retrieveCheckoutSession
+	origCancelSubscription := cancelSubscription
+	origCreateRefund := createRefund
+	t.Cleanup(func() {
+		retrieveCheckoutSession = origRetrieveCheckoutSession
+		cancelSubscription = origCancelSubscription
+		createRefund = origCreateRefund
+	})
+
+	retrieveCheckoutSession = func(ctx context.Context, sessionID string) (*stripe.CheckoutSession, error) {
+		return &stripe.CheckoutSession{Subscription: &stripe.Subscription{ID: "sub_123"}}, nil
+	}
+	cancelSubscription = func(ctx context.Context, subscriptionID string) (*stripe.Subscription, error) {
+		return &stripe.Subscription{ID: subscriptionID}, nil
+	}
+	createRefund = func(ctx context.Context, paymentIntentID string) (*stripe.Refund, error) {
+		return &stripe.Refund{ID: "re_123"}, nil
+	}
+
+	licID := uuid.New()
+	storeID := 10
+	licRows := sqlmock.NewRows([]string{"licence_id", "account_id", "transaction"}).AddRow(licID, 1, "cs_test_refund")
+	storeRows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation", "numero_tva", "siret"}).AddRow(storeID, "Refund Store", 1, licID, time.Now(), "", "")
+	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l" WHERE \(licence_id = .+\)$`).WillReturnRows(licRows)
+	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(licence_id = .+\)$`).WillReturnRows(storeRows)
+	mock.ExpectExec(`^DELETE FROM "profile" AS "p" WHERE \(store_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec(`^DELETE FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec(`^DELETE FROM "licence" AS "l" WHERE \(licence_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
+
+	req := httptest.NewRequest(http.MethodPost, "/licences/refund-license?licenceId="+licID.String(), nil)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNoContent, w.Code)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }

@@ -9,6 +9,8 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
+	"github.com/google/uuid"
+
 	"github.com/uptrace/bun"
 )
 
@@ -75,6 +77,20 @@ func (r *Repository) FindByBuyerID(ctx context.Context, buyerID int) ([]Store, e
 	}
 	_ = cache.Set(ctx, r.cache, key, &stores, cache.DefaultTTL)
 	return stores, nil
+}
+
+func (r *Repository) FindByLicenceID(ctx context.Context, licenceID uuid.UUID) (*Store, error) {
+	key := fmt.Sprintf("store:licence:%s", licenceID.String())
+	store := &Store{}
+	if hit, err := cache.Get(ctx, r.cache, key, store); err == nil && hit {
+		return store, nil
+	}
+	err := r.db.NewSelect().Model(store).Where("licence_id = ?", licenceID).Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+	_ = cache.Set(ctx, r.cache, key, store, cache.DefaultTTL)
+	return store, nil
 }
 
 func (r *Repository) Delete(ctx context.Context, id int) error {

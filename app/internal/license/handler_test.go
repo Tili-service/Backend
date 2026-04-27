@@ -12,9 +12,9 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/stripe/stripe-go/v84"
 	"github.com/stripe/stripe-go/v84/webhook"
-	"github.com/stretchr/testify/assert"
 
 	"tili/app/internal/profile"
 	"tili/app/internal/store"

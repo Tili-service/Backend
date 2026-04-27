@@ -142,7 +142,7 @@ func TestService_Refund_Success(t *testing.T) {
 	retrieveCheckoutSession = func(ctx context.Context, sessionID string) (*stripe.CheckoutSession, error) {
 		assert.Equal(t, "cs_test_123", sessionID)
 		return &stripe.CheckoutSession{
-			Subscription: &stripe.Subscription{ID: "sub_123"},
+			Subscription:  &stripe.Subscription{ID: "sub_123"},
 			PaymentIntent: &stripe.PaymentIntent{ID: "pi_123"},
 		}, nil
 	}

@@ -13,6 +13,7 @@ import (
 	"tili/app/internal/profile"
 	"tili/app/internal/store"
 
+	"tili/app/pkg/cache"
 	"tili/app/pkg/db"
 
 	"github.com/gin-gonic/gin"
@@ -36,37 +37,40 @@ import (
 // @description JWT obtenu après login profil avec PIN (POST /profile/login/pin)
 func main() {
 	db := db.NewDb()
+	redisClient := cache.NewRedisClient(os.Getenv("REDIS_URL"))
+	defer redisClient.Close()
 	stripe.Key = os.Getenv("STRIPE_API_KEY")
 
-	profileRepo := profile.NewRepository(db)
+	profileRepo := profile.NewRepository(db, redisClient)
 	profileService := profile.NewService(profileRepo)
 	profileHandler := profile.NewHandler(profileService)
 
-	storeRepo := store.NewRepository(db)
+	storeRepo := store.NewRepository(db, redisClient)
 	storeService := store.NewService(storeRepo)
 	storeHandler := store.NewHandler(storeService, profileService)
 
-	licenseRepo := license.NewRepository(db)
+	licenseRepo := license.NewRepository(db, redisClient)
 	licenseService := license.NewService(licenseRepo)
+	licenseService.SetDependencies(storeService, profileService)
 	licenseHandler := license.NewHandler(licenseService)
 
-	accountRepo := account.NewRepository(db)
+	accountRepo := account.NewRepository(db, redisClient)
 	accountService := account.NewService(accountRepo, storeService, profileService, licenseService)
 	accountHandler := account.NewHandler(accountService)
 
-	catalogRepo := catalog.NewRepository(db)
+	catalogRepo := catalog.NewRepository(db, redisClient)
 	catalogService := catalog.NewService(catalogRepo)
 	catalogHandler := catalog.NewHandler(catalogService)
 
-	itemRepo := item.NewRepository(db)
+	itemRepo := item.NewRepository(db, redisClient)
 	itemService := item.NewService(itemRepo)
 	itemHandler := item.NewHandler(itemService)
 
-	categorieRepo := categorie.NewRepository(db)
+	categorieRepo := categorie.NewRepository(db, redisClient)
 	categorieService := categorie.NewService(categorieRepo)
 	categorieHandler := categorie.NewHandler(categorieService)
 
-	payementmethodRepo := payementmethod.NewRepository(db)
+	payementmethodRepo := payementmethod.NewRepository(db, redisClient)
 	payementmethodService := payementmethod.NewService(payementmethodRepo)
 	payementmethodHandler := payementmethod.NewHandler(payementmethodService)
 

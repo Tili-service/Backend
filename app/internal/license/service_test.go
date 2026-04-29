@@ -31,6 +31,80 @@ func TestService_GetByID_NotFound(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestService_GetByID_WithStripeInfo(t *testing.T) {
+	bunDB, mock := setupMockDB(t)
+	defer bunDB.Close()
+
+	origRetrieveCheckoutSession := retrieveCheckoutSession
+	origRetrieveSubscriptionForLicence := retrieveSubscriptionForLicence
+	t.Cleanup(func() {
+		retrieveCheckoutSession = origRetrieveCheckoutSession
+		retrieveSubscriptionForLicence = origRetrieveSubscriptionForLicence
+	})
+
+	retrieveCheckoutSession = func(ctx context.Context, sessionID string) (*stripe.CheckoutSession, error) {
+		assert.Equal(t, "cs_test_123", sessionID)
+		return &stripe.CheckoutSession{
+			ID:           "cs_test_123",
+			Subscription: &stripe.Subscription{ID: "sub_123"},
+		}, nil
+	}
+	retrieveSubscriptionForLicence = func(ctx context.Context, subscriptionID string) (*stripe.Subscription, error) {
+		assert.Equal(t, "sub_123", subscriptionID)
+		return &stripe.Subscription{
+			ID:                "sub_123",
+			Status:            "active",
+			CancelAtPeriodEnd: true,
+			Items: &stripe.SubscriptionItemList{
+				Data: []*stripe.SubscriptionItem{
+					{
+						CurrentPeriodEnd: 1714406400,
+						Price: &stripe.Price{
+							ID:         "price_123",
+							UnitAmount: 1999,
+							Currency:   stripe.Currency("eur"),
+							Recurring: &stripe.PriceRecurring{
+								Interval: stripe.PriceRecurringIntervalMonth,
+							},
+							Product: &stripe.Product{
+								ID:   "prod_123",
+								Name: "Pro",
+							},
+						},
+					},
+				},
+			},
+		}, nil
+	}
+
+	repo := NewRepository(&db.Db{DB: bunDB})
+	svc := NewService(repo)
+
+	licID := uuid.New()
+	rows := sqlmock.NewRows([]string{"licence_id", "account_id", "transaction"}).AddRow(licID, 1, "cs_test_123")
+	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l" WHERE \(licence_id = .+\)$`).WillReturnRows(rows)
+
+	lic, err := svc.GetByID(context.Background(), licID)
+
+	assert.NoError(t, err)
+	if assert.NotNil(t, lic) {
+		if assert.NotNil(t, lic.Stripe) {
+			assert.Equal(t, "sub_123", lic.Stripe.SubscriptionID)
+			assert.Equal(t, "active", lic.Stripe.Status)
+			assert.True(t, lic.Stripe.CancelAtPeriodEnd)
+			assert.Equal(t, int64(1999), lic.Stripe.PriceAmount)
+			assert.Equal(t, "EUR", lic.Stripe.PriceCurrency)
+			assert.Equal(t, "month", lic.Stripe.PriceInterval)
+			assert.Equal(t, "prod_123", lic.Stripe.PriceProductID)
+			assert.Equal(t, "Pro", lic.Stripe.PriceProductName)
+			if assert.NotNil(t, lic.Stripe.NextPaymentAt) {
+				assert.Equal(t, time.Unix(1714406400, 0).UTC(), *lic.Stripe.NextPaymentAt)
+			}
+		}
+	}
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestService_Delete_Forbidden(t *testing.T) {
 	bunDB, mock := setupMockDB(t)
 	defer bunDB.Close()

@@ -268,6 +268,63 @@ func TestLicenseHandler_GetByID_NotFound(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestLicenseHandler_GetByID_WithStripeInfo(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	h, mock := setupLicenseHandler(t)
+	r.Use(withLicenseAccountContext())
+	r.GET("/licences/:id", h.GetByID)
+
+	origRetrieveCheckoutSession := retrieveCheckoutSession
+	origRetrieveSubscriptionForLicence := retrieveSubscriptionForLicence
+	t.Cleanup(func() {
+		retrieveCheckoutSession = origRetrieveCheckoutSession
+		retrieveSubscriptionForLicence = origRetrieveSubscriptionForLicence
+	})
+
+	retrieveCheckoutSession = func(ctx context.Context, sessionID string) (*stripe.CheckoutSession, error) {
+		return &stripe.CheckoutSession{
+			ID:           "cs_test_123",
+			Subscription: &stripe.Subscription{ID: "sub_123"},
+		}, nil
+	}
+	retrieveSubscriptionForLicence = func(ctx context.Context, subscriptionID string) (*stripe.Subscription, error) {
+		return &stripe.Subscription{
+			ID:                "sub_123",
+			Status:            "active",
+			CancelAtPeriodEnd: true,
+			Items: &stripe.SubscriptionItemList{
+				Data: []*stripe.SubscriptionItem{{
+					CurrentPeriodEnd: 1714406400,
+					Price: &stripe.Price{
+						ID:         "price_123",
+						UnitAmount: 1999,
+						Currency:   stripe.Currency("eur"),
+						Recurring: &stripe.PriceRecurring{
+							Interval: stripe.PriceRecurringIntervalMonth,
+						},
+					},
+				}},
+			},
+		}, nil
+	}
+
+	licID := uuid.New()
+	rows := sqlmock.NewRows([]string{"licence_id", "account_id", "transaction"}).AddRow(licID, 1, "cs_test_123")
+	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l" WHERE \(licence_id = .+\)$`).WillReturnRows(rows)
+
+	req := httptest.NewRequest(http.MethodGet, "/licences/"+licID.String(), nil)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), `"stripe"`)
+	assert.Contains(t, w.Body.String(), `"subscription_id":"sub_123"`)
+	assert.Contains(t, w.Body.String(), `"next_payment_at"`)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestLicenseHandler_Delete_NotFound(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()

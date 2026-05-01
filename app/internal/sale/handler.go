@@ -1,6 +1,7 @@
 package sale
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"tili/app/internal/middleware"
@@ -34,7 +35,7 @@ func (h *Handler) RegisterRoutes(rg *gin.Engine) {
 // @Accept       json
 // @Produce      json
 // @Param        sale  body      CreateSaleInput  true  "Sale payload"
-// @Success      201   {object}  Sales
+// @Success      201   {object}  Sale
 // @Failure      400   {object}  map[string]string
 // @Failure      500   {object}  map[string]string
 // @Router       /sales [post]
@@ -47,7 +48,11 @@ func (h *Handler) CreateSale(c *gin.Context) {
 
 	sale, err := h.service.CreateSale(c.Request.Context(), input)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if errors.Is(err, ErrInvalidSaleTotal) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 		return
 	}
 
@@ -57,13 +62,13 @@ func (h *Handler) CreateSale(c *gin.Context) {
 // @Summary      List all sales
 // @Tags         sales
 // @Produce      json
-// @Success      200  {array}   Sales
+// @Success      200  {array}   Sale
 // @Failure      500  {object}  map[string]string
 // @Router       /sales [get]
 func (h *Handler) GetAllSales(c *gin.Context) {
 	sales, err := h.service.GetAllSales(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 		return
 	}
 
@@ -74,9 +79,10 @@ func (h *Handler) GetAllSales(c *gin.Context) {
 // @Tags         sales
 // @Produce      json
 // @Param        id   path      int  true  "Sale ID"
-// @Success      200  {object}  Sales
+// @Success      200  {object}  Sale
 // @Failure      400  {object}  map[string]string
 // @Failure      404  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
 // @Router       /sales/{id} [get]
 func (h *Handler) GetSaleByID(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
@@ -87,7 +93,11 @@ func (h *Handler) GetSaleByID(c *gin.Context) {
 
 	sale, err := h.service.GetSaleByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		if errors.Is(err, ErrSaleNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 		return
 	}
 
@@ -100,8 +110,9 @@ func (h *Handler) GetSaleByID(c *gin.Context) {
 // @Produce      json
 // @Param        id    path      int              true  "Sale ID"
 // @Param        sale  body      UpdateSaleInput  true  "Fields to update"
-// @Success      200   {object}  Sales
+// @Success      200   {object}  Sale
 // @Failure      400   {object}  map[string]string
+// @Failure      404   {object}  map[string]string
 // @Failure      500   {object}  map[string]string
 // @Router       /sales/{id} [put]
 func (h *Handler) UpdateSale(c *gin.Context) {
@@ -119,7 +130,15 @@ func (h *Handler) UpdateSale(c *gin.Context) {
 
 	sale, err := h.service.UpdateSale(c.Request.Context(), id, input)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if errors.Is(err, ErrSaleNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, ErrInvalidSaleTotal) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 		return
 	}
 
@@ -131,6 +150,7 @@ func (h *Handler) UpdateSale(c *gin.Context) {
 // @Param        id   path      int  true  "Sale ID"
 // @Success      204  "No Content"
 // @Failure      400  {object}  map[string]string
+// @Failure      404  {object}  map[string]string
 // @Failure      500  {object}  map[string]string
 // @Router       /sales/{id} [delete]
 func (h *Handler) DeleteSale(c *gin.Context) {
@@ -141,7 +161,11 @@ func (h *Handler) DeleteSale(c *gin.Context) {
 	}
 
 	if err := h.service.DeleteSale(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if errors.Is(err, ErrSaleNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 		return
 	}
 

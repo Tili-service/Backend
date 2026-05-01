@@ -25,8 +25,13 @@ func (h *Handler) RegisterRoutes(rg *gin.Engine) {
 		accountProtected.POST("", h.CreateSale)
 		accountProtected.GET("", h.GetAllSales)
 		accountProtected.GET("/:id", h.GetSaleByID)
-		accountProtected.PUT("/:id", h.UpdateSale)
-		accountProtected.DELETE("/:id", h.DeleteSale)
+
+		managerRoutes := accountProtected.Group("")
+		managerRoutes.Use(middleware.LevelAccessRequired(token.Manager))
+		{
+			managerRoutes.PUT("/:id", h.UpdateSale)
+			managerRoutes.DELETE("/:id", h.DeleteSale)
+		}
 	}
 }
 

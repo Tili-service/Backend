@@ -128,7 +128,12 @@ func (h *Handler) UpdateSale(c *gin.Context) {
 		return
 	}
 
-	sale, err := h.service.UpdateSale(c.Request.Context(), id, input)
+	var changedBy *int
+	if accountID := c.GetInt("accountID"); accountID > 0 {
+		changedBy = &accountID
+	}
+
+	sale, err := h.service.UpdateSale(c.Request.Context(), id, input, changedBy)
 	if err != nil {
 		if errors.Is(err, ErrSaleNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})

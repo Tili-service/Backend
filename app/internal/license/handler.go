@@ -194,11 +194,11 @@ func (h *Handler) HandleStripeWebhook(c *gin.Context) {
 		var durationDays int
 		switch offer {
 		case "mensuel":
-			durationDays = 30
+			durationDays = 32
 		case "semestriel":
-			durationDays = 182
+			durationDays = 184
 		case "annuel":
-			durationDays = 365
+			durationDays = 367
 		default:
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Offre invalide"})
 			return

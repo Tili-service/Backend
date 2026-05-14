@@ -3,7 +3,6 @@ package sale
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"time"
 
@@ -77,9 +76,15 @@ func (s *Service) UpdateSale(ctx context.Context, id int, input UpdateSaleInput,
 			return err
 		}
 
-		previousLines, err := json.Marshal(existing.Lines)
-		if err != nil {
-			return err
+		previousLines := make([]salehistory.SaleLineSnapshot, len(existing.Lines))
+		for i, line := range existing.Lines {
+			previousLines[i] = salehistory.SaleLineSnapshot{
+				ItemID:    line.ItemID,
+				Name:      line.Name,
+				Quantity:  line.Quantity,
+				UnitPrice: line.UnitPrice,
+				TaxRate:   line.TaxRate,
+			}
 		}
 		hist := &salehistory.SaleHistory{
 			SaleID:                   existing.SaleID,

@@ -2,7 +2,6 @@ package catalog
 
 import (
 	"context"
-	"fmt"
 
 	"tili/app/pkg/cache"
 	"tili/app/pkg/db"
@@ -46,32 +45,14 @@ func (r *Repository) FindAll(ctx context.Context) ([]catalog, error) {
 }
 
 func (r *Repository) FindByID(ctx context.Context, id int) (*catalog, error) {
-	key := fmt.Sprintf("catalog:id:%d", id)
 	c := new(catalog)
-	if hit, err := cache.Get(ctx, r.cache, key, c); err == nil && hit {
-		return c, nil
-	}
 	err := r.db.NewSelect().Model(c).Where("c.catalog_id = ?", id).Scan(ctx)
-	if err != nil {
-		return nil, err
-	}
-	_ = cache.Set(ctx, r.cache, key, c, cache.DefaultTTL)
-	_ = cache.Set(ctx, r.cache, fmt.Sprintf("catalog:name:%s", c.Name), c, cache.DefaultTTL)
 	return c, err
 }
 
 func (r *Repository) FindByName(ctx context.Context, name string) (*catalog, error) {
-	key := fmt.Sprintf("catalog:name:%s", name)
 	c := new(catalog)
-	if hit, err := cache.Get(ctx, r.cache, key, c); err == nil && hit {
-		return c, nil
-	}
 	err := r.db.NewSelect().Model(c).Where("c.name = ?", name).Scan(ctx)
-	if err != nil {
-		return nil, err
-	}
-	_ = cache.Set(ctx, r.cache, key, c, cache.DefaultTTL)
-	_ = cache.Set(ctx, r.cache, fmt.Sprintf("catalog:id:%d", c.CatalogID), c, cache.DefaultTTL)
 	return c, err
 }
 

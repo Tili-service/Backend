@@ -41,7 +41,7 @@ func main() {
 	defer redisClient.Close()
 	stripe.Key = os.Getenv("STRIPE_API_KEY")
 
-	profileRepo := profile.NewRepository(db, redisClient)
+	profileRepo := profile.NewRepository(db)
 	profileService := profile.NewService(profileRepo)
 	profileHandler := profile.NewHandler(profileService)
 
@@ -54,7 +54,7 @@ func main() {
 	licenseService.SetDependencies(storeService, profileService)
 	licenseHandler := license.NewHandler(licenseService)
 
-	accountRepo := account.NewRepository(db, redisClient)
+	accountRepo := account.NewRepository(db)
 	accountService := account.NewService(accountRepo, storeService, profileService, licenseService)
 	accountHandler := account.NewHandler(accountService)
 
@@ -62,15 +62,15 @@ func main() {
 	catalogService := catalog.NewService(catalogRepo)
 	catalogHandler := catalog.NewHandler(catalogService)
 
-	itemRepo := item.NewRepository(db, redisClient)
+	itemRepo := item.NewRepository(db)
 	itemService := item.NewService(itemRepo)
 	itemHandler := item.NewHandler(itemService)
 
-	categorieRepo := categorie.NewRepository(db, redisClient)
+	categorieRepo := categorie.NewRepository(db)
 	categorieService := categorie.NewService(categorieRepo)
 	categorieHandler := categorie.NewHandler(categorieService)
 
-	payementmethodRepo := payementmethod.NewRepository(db, redisClient)
+	payementmethodRepo := payementmethod.NewRepository(db)
 	payementmethodService := payementmethod.NewService(payementmethodRepo)
 	payementmethodHandler := payementmethod.NewHandler(payementmethodService)
 

@@ -1,8 +1,8 @@
 CREATE TABLE sale_history (
     history_id SERIAL PRIMARY KEY,
-    sale_id INTEGER NOT NULL REFERENCES sale(sale_id) ON DELETE CASCADE,
+    sale_id INTEGER NOT NULL REFERENCES sales(sale_id) ON DELETE CASCADE,
     changed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    changed_by_account_id INTEGER REFERENCES account(account_id) ON DELETE SET NULL,
+    changed_by_profile_id INTEGER REFERENCES profile(profile_id) ON DELETE SET NULL,
     previous_lines JSONB,
     previous_price DECIMAL(10, 2),
     previous_payement_method_id INTEGER,

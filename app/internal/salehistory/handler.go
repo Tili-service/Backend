@@ -26,7 +26,7 @@ func (h *Handler) RegisterRoutes(rg *gin.Engine) {
 		managerRoutes := protected.Group("")
 		managerRoutes.Use(middleware.LevelAccessRequired(token.Manager))
 		{
-			sales.GET("/:id/history", h.ListBySaleID)
+			managerRoutes.GET("/:id/history", h.ListBySaleID)
 		}
 	}
 }

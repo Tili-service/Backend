@@ -187,12 +187,16 @@ func (s *Service) UpdateSale(ctx context.Context, id int, input UpdateSaleInput,
 				newLineMap[l.ItemID] = l.Quantity
 			}
 
-			var updatedLines []SaleLine
-			for _, oldLine := range existing.Lines {
-				if qty, ok := newLineMap[oldLine.ItemID]; ok {
-					oldLine.Quantity = qty
-					updatedLines = append(updatedLines, oldLine)
+			updatedLines := make([]SaleLine, len(existing.Lines))
+			copy(updatedLines, existing.Lines)
+			for i, line := range updatedLines {
+				if qty, ok := newLineMap[line.ItemID]; ok {
+					updatedLines[i].Quantity = qty
+					delete(newLineMap, line.ItemID)
 				}
+			}
+			if len(newLineMap) > 0 {
+				return ErrLineNotFound
 			}
 
 			total := computeTotal(updatedLines)

@@ -11,13 +11,14 @@ import (
 )
 
 var ErrSaleNotFound = errors.New("sale not found")
+var ErrLineNotFound = errors.New("one or more item_ids not found in the sale")
 
 type SaleLine struct {
-	ItemID    int             `json:"item_id"    binding:"required"`
-	Name      string          `json:"name"`
-	Quantity  int             `json:"quantity"   binding:"required,min=1"`
-	UnitPrice decimal.Decimal `json:"unit_price" binding:"required"`
-	TaxRate   decimal.Decimal `json:"tax_rate,omitempty"`
+	ItemID    int             `json:"item_id"    binding:"required"       example:"1"`
+	Name      string          `json:"name"                                 example:"Coffee"`
+	Quantity  int             `json:"quantity"   binding:"required,min=1"  example:"2"`
+	UnitPrice decimal.Decimal `json:"unit_price" binding:"required"        example:"4.50"`
+	TaxRate   decimal.Decimal `json:"tax_rate,omitempty"                   example:"0.20"`
 }
 
 type Sale struct {
@@ -34,15 +35,15 @@ type Sale struct {
 
 type CreateSaleInput struct {
 	Lines            []SaleLine `json:"lines"              binding:"required,min=1,dive"`
-	PayementMethodID int        `json:"payement_method_id" binding:"required"`
+	PayementMethodID int        `json:"payement_method_id" binding:"required"             example:"1"`
 }
 
 type UpdateSaleLine struct {
-	ItemID   int `json:"item_id"   binding:"required"`
-	Quantity int `json:"quantity"  binding:"required,min=1"`
+	ItemID   int `json:"item_id"   binding:"required"      example:"1"`
+	Quantity int `json:"quantity"  binding:"required,min=1" example:"3"`
 }
 
 type UpdateSaleInput struct {
 	Lines            *[]UpdateSaleLine `json:"lines,omitempty"              binding:"omitempty,min=1,dive"`
-	PayementMethodID *int              `json:"payement_method_id,omitempty"`
+	PayementMethodID *int              `json:"payement_method_id,omitempty" example:"2"`
 }

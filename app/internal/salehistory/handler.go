@@ -32,10 +32,10 @@ func (h *Handler) RegisterRoutes(rg *gin.Engine) {
 }
 
 // @Summary      List the change history of a sale
-// @Description  Returns the audit trail of changes for a sale, ordered most-recent-first. Each row captures the state of the sale before a change was applied.
+// @Description  Returns the audit trail of changes for a sale, ordered most-recent-first. Each row captures the state of the sale after the change was applied, alongside a diff of what changed (fields "action", and any modified field with from/to values). Requires manager access.
 // @Tags         sales
 // @Produce      json
-// @Param        id   path      int  true  "Sale ID"
+// @Param        id   path      int  true  "Sale ID"  example(1)
 // @Success      200  {array}   SaleHistory
 // @Failure      400  {object}  map[string]string
 // @Failure      500  {object}  map[string]string

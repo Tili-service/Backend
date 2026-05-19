@@ -4,7 +4,9 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+
 	"tili/app/internal/middleware"
+	"tili/app/internal/token"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,14 +21,18 @@ func NewHandler(service *Service) *Handler {
 
 func (h *Handler) RegisterRoutes(rg *gin.Engine) {
 	sales := rg.Group("/sales")
-	accountProtected := sales.Group("")
-	accountProtected.Use(middleware.AccountAuthMiddleware())
+	protected := sales.Group("")
+	protected.Use(middleware.ProfileAuthMiddleware())
 	{
-		accountProtected.POST("", h.CreateSale)
-		accountProtected.GET("", h.GetAllSales)
-		accountProtected.GET("/:id", h.GetSaleByID)
-		accountProtected.PUT("/:id", h.UpdateSale)
-		accountProtected.DELETE("/:id", h.DeleteSale)
+		protected.POST("", h.CreateSale)
+		protected.GET("", h.GetAllSales)
+		protected.GET("/:id", h.GetSaleByID)
+		managerRoutes := protected.Group("")
+		managerRoutes.Use(middleware.LevelAccessRequired(token.Manager))
+		{
+			managerRoutes.PUT("/:id", h.UpdateSale)
+			managerRoutes.DELETE("/:id", h.DeleteSale)
+		}
 	}
 }
 
@@ -128,12 +134,12 @@ func (h *Handler) UpdateSale(c *gin.Context) {
 		return
 	}
 
-	var changedBy *int
-	if accountID := c.GetInt("accountID"); accountID > 0 {
-		changedBy = &accountID
+	var changedByProf *int
+	if profileID := c.GetInt("profileID"); profileID > 0 {
+		changedByProf = &profileID
 	}
 
-	sale, err := h.service.UpdateSale(c.Request.Context(), id, input, changedBy)
+	sale, err := h.service.UpdateSale(c.Request.Context(), id, input, changedByProf)
 	if err != nil {
 		if errors.Is(err, ErrSaleNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -165,7 +171,12 @@ func (h *Handler) DeleteSale(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.DeleteSale(c.Request.Context(), id); err != nil {
+	var changedByProf *int
+	if profileID := c.GetInt("profileID"); profileID > 0 {
+		changedByProf = &profileID
+	}
+
+	if err := h.service.DeleteSale(c.Request.Context(), id, changedByProf); err != nil {
 		if errors.Is(err, ErrSaleNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return

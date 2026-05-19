@@ -32,6 +32,7 @@ func (r *Repository) FindByID(ctx context.Context, id int) (*Sale, error) {
 		Model(sale).
 		Relation("PayementMethod").
 		Where("s.sale_id = ?", id).
+		Where("s.is_deleted = ?", false).
 		Scan(ctx)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrSaleNotFound
@@ -47,6 +48,7 @@ func (r *Repository) FindAll(ctx context.Context) ([]*Sale, error) {
 	err := r.db.NewSelect().
 		Model(&sales).
 		Relation("PayementMethod").
+		Where("s.is_deleted = ?", false).
 		OrderExpr("s.time_stamp DESC").
 		Scan(ctx)
 	if err != nil {
@@ -64,7 +66,7 @@ func (r *Repository) Update(ctx context.Context, s *Sale) (*Sale, error) {
 }
 
 func (r *Repository) Delete(ctx context.Context, id int) error {
-	res, err := r.db.NewDelete().Model(&Sale{}).Where("sale_id = ?", id).Exec(ctx)
+	res, err := r.db.NewUpdate().Model(&Sale{}).Set("is_deleted = ?", true).Where("sale_id = ?", id).Where("is_deleted = ?", false).Exec(ctx)
 	if err != nil {
 		return err
 	}

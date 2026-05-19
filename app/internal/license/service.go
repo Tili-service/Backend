@@ -5,12 +5,16 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"time"
+
+	"tili/app/pkg/email"
 
 	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v84"
 	"github.com/stripe/stripe-go/v84/checkout/session"
+	"github.com/stripe/stripe-go/v84/customer"
 )
 
 var (
@@ -19,11 +23,12 @@ var (
 )
 
 type Service struct {
-	repo *Repository
+	repo        *Repository
+	emailClient email.Sender
 }
 
-func NewService(repo *Repository) *Service {
-	return &Service{repo: repo}
+func NewService(repo *Repository, emailClient email.Sender) *Service {
+	return &Service{repo: repo, emailClient: emailClient}
 }
 
 func (s *Service) DeleteByAccountID(ctx context.Context, accountID int) error {
@@ -137,6 +142,28 @@ func (s *Service) CreatePaymentLink(ctx context.Context, accountID int, customer
 	sess, err := session.New(params)
 	if err != nil {
 		return "", fmt.Errorf("erreur stripe: %w", err)
+	}
+
+	var targetEmail string
+	if customerID != "" {
+		cust, err := customer.Get(customerID, nil)
+		if err != nil {
+			return "", fmt.Errorf("erreur lors de la récupération du client Stripe: %w", err)
+		}
+		targetEmail = cust.Email
+	}
+
+	if targetEmail != "" {
+		log.Printf("Payment link created for customer %s with email %s", customerID, targetEmail)
+		content, err := email.GetNewPaymentLinkEmailContent(input.Offer, sess.URL)
+		if err != nil {
+			return "", fmt.Errorf("erreur lors de la génération de l'email: %w", err)
+		}
+		log.Printf("Sending email to %s with content: %s", targetEmail, content)
+
+		if err := s.emailClient.SendEmail(targetEmail, "New Payment Link Created", content); err != nil {
+			return "", fmt.Errorf("erreur lors de l'envoi de l'email: %w", err)
+		}
 	}
 
 	return sess.URL, nil

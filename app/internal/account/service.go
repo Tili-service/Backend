@@ -30,14 +30,16 @@ type Service struct {
 	storeService   *store.Service
 	profileService *profile.Service
 	licenseService LicenseDeleter
+	emailClient    email.Sender
 }
 
-func NewService(repo *Repository, storeService *store.Service, profileService *profile.Service, licenseService LicenseDeleter) *Service {
+func NewService(repo *Repository, storeService *store.Service, profileService *profile.Service, licenseService LicenseDeleter, emailClient email.Sender) *Service {
 	return &Service{
 		repo:           repo,
 		storeService:   storeService,
 		profileService: profileService,
 		licenseService: licenseService,
+		emailClient:    emailClient,
 	}
 }
 
@@ -74,7 +76,6 @@ func (s *Service) Create(ctx context.Context, input RegistrationInput) (*Account
 		return nil, err
 	}
 
-	client, err := email.NewEmailSender()
 	if err != nil {
 		return nil, fmt.Errorf("erreur lors de l'initialisation du client SMTP: %w", err)
 	}
@@ -82,7 +83,7 @@ func (s *Service) Create(ctx context.Context, input RegistrationInput) (*Account
 	if err != nil {
 		return nil, fmt.Errorf("erreur lors de la génération du contenu de l'email: %w", err)
 	}
-	err = client.SendEmail(input.Email, "Bienvenue chez Tili !", content)
+	err = s.emailClient.SendEmail(input.Email, "Bienvenue chez Tili !", content)
 	if err != nil {
 		return nil, fmt.Errorf("erreur lors de l'envoi de l'email de bienvenue: %w", err)
 	}

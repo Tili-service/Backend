@@ -15,6 +15,7 @@ import (
 	"tili/app/internal/store"
 
 	"tili/app/pkg/db"
+	"tili/app/pkg/email"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stripe/stripe-go/v84"
@@ -36,6 +37,10 @@ import (
 // @name Authorization
 // @description JWT obtenu après login profil avec PIN (POST /profile/login/pin)
 func main() {
+	emailClient, err := email.NewEmailSender()
+	if err != nil {
+		log.Fatalf("Erreur lors de la création du client email: %s", err)
+	}
 	db := db.NewDb()
 	stripe.Key = os.Getenv("STRIPE_API_KEY")
 
@@ -48,11 +53,11 @@ func main() {
 	storeHandler := store.NewHandler(storeService, profileService)
 
 	licenseRepo := license.NewRepository(db)
-	licenseService := license.NewService(licenseRepo)
+	licenseService := license.NewService(licenseRepo, emailClient)
 	licenseHandler := license.NewHandler(licenseService)
 
 	accountRepo := account.NewRepository(db)
-	accountService := account.NewService(accountRepo, storeService, profileService, licenseService)
+	accountService := account.NewService(accountRepo, storeService, profileService, licenseService, emailClient)
 	accountHandler := account.NewHandler(accountService)
 
 	catalogRepo := catalog.NewRepository(db)

@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"tili/app/internal/middleware"
+	"tili/app/internal/token"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,9 +20,14 @@ func NewHandler(service *Service) *Handler {
 
 func (h *Handler) RegisterRoutes(rg *gin.Engine) {
 	sales := rg.Group("/sales")
-	sales.Use(middleware.AccountAuthMiddleware())
+	protected := sales.Group("")
+	protected.Use(middleware.ProfileAuthMiddleware())
 	{
-		sales.GET("/:id/history", h.ListBySaleID)
+		managerRoutes := protected.Group("")
+		managerRoutes.Use(middleware.LevelAccessRequired(token.Manager))
+		{
+			sales.GET("/:id/history", h.ListBySaleID)
+		}
 	}
 }
 

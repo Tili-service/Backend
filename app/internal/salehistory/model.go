@@ -21,7 +21,7 @@ type SaleHistory struct {
 	HistoryID                int                `bun:"history_id,pk,autoincrement"          json:"history_id"`
 	SaleID                   int                `bun:"sale_id,notnull"                      json:"sale_id"`
 	ChangedAt                time.Time          `bun:"changed_at,default:current_timestamp" json:"changed_at"`
-	ChangedByAccountID       *int               `bun:"changed_by_account_id"                json:"changed_by_account_id,omitempty"`
+	ChangedByProfileID       *int               `bun:"changed_by_profile_id"                json:"changed_by_profile_id,omitempty"`
 	PreviousLines            []SaleLineSnapshot `bun:"previous_lines,type:jsonb"         json:"previous_lines"`
 	PreviousPrice            decimal.Decimal    `bun:"previous_price,type:decimal(10,2)"    json:"previous_price"`
 	PreviousPayementMethodID int                `bun:"previous_payement_method_id"          json:"previous_payement_method_id"`

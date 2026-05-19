@@ -12,6 +12,8 @@ import (
 
 var ErrSaleNotFound = errors.New("sale not found")
 var ErrNewLineIncomplete = errors.New("new line items require name and unit_price")
+var ErrNewLineZeroQuantity = errors.New("new line items must have quantity >= 1")
+var ErrSaleWouldBeEmpty = errors.New("sale must have at least one item with quantity > 0")
 
 type SaleLine struct {
 	ItemID    int             `json:"item_id"    binding:"required"       example:"1"`
@@ -39,11 +41,11 @@ type CreateSaleInput struct {
 }
 
 type UpdateSaleLine struct {
-	ItemID    int              `json:"item_id"             binding:"required"       example:"2"`
-	Name      string           `json:"name,omitempty"                               example:"Tea"`
-	Quantity  int              `json:"quantity"            binding:"required,min=1"  example:"1"`
-	UnitPrice *decimal.Decimal `json:"unit_price,omitempty"                         example:"3.00"`
-	TaxRate   *decimal.Decimal `json:"tax_rate,omitempty"                           example:"0.20"`
+	ItemID    int              `json:"item_id"             binding:"required"      example:"2"`
+	Name      string           `json:"name,omitempty"                              example:"Tea"`
+	Quantity  *int             `json:"quantity"            binding:"required,min=0" example:"1"`
+	UnitPrice *decimal.Decimal `json:"unit_price,omitempty"                        example:"3.00"`
+	TaxRate   *decimal.Decimal `json:"tax_rate,omitempty"                          example:"0.20"`
 }
 
 type UpdateSaleInput struct {

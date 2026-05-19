@@ -187,30 +187,40 @@ func (s *Service) UpdateSale(ctx context.Context, id int, input UpdateSaleInput,
 				newLineMap[l.ItemID] = l
 			}
 
-			updatedLines := make([]SaleLine, len(existing.Lines))
-			copy(updatedLines, existing.Lines)
-			for i, line := range updatedLines {
+			var updatedLines []SaleLine
+			for _, line := range existing.Lines {
 				if update, ok := newLineMap[line.ItemID]; ok {
-					updatedLines[i].Quantity = update.Quantity
 					delete(newLineMap, line.ItemID)
+					if *update.Quantity == 0 {
+						continue // quantity 0 = remove this item
+					}
+					line.Quantity = *update.Quantity
 				}
+				updatedLines = append(updatedLines, line)
 			}
 
 			// remaining entries in newLineMap are items not yet in the sale — add them
 			for _, newItem := range newLineMap {
+				if *newItem.Quantity == 0 {
+					return ErrNewLineZeroQuantity
+				}
 				if newItem.Name == "" || newItem.UnitPrice == nil {
 					return ErrNewLineIncomplete
 				}
 				line := SaleLine{
 					ItemID:    newItem.ItemID,
 					Name:      newItem.Name,
-					Quantity:  newItem.Quantity,
+					Quantity:  *newItem.Quantity,
 					UnitPrice: *newItem.UnitPrice,
 				}
 				if newItem.TaxRate != nil {
 					line.TaxRate = *newItem.TaxRate
 				}
 				updatedLines = append(updatedLines, line)
+			}
+
+			if len(updatedLines) == 0 {
+				return ErrSaleWouldBeEmpty
 			}
 
 			total := computeTotal(updatedLines)

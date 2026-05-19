@@ -153,6 +153,14 @@ func (h *Handler) UpdateSale(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+		if errors.Is(err, ErrNewLineZeroQuantity) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, ErrSaleWouldBeEmpty) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		if errors.Is(err, ErrInvalidSaleTotal) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return

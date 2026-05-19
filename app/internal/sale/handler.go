@@ -194,5 +194,5 @@ func (h *Handler) DeleteSale(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	c.Status(http.StatusOK)
 }

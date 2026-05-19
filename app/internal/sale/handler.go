@@ -37,6 +37,7 @@ func (h *Handler) RegisterRoutes(rg *gin.Engine) {
 }
 
 // @Summary      Create a new sale
+// @Description  Creates a sale with one or more line items. The total is computed from unit prices × quantities. Returns 400 if the computed total is not positive.
 // @Tags         sales
 // @Accept       json
 // @Produce      json
@@ -66,6 +67,7 @@ func (h *Handler) CreateSale(c *gin.Context) {
 }
 
 // @Summary      List all sales
+// @Description  Returns all non-deleted sales ordered by most recent first.
 // @Tags         sales
 // @Produce      json
 // @Success      200  {array}   Sale
@@ -82,9 +84,10 @@ func (h *Handler) GetAllSales(c *gin.Context) {
 }
 
 // @Summary      Get a sale by ID
+// @Description  Returns a single non-deleted sale by its ID.
 // @Tags         sales
 // @Produce      json
-// @Param        id   path      int  true  "Sale ID"
+// @Param        id   path      int  true  "Sale ID"  example(1)
 // @Success      200  {object}  Sale
 // @Failure      400  {object}  map[string]string
 // @Failure      404  {object}  map[string]string
@@ -111,10 +114,11 @@ func (h *Handler) GetSaleByID(c *gin.Context) {
 }
 
 // @Summary      Update a sale
+// @Description  Partially updates a sale. Only the fields provided are changed. Updating lines replaces quantities for matched item IDs; unmatched items are removed. The total is recomputed. The change is recorded in sale_history. Requires manager access.
 // @Tags         sales
 // @Accept       json
 // @Produce      json
-// @Param        id    path      int              true  "Sale ID"
+// @Param        id    path      int              true  "Sale ID"         example(1)
 // @Param        sale  body      UpdateSaleInput  true  "Fields to update"
 // @Success      200   {object}  Sale
 // @Failure      400   {object}  map[string]string
@@ -145,6 +149,10 @@ func (h *Handler) UpdateSale(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
+		if errors.Is(err, ErrLineNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
 		if errors.Is(err, ErrInvalidSaleTotal) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -157,8 +165,9 @@ func (h *Handler) UpdateSale(c *gin.Context) {
 }
 
 // @Summary      Delete a sale
+// @Description  Soft-deletes a sale by setting is_deleted=true. The deletion is recorded in sale_history. Requires manager access.
 // @Tags         sales
-// @Param        id   path      int  true  "Sale ID"
+// @Param        id   path      int  true  "Sale ID"  example(1)
 // @Success      204  "No Content"
 // @Failure      400  {object}  map[string]string
 // @Failure      404  {object}  map[string]string

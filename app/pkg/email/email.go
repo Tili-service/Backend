@@ -103,6 +103,22 @@ func GetNewPaymentLinkEmailContent(offer string, paymentLinkURL string) (string,
 	return content, nil
 }
 
+func GetNewLicenseActiveEmailContent(licenseLink string) (string, error) {
+	tpl, err := pongo2.FromFile("html/new_license_active.html")
+	if err != nil {
+		log.Fatalf("Erreur lors de la lecture du template: %s", err)
+	}
+	ctx := pongo2.Context{
+		"license_link": licenseLink,
+	}
+
+	content, err := tpl.Execute(ctx)
+	if err != nil {
+		log.Fatalf("Erreur lors de l'exécution du template: %s", err)
+	}
+	return content, nil
+}
+
 func (m *MailpitSender) SendEmail(to string, subject string, body string) error {
 	msg := mail.NewMsg()
 	msg.From("tili-service@local.dev")

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"tili/app/pkg/db"
+	"tili/app/internal/account"
 
 	"github.com/google/uuid"
 	"github.com/uptrace/bun"
@@ -47,6 +48,15 @@ func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (*Licence, erro
 		return nil, err
 	}
 	return l, nil
+}
+
+func (r *Repository) GetAccountByID(ctx context.Context, accountID int) (*account.Account, error) {
+	account := &account.Account{}
+	err := r.db.NewSelect().Model(account).Where("account_id = ?", accountID).Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return account, nil
 }
 
 func (r *Repository) Delete(ctx context.Context, id uuid.UUID) error {

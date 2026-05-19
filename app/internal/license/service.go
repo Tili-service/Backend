@@ -96,6 +96,19 @@ func (s *Service) Create(ctx context.Context, accountID int, input CreateLicence
 	if err := s.repo.CreateLicence(ctx, lic); err != nil {
 		return nil, err
 	}
+	emailContent, err := email.GetNewLicenseActiveEmailContent(fmt.Sprintf("%s/admin/shop/new?licenceId=%s", os.Getenv("APP_URL"), lic.LicenceID))
+	if err != nil {
+		log.Printf("Error generating email content: %v", err)
+	} else {
+		account, err := s.repo.GetAccountByID(ctx, accountID)
+		if err != nil {
+			log.Printf("Error fetching account for email: %v", err)
+		} else {
+			if err := s.emailClient.SendEmail(account.Email, "Your new license is active!", emailContent); err != nil {
+				log.Printf("Error sending email: %v", err)
+			}
+		}
+	}
 	return lic, nil
 }
 

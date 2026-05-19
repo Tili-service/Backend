@@ -3461,29 +3461,36 @@ const docTemplate = `{
                 "changed_at": {
                     "type": "string"
                 },
-                "changed_by_account_id": {
+                "changed_by_profile_id": {
                     "type": "integer"
+                },
+                "changes": {
+                    "type": "object",
+                    "additionalProperties": true
                 },
                 "history_id": {
                     "type": "integer"
                 },
-                "previous_lines": {
+                "is_deleted": {
+                    "type": "boolean"
+                },
+                "lines": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/salehistory.SaleLineSnapshot"
                     }
                 },
-                "previous_payement_method_id": {
+                "payement_method_id": {
                     "type": "integer"
                 },
-                "previous_price": {
+                "price": {
                     "type": "number"
-                },
-                "previous_time_stamp": {
-                    "type": "string"
                 },
                 "sale_id": {
                     "type": "integer"
+                },
+                "time_stamp": {
+                    "type": "string"
                 }
             }
         },

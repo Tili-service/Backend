@@ -114,7 +114,7 @@ func (h *Handler) GetSaleByID(c *gin.Context) {
 }
 
 // @Summary      Update a sale
-// @Description  Partially updates a sale. Only the fields provided are changed. Updating lines replaces quantities for matched item IDs; unmatched items are removed. The total is recomputed. The change is recorded in sale_history. Requires manager access.
+// @Description  Partially updates a sale. Only the fields provided are changed. For lines: existing item IDs update their quantity; new item IDs are added (name and unit_price required); items not mentioned are kept unchanged. The total is recomputed. The change is recorded in sale_history. Requires manager access.
 // @Tags         sales
 // @Accept       json
 // @Produce      json
@@ -149,8 +149,8 @@ func (h *Handler) UpdateSale(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
-		if errors.Is(err, ErrLineNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		if errors.Is(err, ErrNewLineIncomplete) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		if errors.Is(err, ErrInvalidSaleTotal) {

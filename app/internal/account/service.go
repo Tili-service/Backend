@@ -13,6 +13,7 @@ import (
 
 	"tili/app/internal/profile"
 	"tili/app/internal/store"
+	"tili/app/pkg/email"
 )
 
 var (
@@ -73,6 +74,18 @@ func (s *Service) Create(ctx context.Context, input RegistrationInput) (*Account
 		return nil, err
 	}
 
+	client, err := email.NewEmailSender()
+	if err != nil {
+		return nil, fmt.Errorf("erreur lors de l'initialisation du client SMTP: %w", err)
+	}
+	content, err := email.GetWelcomeEmailContent(input.Name, input.Email)
+	if err != nil {
+		return nil, fmt.Errorf("erreur lors de la génération du contenu de l'email: %w", err)
+	}
+	err = client.SendEmail(input.Email, "Bienvenue chez Tili !", content)
+	if err != nil {
+		return nil, fmt.Errorf("erreur lors de l'envoi de l'email de bienvenue: %w", err)
+	}
 	return acc, nil
 }
 

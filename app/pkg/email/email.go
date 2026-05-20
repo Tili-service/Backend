@@ -75,8 +75,9 @@ func GetWelcomeEmailContent(name string, email string) (string, error) {
 		log.Fatalf("Erreur lors de la lecture du template: %s", err)
 	}
 	ctx := pongo2.Context{
-		"name":  name,
-		"email": email,
+		"name":    name,
+		"email":   email,
+		"app_url": os.Getenv("APP_URL") + "/admin",
 	}
 
 	content, err := tpl.Execute(ctx)
@@ -125,9 +126,10 @@ func GetNewProfileCreatedEmailContent(profileStoreID int, profileName string, pr
 		log.Fatalf("Erreur lors de la lecture du template: %s", err)
 	}
 	ctx := pongo2.Context{
-		"profile_store_id": profileStoreID,
-		"profile_name":     profileName,
-		"profile_pin":      profilePIN,
+		"profile_store_id":    profileStoreID,
+		"profile_name":        profileName,
+		"profile_pin":         profilePIN,
+		"manage_profile_link": os.Getenv("APP_URL") + "/admin/shop/" + strconv.Itoa(profileStoreID) + "/profils",
 	}
 
 	content, err := tpl.Execute(ctx)
@@ -137,13 +139,14 @@ func GetNewProfileCreatedEmailContent(profileStoreID int, profileName string, pr
 	return content, nil
 }
 
-func GetNewStoreCreatedEmailContent(storeName string) (string, error) {
+func GetNewStoreCreatedEmailContent(storeName string, storeID int) (string, error) {
 	tpl, err := pongo2.FromFile("html/new_store_created.html")
 	if err != nil {
 		log.Fatalf("Erreur lors de la lecture du template: %s", err)
 	}
 	ctx := pongo2.Context{
 		"store_name": storeName,
+		"store_link": os.Getenv("APP_URL") + "/admin/shop/" + strconv.Itoa(storeID) + "/dashboard",
 	}
 
 	content, err := tpl.Execute(ctx)

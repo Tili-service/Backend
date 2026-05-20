@@ -52,13 +52,13 @@ func (s *Service) Create(ctx context.Context, input CreateStoreInput, accountID 
 	}
 
 	if s.emailClient != nil && s.accountRepo != nil {
-		go s.sendStoreCreatedEmail(ctx, accountID, createdStore.Name)
+		go s.sendStoreCreatedEmail(ctx, accountID, createdStore.Name, createdStore.StoreID)
 	}
 
 	return createdStore, nil
 }
 
-func (s *Service) sendStoreCreatedEmail(ctx context.Context, accountID int, storeName string) {
+func (s *Service) sendStoreCreatedEmail(ctx context.Context, accountID int, storeName string, storeID int) {
 	account, err := s.accountRepo.FindByID(ctx, accountID)
 	if err != nil {
 		log.Printf("Failed to fetch account: %v", err)
@@ -70,7 +70,7 @@ func (s *Service) sendStoreCreatedEmail(ctx context.Context, accountID int, stor
 		return
 	}
 
-	emailContent, err := email.GetNewStoreCreatedEmailContent(storeName)
+	emailContent, err := email.GetNewStoreCreatedEmailContent(storeName, storeID)
 	if err != nil {
 		log.Printf("Failed to generate email content: %v", err)
 		return

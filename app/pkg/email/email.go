@@ -119,6 +119,24 @@ func GetNewLicenseActiveEmailContent(licenseLink string) (string, error) {
 	return content, nil
 }
 
+func GetNewProfileCreatedEmailContent(profileStoreID int, profileName string, profilePIN string) (string, error) {
+	tpl, err := pongo2.FromFile("html/new_profile_created.html")
+	if err != nil {
+		log.Fatalf("Erreur lors de la lecture du template: %s", err)
+	}
+	ctx := pongo2.Context{
+		"profile_store_id": profileStoreID,
+		"profile_name":     profileName,
+		"profile_pin":      profilePIN,
+	}
+
+	content, err := tpl.Execute(ctx)
+	if err != nil {
+		log.Fatalf("Erreur lors de l'exécution du template: %s", err)
+	}
+	return content, nil
+}
+
 func (m *MailpitSender) SendEmail(to string, subject string, body string) error {
 	msg := mail.NewMsg()
 	msg.From("tili-service@local.dev")

@@ -63,3 +63,16 @@ func (r *Repository) Update(ctx context.Context, s *Store) (*Store, error) {
 	}
 	return s, nil
 }
+
+type StoreProfileData struct {
+	BuyerID int
+}
+
+func (r *Repository) FindByIDForProfile(ctx context.Context, id int) (*StoreProfileData, error) {
+	store := &Store{}
+	err := r.db.NewSelect().Model(store).Where("store_id = ?", id).Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &StoreProfileData{BuyerID: store.BuyerID}, nil
+}

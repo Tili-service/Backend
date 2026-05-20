@@ -51,3 +51,16 @@ func (r *Repository) Update(ctx context.Context, a *Account) (*Account, error) {
 	}
 	return a, nil
 }
+
+type AccountProfileData struct {
+	Email string
+}
+
+func (r *Repository) FindByIDForProfile(ctx context.Context, id int) (*AccountProfileData, error) {
+	a := &Account{}
+	err := r.db.NewSelect().Model(a).Where("account_id = ?", id).Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &AccountProfileData{Email: a.Email}, nil
+}

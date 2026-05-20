@@ -22,7 +22,38 @@ import (
 
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"context"
 )
+
+type storeRepositoryAdapter struct {
+	repo *store.Repository
+}
+
+func (a *storeRepositoryAdapter) FindByID(ctx context.Context, id int) (*profile.StoreData, error) {
+	store, err := a.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if store == nil {
+		return nil, nil
+	}
+	return &profile.StoreData{BuyerID: store.BuyerID}, nil
+}
+
+type accountRepositoryAdapter struct {
+	repo *account.Repository
+}
+
+func (a *accountRepositoryAdapter) FindByID(ctx context.Context, id int) (*profile.AccountData, error) {
+	acc, err := a.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if acc == nil {
+		return nil, nil
+	}
+	return &profile.AccountData{Email: acc.Email}, nil
+}
 
 // @title           Tili API
 // @version         0.1
@@ -44,11 +75,17 @@ func main() {
 	db := db.NewDb()
 	stripe.Key = os.Getenv("STRIPE_API_KEY")
 
+	accountRepo := account.NewRepository(db)
 	profileRepo := profile.NewRepository(db)
-	profileService := profile.NewService(profileRepo)
+	storeRepo := store.NewRepository(db)
+
+	// Create adapters for profile service interfaces
+	storeAdapter := &storeRepositoryAdapter{repo: storeRepo}
+	accountAdapter := &accountRepositoryAdapter{repo: accountRepo}
+
+	profileService := profile.NewServiceWithEmail(profileRepo, storeAdapter, accountAdapter, emailClient)
 	profileHandler := profile.NewHandler(profileService)
 
-	storeRepo := store.NewRepository(db)
 	storeService := store.NewService(storeRepo)
 	storeHandler := store.NewHandler(storeService, profileService)
 
@@ -56,7 +93,6 @@ func main() {
 	licenseService := license.NewService(licenseRepo, emailClient)
 	licenseHandler := license.NewHandler(licenseService)
 
-	accountRepo := account.NewRepository(db)
 	accountService := account.NewService(accountRepo, storeService, profileService, licenseService, emailClient)
 	accountHandler := account.NewHandler(accountService)
 

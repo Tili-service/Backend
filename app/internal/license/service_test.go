@@ -18,7 +18,7 @@ func TestService_GetByID_NotFound(t *testing.T) {
 	defer bunDB.Close()
 
 	repo := NewRepository(&db.Db{DB: bunDB})
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 
 	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l" WHERE \(licence_id = .+\)$`).WillReturnError(sql.ErrNoRows)
 
@@ -33,7 +33,7 @@ func TestService_Delete_Forbidden(t *testing.T) {
 	defer bunDB.Close()
 
 	repo := NewRepository(&db.Db{DB: bunDB})
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 
 	licID := uuid.New()
 	rows := sqlmock.NewRows([]string{"licence_id", "account_id"}).AddRow(licID, 99)
@@ -50,7 +50,7 @@ func TestService_Update_Forbidden(t *testing.T) {
 	defer bunDB.Close()
 
 	repo := NewRepository(&db.Db{DB: bunDB})
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 
 	licID := uuid.New()
 	rows := sqlmock.NewRows([]string{"licence_id", "account_id"}).AddRow(licID, 99)
@@ -67,7 +67,7 @@ func TestService_CreatePaymentLink_InvalidOffer(t *testing.T) {
 	defer bunDB.Close()
 
 	repo := NewRepository(&db.Db{DB: bunDB})
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 
 	_, err := svc.CreatePaymentLink(context.Background(), 1, "", CreatePaymentLinkInput{Offer: "weekly"})
 
@@ -82,7 +82,7 @@ func TestService_CreatePaymentLink_MissingConfig(t *testing.T) {
 	t.Setenv("APP_URL", "https://example.com")
 
 	repo := NewRepository(&db.Db{DB: bunDB})
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 
 	_, err := svc.CreatePaymentLink(context.Background(), 1, "", CreatePaymentLinkInput{Offer: "mensuel"})
 
@@ -94,7 +94,7 @@ func TestService_GetByAccountID_Success(t *testing.T) {
 	defer bunDB.Close()
 
 	repo := NewRepository(&db.Db{DB: bunDB})
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 
 	licID := uuid.New()
 	rows := sqlmock.NewRows([]string{"licence_id", "account_id"}).AddRow(licID, 1)
@@ -113,7 +113,7 @@ func TestService_DeleteByAccountID_Success(t *testing.T) {
 	defer bunDB.Close()
 
 	repo := NewRepository(&db.Db{DB: bunDB})
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 
 	mock.ExpectExec(`^DELETE FROM "licence" AS "l" WHERE \(account_id = .+\)`).WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -128,7 +128,7 @@ func TestService_Create_Success(t *testing.T) {
 	defer bunDB.Close()
 
 	repo := NewRepository(&db.Db{DB: bunDB})
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 
 	mock.ExpectExec(`^INSERT INTO "licence"`).WillReturnResult(sqlmock.NewResult(1, 1))
 

@@ -38,6 +38,7 @@ func setupAccountService(t *testing.T, licErr error) (*Service, sqlmock.Sqlmock,
 		store.NewService(storeRepo),
 		profile.NewService(profileRepo),
 		&testLicenseDeleter{err: licErr},
+		&MockEmailSender{},
 	)
 
 	cleanup := func() { _ = bunDB.Close() }

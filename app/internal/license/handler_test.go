@@ -15,12 +15,18 @@ import (
 	"tili/app/pkg/db"
 )
 
+type MockEmailSender struct{}
+
+func (m *MockEmailSender) SendEmail(recipientEmail, subject, body string) error {
+	return nil
+}
+
 func setupLicenseHandler(t *testing.T) (*Handler, sqlmock.Sqlmock) {
 	bunDB, mock := setupMockDB(t)
 	t.Cleanup(func() { _ = bunDB.Close() })
 
 	repo := NewRepository(&db.Db{DB: bunDB})
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 	return NewHandler(svc), mock
 }
 

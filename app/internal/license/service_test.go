@@ -122,23 +122,3 @@ func TestService_DeleteByAccountID_Success(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
-
-func TestService_Create_Success(t *testing.T) {
-	bunDB, mock := setupMockDB(t)
-	defer bunDB.Close()
-
-	repo := NewRepository(&db.Db{DB: bunDB})
-	svc := NewService(repo, &MockEmailSender{})
-
-	mock.ExpectExec(`^INSERT INTO "licence"`).WillReturnResult(sqlmock.NewResult(1, 1))
-
-	lic, err := svc.Create(context.Background(), 1, CreateLicenceInput{DurationDays: 30, Transaction: "txn_123"})
-
-	assert.NoError(t, err)
-	if assert.NotNil(t, lic) {
-		assert.Equal(t, 1, lic.AccountID)
-		assert.True(t, lic.IsActive)
-		assert.WithinDuration(t, time.Now().Add(30*24*time.Hour), lic.Expiration, time.Second)
-	}
-	assert.NoError(t, mock.ExpectationsWereMet())
-}

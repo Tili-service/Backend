@@ -98,7 +98,6 @@ func (s *Service) Create(ctx context.Context, accountID int, input CreateLicence
 	}
 	emailContent, err := email.GetNewLicenseActiveEmailContent(fmt.Sprintf("%s/admin/shop/new?licenceId=%s", os.Getenv("APP_URL"), lic.LicenceID))
 	if err != nil {
-		log.Printf("Error generating email content: %v", err)
 	} else {
 		account, err := s.repo.GetAccountByID(ctx, accountID)
 		if err != nil {
@@ -167,12 +166,10 @@ func (s *Service) CreatePaymentLink(ctx context.Context, accountID int, customer
 	}
 
 	if targetEmail != "" {
-		log.Printf("Payment link created for customer %s with email %s", customerID, targetEmail)
 		content, err := email.GetNewPaymentLinkEmailContent(input.Offer, sess.URL)
 		if err != nil {
 			return "", fmt.Errorf("erreur lors de la génération de l'email: %w", err)
 		}
-		log.Printf("Sending email to %s with content: %s", targetEmail, content)
 
 		if err := s.emailClient.SendEmail(targetEmail, "New Payment Link Created", content); err != nil {
 			return "", fmt.Errorf("erreur lors de l'envoi de l'email: %w", err)

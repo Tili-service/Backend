@@ -137,6 +137,22 @@ func GetNewProfileCreatedEmailContent(profileStoreID int, profileName string, pr
 	return content, nil
 }
 
+func GetNewStoreCreatedEmailContent(storeName string) (string, error) {
+	tpl, err := pongo2.FromFile("html/new_store_created.html")
+	if err != nil {
+		log.Fatalf("Erreur lors de la lecture du template: %s", err)
+	}
+	ctx := pongo2.Context{
+		"store_name": storeName,
+	}
+
+	content, err := tpl.Execute(ctx)
+	if err != nil {
+		log.Fatalf("Erreur lors de l'exécution du template: %s", err)
+	}
+	return content, nil
+}
+
 func (m *MailpitSender) SendEmail(to string, subject string, body string) error {
 	msg := mail.NewMsg()
 	msg.From("tili-service@local.dev")

@@ -55,6 +55,21 @@ func (a *accountRepositoryAdapter) FindByID(ctx context.Context, id int) (*profi
 	return &profile.AccountData{Email: acc.Email}, nil
 }
 
+type storeAccountRepositoryAdapter struct {
+	repo *account.Repository
+}
+
+func (a *storeAccountRepositoryAdapter) FindByID(ctx context.Context, id int) (*store.AccountData, error) {
+	acc, err := a.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if acc == nil {
+		return nil, nil
+	}
+	return &store.AccountData{Email: acc.Email}, nil
+}
+
 // @title           Tili API
 // @version         0.1
 
@@ -86,7 +101,10 @@ func main() {
 	profileService := profile.NewServiceWithEmail(profileRepo, storeAdapter, accountAdapter, emailClient)
 	profileHandler := profile.NewHandler(profileService)
 
-	storeService := store.NewService(storeRepo)
+	// Create adapter for store service account repository
+	storeAccountAdapter := &storeAccountRepositoryAdapter{repo: accountRepo}
+
+	storeService := store.NewServiceWithEmail(storeRepo, storeAccountAdapter, emailClient)
 	storeHandler := store.NewHandler(storeService, profileService)
 
 	licenseRepo := license.NewRepository(db)

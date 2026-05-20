@@ -94,14 +94,12 @@ func main() {
 	profileRepo := profile.NewRepository(db)
 	storeRepo := store.NewRepository(db)
 
-	// Create adapters for profile service interfaces
 	storeAdapter := &storeRepositoryAdapter{repo: storeRepo}
 	accountAdapter := &accountRepositoryAdapter{repo: accountRepo}
 
 	profileService := profile.NewServiceWithEmail(profileRepo, storeAdapter, accountAdapter, emailClient)
 	profileHandler := profile.NewHandler(profileService)
 
-	// Create adapter for store service account repository
 	storeAccountAdapter := &storeAccountRepositoryAdapter{repo: accountRepo}
 
 	storeService := store.NewServiceWithEmail(storeRepo, storeAccountAdapter, emailClient)

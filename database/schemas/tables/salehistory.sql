@@ -5,7 +5,7 @@ CREATE TABLE sale_history (
     changed_by_profile_id INTEGER REFERENCES profile(profile_id) ON DELETE SET NULL,
     lines JSONB,
     price DECIMAL(10, 2),
-    payement_method_id INTEGER,
+    payement_method_id INTEGER REFERENCES payementmethod(payement_method_id),
     time_stamp TIMESTAMP,
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     changes JSONB

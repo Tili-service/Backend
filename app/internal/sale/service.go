@@ -30,7 +30,6 @@ func computeTotal(lines []SaleLine) decimal.Decimal {
 	total := decimal.Zero
 	for _, line := range lines {
 		qty := decimal.NewFromInt(int64(line.Quantity))
-		fmt.Println("Line:", line.Name, "Qty:", qty, "UnitPrice:", line.UnitPrice)
 		total = total.Add(line.UnitPrice.Mul(qty))
 	}
 	return total.Round(2)
@@ -66,7 +65,6 @@ func historyFromSale(s *Sale, changedByProfileID *int, changes map[string]any) *
 
 func (s *Service) CreateSale(ctx context.Context, input CreateSaleInput) (*Sale, error) {
 	total := computeTotal(input.Lines)
-	fmt.Println("Computed total:", total)
 	if !total.IsPositive() {
 		return nil, ErrInvalidSaleTotal
 	}

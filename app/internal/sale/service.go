@@ -13,8 +13,6 @@ import (
 	"github.com/uptrace/bun"
 )
 
-var ErrInvalidSaleTotal = errors.New("sale total must be positive")
-
 type Service struct {
 	db          *bun.DB
 	repo        *Repository
@@ -166,6 +164,7 @@ func (s *Service) UpdateSale(ctx context.Context, id int, input UpdateSaleInput,
 		err := tx.NewSelect().
 			Model(existing).
 			Where("s.sale_id = ?", id).
+			Where("s.is_deleted = ?", false).
 			Scan(ctx)
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrSaleNotFound
@@ -201,19 +200,14 @@ func (s *Service) UpdateSale(ctx context.Context, id int, input UpdateSaleInput,
 				if *newItem.Quantity == 0 {
 					return ErrNewLineZeroQuantity
 				}
-				if newItem.Name == "" || newItem.UnitPrice == nil {
+				if newItem.Name == "" {
 					return ErrNewLineIncomplete
 				}
-				line := SaleLine{
-					ItemID:    newItem.ItemID,
-					Name:      newItem.Name,
-					Quantity:  *newItem.Quantity,
-					UnitPrice: *newItem.UnitPrice,
-				}
-				if newItem.TaxRate != nil {
-					line.TaxRate = *newItem.TaxRate
-				}
-				updatedLines = append(updatedLines, line)
+				updatedLines = append(updatedLines, SaleLine{
+					ItemID:   newItem.ItemID,
+					Name:     newItem.Name,
+					Quantity: *newItem.Quantity,
+				})
 			}
 
 			if len(updatedLines) == 0 {
@@ -251,7 +245,11 @@ func (s *Service) UpdateSale(ctx context.Context, id int, input UpdateSaleInput,
 			return err
 		}
 
-		result = existing
+		updated, err := s.repo.FindByID(ctx, existing.SaleID)
+		if err != nil {
+			return err
+		}
+		result = updated
 		return nil
 	})
 	if err != nil {

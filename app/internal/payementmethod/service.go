@@ -63,7 +63,7 @@ func (s *Service) Delete(ctx context.Context, name string) error {
 		}
 		return err
 	}
-	return s.repo.DeleteByName(ctx, name)
+	return s.repo.DeactivateByName(ctx, name)
 }
 
 func (s *Service) DeleteByID(ctx context.Context, id int) error {
@@ -74,7 +74,7 @@ func (s *Service) DeleteByID(ctx context.Context, id int) error {
 		}
 		return err
 	}
-	return s.repo.DeleteByID(ctx, id)
+	return s.repo.DeactivateByID(ctx, id)
 }
 
 func (s *Service) GetAll(ctx context.Context) ([]PayementMethod, error) {

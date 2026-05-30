@@ -60,8 +60,8 @@ func TestService_GetAll_Success(t *testing.T) {
 	repo := NewRepository(&db.Db{DB: bunDB})
 	svc := NewService(repo)
 
-	rows := sqlmock.NewRows([]string{"payement_method_id", "name"}).AddRow(1, "Card")
-	mock.ExpectQuery(`^SELECT .* FROM "payementmethod" AS "pm"$`).WillReturnRows(rows)
+	rows := sqlmock.NewRows([]string{"payement_method_id", "name", "is_active"}).AddRow(1, "Card", true)
+	mock.ExpectQuery(`^SELECT .* FROM "payementmethod" AS "pm" WHERE \(is_active = .*\)$`).WillReturnRows(rows)
 
 	list, err := svc.GetAll(context.Background())
 

@@ -107,9 +107,9 @@ func (h *Handler) Update(c *gin.Context) {
 	c.JSON(http.StatusOK, pm)
 }
 
-// Delete removes a payement method by ID
-// @Summary      Delete a payement method
-// @Description  Deletes a payement method from the system by its ID. Requires Manager level access.
+// Delete deactivates a payement method by ID
+// @Summary      Deactivate a payement method
+// @Description  Deactivates a payement method by its ID (soft-delete). The record is preserved for historical sales. Requires Manager level access.
 // @Tags         payementmethod
 // @Accept       json
 // @Produce      json

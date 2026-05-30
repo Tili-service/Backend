@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
@@ -77,7 +78,7 @@ func TestService_GetByID_WithStripeInfo(t *testing.T) {
 	}
 
 	repo := NewRepository(&db.Db{DB: bunDB})
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 
 	licID := uuid.New()
 	rows := sqlmock.NewRows([]string{"licence_id", "account_id", "transaction"}).AddRow(licID, 1, "cs_test_123")
@@ -231,7 +232,7 @@ func TestService_Refund_Success(t *testing.T) {
 	repo := NewRepository(&db.Db{DB: bunDB})
 	storeSvc := store.NewService(store.NewRepository(&db.Db{DB: bunDB}))
 	profileSvc := profile.NewService(profile.NewRepository(&db.Db{DB: bunDB}))
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 	svc.SetDependencies(storeSvc, profileSvc)
 
 	licID := uuid.New()
@@ -299,7 +300,7 @@ func TestService_Refund_Success_ResolvePaymentIntentFromSubscription(t *testing.
 	repo := NewRepository(&db.Db{DB: bunDB})
 	storeSvc := store.NewService(store.NewRepository(&db.Db{DB: bunDB}))
 	profileSvc := profile.NewService(profile.NewRepository(&db.Db{DB: bunDB}))
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 	svc.SetDependencies(storeSvc, profileSvc)
 
 	licID := uuid.New()
@@ -355,7 +356,7 @@ func TestService_Refund_Success_NoPaymentReference(t *testing.T) {
 	repo := NewRepository(&db.Db{DB: bunDB})
 	storeSvc := store.NewService(store.NewRepository(&db.Db{DB: bunDB}))
 	profileSvc := profile.NewService(profile.NewRepository(&db.Db{DB: bunDB}))
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 	svc.SetDependencies(storeSvc, profileSvc)
 
 	licID := uuid.New()
@@ -389,7 +390,7 @@ func TestService_DeleteByStripeSubscriptionID_Success(t *testing.T) {
 	}
 
 	repo := NewRepository(&db.Db{DB: bunDB})
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 
 	licID := uuid.New()
 	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l" WHERE \(transaction = .+\)$`).WillReturnError(sql.ErrNoRows)
@@ -418,7 +419,7 @@ func TestService_DeleteByStripeSubscriptionID_NotFound(t *testing.T) {
 	}
 
 	repo := NewRepository(&db.Db{DB: bunDB})
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 
 	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l" WHERE \(transaction = .+\)$`).WillReturnError(sql.ErrNoRows)
 	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l" WHERE \(transaction = .+\)$`).WillReturnError(sql.ErrNoRows)

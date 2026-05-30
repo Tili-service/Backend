@@ -19,6 +19,7 @@ import (
 	"tili/app/internal/profile"
 	"tili/app/internal/store"
 	"tili/app/pkg/db"
+	"tili/app/pkg/email"
 )
 
 type MockEmailSender struct{}
@@ -94,6 +95,12 @@ func TestLicenseHandler_HandleStripeWebhook_CheckoutCompleted_Success(t *testing
 	secret := "whsec_test"
 	t.Setenv("STRIPE_WEBHOOK_SECRET", secret)
 
+	// Mock the email content function to avoid template loading
+	restoreEmailMock := email.MockGetNewLicenseActiveEmailContent(func(licenseLink string) (string, error) {
+		return "<html><body>License activated</body></html>", nil
+	})
+	t.Cleanup(restoreEmailMock)
+
 	payload := `{"id":"evt_test","object":"event","api_version":"2026-02-25.clover","type":"checkout.session.completed","data":{"object":{"id":"cs_test_create_1","object":"checkout.session","metadata":{"account_id":"1","offer":"mensuel"}}}}`
 	signed := webhook.GenerateTestSignedPayload(&webhook.UnsignedPayload{
 		Payload:   []byte(payload),
@@ -103,6 +110,9 @@ func TestLicenseHandler_HandleStripeWebhook_CheckoutCompleted_Success(t *testing
 	})
 
 	mock.ExpectExec(`^INSERT INTO "licence"`).WillReturnResult(sqlmock.NewResult(1, 1))
+	// Mock the account lookup for the email sending
+	accountRows := sqlmock.NewRows([]string{"account_id", "email", "password"}).AddRow(1, "test@example.com", "")
+	mock.ExpectQuery(`^SELECT .* FROM "account"`).WillReturnRows(accountRows)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/webhooks/stripe", bytes.NewBuffer(signed.Payload))
 	req.Header.Set("Stripe-Signature", signed.Header)

@@ -69,7 +69,7 @@ func NewEmailSender() (Sender, error) {
 	}
 }
 
-func GetWelcomeEmailContent(name string, email string) (string, error) {
+var getWelcomeEmailContent = func(name string, email string) (string, error) {
 	tpl, err := pongo2.FromFile("html/welcome_email.html")
 	if err != nil {
 		log.Fatalf("Erreur lors de la lecture du template: %s", err)
@@ -87,7 +87,7 @@ func GetWelcomeEmailContent(name string, email string) (string, error) {
 	return content, nil
 }
 
-func GetNewPaymentLinkEmailContent(offer string, paymentLinkURL string) (string, error) {
+var getNewPaymentLinkEmailContent = func(offer string, paymentLinkURL string) (string, error) {
 	tpl, err := pongo2.FromFile("html/new_payment_link.html")
 	if err != nil {
 		log.Fatalf("Erreur lors de la lecture du template: %s", err)
@@ -104,7 +104,7 @@ func GetNewPaymentLinkEmailContent(offer string, paymentLinkURL string) (string,
 	return content, nil
 }
 
-func GetNewLicenseActiveEmailContent(licenseLink string) (string, error) {
+var getNewLicenseActiveEmailContent = func(licenseLink string) (string, error) {
 	tpl, err := pongo2.FromFile("html/new_license_active.html")
 	if err != nil {
 		log.Fatalf("Erreur lors de la lecture du template: %s", err)
@@ -120,7 +120,7 @@ func GetNewLicenseActiveEmailContent(licenseLink string) (string, error) {
 	return content, nil
 }
 
-func GetNewProfileCreatedEmailContent(profileStoreID int, profileName string, profilePIN string) (string, error) {
+var getNewProfileCreatedEmailContent = func(profileStoreID int, profileName string, profilePIN string) (string, error) {
 	tpl, err := pongo2.FromFile("html/new_profile_created.html")
 	if err != nil {
 		log.Fatalf("Erreur lors de la lecture du template: %s", err)
@@ -139,7 +139,7 @@ func GetNewProfileCreatedEmailContent(profileStoreID int, profileName string, pr
 	return content, nil
 }
 
-func GetNewStoreCreatedEmailContent(storeName string, storeID int) (string, error) {
+var getNewStoreCreatedEmailContent = func(storeName string, storeID int) (string, error) {
 	tpl, err := pongo2.FromFile("html/new_store_created.html")
 	if err != nil {
 		log.Fatalf("Erreur lors de la lecture du template: %s", err)
@@ -154,6 +154,27 @@ func GetNewStoreCreatedEmailContent(storeName string, storeID int) (string, erro
 		log.Fatalf("Erreur lors de l'exécution du template: %s", err)
 	}
 	return content, nil
+}
+
+// Public wrapper functions that call the mockable variables
+func GetWelcomeEmailContent(name string, email string) (string, error) {
+	return getWelcomeEmailContent(name, email)
+}
+
+func GetNewPaymentLinkEmailContent(offer string, paymentLinkURL string) (string, error) {
+	return getNewPaymentLinkEmailContent(offer, paymentLinkURL)
+}
+
+func GetNewLicenseActiveEmailContent(licenseLink string) (string, error) {
+	return getNewLicenseActiveEmailContent(licenseLink)
+}
+
+func GetNewProfileCreatedEmailContent(profileStoreID int, profileName string, profilePIN string) (string, error) {
+	return getNewProfileCreatedEmailContent(profileStoreID, profileName, profilePIN)
+}
+
+func GetNewStoreCreatedEmailContent(storeName string, storeID int) (string, error) {
+	return getNewStoreCreatedEmailContent(storeName, storeID)
 }
 
 func (m *MailpitSender) SendEmail(to string, subject string, body string) error {

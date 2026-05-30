@@ -64,4 +64,3 @@ func (r *Repository) Update(ctx context.Context, s *Sale) (*Sale, error) {
 	}
 	return s, nil
 }
-

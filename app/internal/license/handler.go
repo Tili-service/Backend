@@ -31,6 +31,7 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 	{
 		accountRoutes.GET("", h.GetLicences)
 		accountRoutes.POST("payment", h.CreatePaymentLink)
+		accountRoutes.POST("refund", h.RefundLicense)
 		accountRoutes.GET("/:id", h.GetByID)   // GET /licences/:id
 		accountRoutes.DELETE("/:id", h.Delete) // DELETE /licences/:id
 		accountRoutes.PUT("/:id", h.Update)    // PUT /licences/:id
@@ -93,6 +94,50 @@ func (h *Handler) CreatePaymentLink(c *gin.Context) {
 	c.JSON(http.StatusCreated, PaymentLinkResponse{URL: url})
 }
 
+// RefundLicense refunds a licence and removes the dependent store and profiles.
+// @Summary      Refund a licence
+// @Description  Refunds the specified licence and deletes the associated store and profiles.
+// @Tags         licence
+// @Accept       json
+// @Produce      json
+// @Security     AccountToken
+// @Param        licenceId query     string true "Licence UUID"
+// @Success      204
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      403  {object}  map[string]interface{}
+// @Failure      404  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /licences/refund [post]
+func (h *Handler) RefundLicense(c *gin.Context) {
+	accountID := c.GetInt("accountID")
+	licenceIDStr := c.Query("licenceId")
+	if licenceIDStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing licenceId query parameter"})
+		return
+	}
+
+	licenceID, err := uuid.Parse(licenceIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid licence ID"})
+		return
+	}
+
+	if err := h.service.Refund(c.Request.Context(), accountID, licenceID); err != nil {
+		if errors.Is(err, ErrLicenceNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "licence not found"})
+			return
+		}
+		if errors.Is(err, ErrForbidden) {
+			c.JSON(http.StatusForbidden, gin.H{"error": "you are not the owner of this licence"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
 // HandleStripeWebhook processes incoming Stripe webhook events, specifically handling completed checkout sessions to create licences.
 // @Summary      Handle Stripe webhook
 // @Description  Endpoint to receive and process Stripe webhook events, creating licences upon successful checkout sessions.
@@ -149,11 +194,11 @@ func (h *Handler) HandleStripeWebhook(c *gin.Context) {
 		var durationDays int
 		switch offer {
 		case "mensuel":
-			durationDays = 30
+			durationDays = 32
 		case "semestriel":
-			durationDays = 182
+			durationDays = 184
 		case "annuel":
-			durationDays = 365
+			durationDays = 367
 		default:
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Offre invalide"})
 			return
@@ -167,6 +212,23 @@ func (h *Handler) HandleStripeWebhook(c *gin.Context) {
 		_, err = h.service.Create(c.Request.Context(), accountID, input)
 		if err != nil {
 			fmt.Printf("Erreur création licence: %v\n", err)
+		}
+	}
+
+	if event.Type == "customer.subscription.deleted" {
+		var sub stripe.Subscription
+		err := json.Unmarshal(event.Data.Raw, &sub)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Erreur parsing JSON"})
+			return
+		}
+		if sub.ID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "subscription id manquant"})
+			return
+		}
+		if err := h.service.DeleteByStripeSubscriptionID(c.Request.Context(), sub.ID); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
 		}
 	}
 	c.Status(http.StatusOK)

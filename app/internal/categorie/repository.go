@@ -12,7 +12,7 @@ type Repository struct {
 	db *bun.DB
 }
 
-func NewRepository(d *db.Db) *Repository {
+func NewRepository(d *db.Db, cacheClients ...interface{}) *Repository {
 	return &Repository{db: d.DB}
 }
 

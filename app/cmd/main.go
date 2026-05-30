@@ -14,6 +14,7 @@ import (
 	"tili/app/internal/sale"
 	"tili/app/internal/store"
 
+	"tili/app/pkg/cache"
 	"tili/app/pkg/db"
 	"tili/app/pkg/email"
 
@@ -88,11 +89,13 @@ func main() {
 		log.Fatalf("Erreur lors de la création du client email: %s", err)
 	}
 	db := db.NewDb()
+	redisClient := cache.NewRedisClient(os.Getenv("REDIS_URL"))
+	defer redisClient.Close()
 	stripe.Key = os.Getenv("STRIPE_API_KEY")
 
 	accountRepo := account.NewRepository(db)
 	profileRepo := profile.NewRepository(db)
-	storeRepo := store.NewRepository(db)
+	storeRepo := store.NewRepository(db, redisClient)
 
 	storeAdapter := &storeRepositoryAdapter{repo: storeRepo}
 	accountAdapter := &accountRepositoryAdapter{repo: accountRepo}
@@ -101,18 +104,18 @@ func main() {
 	profileHandler := profile.NewHandler(profileService)
 
 	storeAccountAdapter := &storeAccountRepositoryAdapter{repo: accountRepo}
-
 	storeService := store.NewServiceWithEmail(storeRepo, storeAccountAdapter, emailClient)
 	storeHandler := store.NewHandler(storeService, profileService)
 
-	licenseRepo := license.NewRepository(db)
+	licenseRepo := license.NewRepository(db, redisClient)
 	licenseService := license.NewService(licenseRepo, emailClient)
+	licenseService.SetDependencies(storeService, profileService)
 	licenseHandler := license.NewHandler(licenseService)
 
 	accountService := account.NewService(accountRepo, storeService, profileService, licenseService, emailClient)
 	accountHandler := account.NewHandler(accountService)
 
-	catalogRepo := catalog.NewRepository(db)
+	catalogRepo := catalog.NewRepository(db, redisClient)
 	catalogService := catalog.NewService(catalogRepo)
 	catalogHandler := catalog.NewHandler(catalogService)
 

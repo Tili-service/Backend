@@ -14,7 +14,7 @@ type Repository struct {
 	db *bun.DB
 }
 
-func NewRepository(d *db.Db) *Repository {
+func NewRepository(d *db.Db, cacheClients ...interface{}) *Repository {
 	return &Repository{db: d.DB}
 }
 
@@ -24,7 +24,7 @@ func (r *Repository) Create(ctx context.Context, pm *PayementMethod) error {
 	if err == nil {
 		return errors.New("payement method already exists")
 	}
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	if !errors.Is(err, sql.ErrNoRows) {
 		return err
 	}
 	_, err = r.db.NewInsert().Model(pm).Exec(ctx)

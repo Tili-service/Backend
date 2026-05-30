@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"tili/app/pkg/email"
@@ -15,20 +16,80 @@ import (
 	"github.com/stripe/stripe-go/v84"
 	"github.com/stripe/stripe-go/v84/checkout/session"
 	"github.com/stripe/stripe-go/v84/customer"
+	refundapi "github.com/stripe/stripe-go/v84/refund"
+	subscriptionapi "github.com/stripe/stripe-go/v84/subscription"
+
+	"tili/app/internal/profile"
+	"tili/app/internal/store"
 )
 
 var (
 	ErrLicenceNotFound = errors.New("licence not found")
 	ErrForbidden       = errors.New("forbidden")
+
+	retrieveCheckoutSession = func(ctx context.Context, sessionID string) (*stripe.CheckoutSession, error) {
+		_ = ctx
+		return session.Get(sessionID, nil)
+	}
+
+	cancelSubscription = func(ctx context.Context, subscriptionID string) (*stripe.Subscription, error) {
+		_ = ctx
+		return subscriptionapi.Cancel(subscriptionID, nil)
+	}
+
+	retrieveSubscriptionForRefund = func(ctx context.Context, subscriptionID string) (*stripe.Subscription, error) {
+		_ = ctx
+		params := &stripe.SubscriptionParams{}
+		params.AddExpand("latest_invoice.payments")
+		// Stripe max expansion depth is 4 levels.
+		params.AddExpand("latest_invoice.payments.data.payment")
+		return subscriptionapi.Get(subscriptionID, params)
+	}
+
+	retrieveSubscriptionForLicence = func(ctx context.Context, subscriptionID string) (*stripe.Subscription, error) {
+		_ = ctx
+		params := &stripe.SubscriptionParams{}
+		params.AddExpand("items.data.price.product")
+		return subscriptionapi.Get(subscriptionID, params)
+	}
+
+	listCheckoutSessionsBySubscription = func(ctx context.Context, subscriptionID string) ([]*stripe.CheckoutSession, error) {
+		_ = ctx
+		params := &stripe.CheckoutSessionListParams{Subscription: stripe.String(subscriptionID)}
+		iter := session.List(params)
+		result := make([]*stripe.CheckoutSession, 0)
+		for iter.Next() {
+			result = append(result, iter.CheckoutSession())
+		}
+		if err := iter.Err(); err != nil {
+			return nil, err
+		}
+		return result, nil
+	}
+
+	createRefund = func(ctx context.Context, paymentIntentID string) (*stripe.Refund, error) {
+		_ = ctx
+		return refundapi.New(&stripe.RefundParams{
+			PaymentIntent: stripe.String(paymentIntentID),
+			Reason:        stripe.String(string(stripe.RefundReasonRequestedByCustomer)),
+		})
+	}
 )
 
 type Service struct {
-	repo        *Repository
+	repo                  *Repository
 	emailClient email.Sender
+	storeService   *store.Service
+	profileService *profile.Service
 }
 
 func NewService(repo *Repository, emailClient email.Sender) *Service {
 	return &Service{repo: repo, emailClient: emailClient}
+}
+
+func (s *Service) SetDependencies(storeService *store.Service, profileService *profile.Service) {
+	s.storeService = storeService
+	s.profileService = profileService
 }
 
 func (s *Service) DeleteByAccountID(ctx context.Context, accountID int) error {
@@ -36,7 +97,14 @@ func (s *Service) DeleteByAccountID(ctx context.Context, accountID int) error {
 }
 
 func (s *Service) GetByAccountID(ctx context.Context, accountID int) ([]Licence, error) {
-	return s.repo.FindLicencesByAccountID(ctx, accountID)
+	licences, err := s.repo.FindLicencesByAccountID(ctx, accountID)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.enrichLicencesWithStripe(ctx, licences); err != nil {
+		return nil, err
+	}
+	return licences, nil
 }
 
 func (s *Service) GetByID(ctx context.Context, id uuid.UUID) (*Licence, error) {
@@ -47,7 +115,79 @@ func (s *Service) GetByID(ctx context.Context, id uuid.UUID) (*Licence, error) {
 		}
 		return nil, err
 	}
+	if err := s.enrichLicenceWithStripe(ctx, lic); err != nil {
+		return nil, err
+	}
 	return lic, nil
+}
+
+func (s *Service) enrichLicencesWithStripe(ctx context.Context, licences []Licence) error {
+	for i := range licences {
+		if err := s.enrichLicenceWithStripe(ctx, &licences[i]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Service) enrichLicenceWithStripe(ctx context.Context, lic *Licence) error {
+	if lic == nil {
+		return nil
+	}
+	transaction := strings.TrimSpace(lic.Transaction)
+	if transaction == "" {
+		return nil
+	}
+
+	stripeInfo, err := s.fetchStripeLicenceInfo(ctx, transaction)
+	if err != nil {
+		return err
+	}
+	lic.Stripe = stripeInfo
+	return nil
+}
+
+func (s *Service) fetchStripeLicenceInfo(ctx context.Context, transaction string) (*StripeLicenceInfo, error) {
+	session, err := retrieveCheckoutSession(ctx, transaction)
+	if err != nil {
+		return nil, fmt.Errorf("retrieve checkout session: %w", err)
+	}
+	if session == nil || session.Subscription == nil || session.Subscription.ID == "" {
+		return nil, fmt.Errorf("checkout session %s does not contain a subscription", transaction)
+	}
+
+	subscription, err := retrieveSubscriptionForLicence(ctx, session.Subscription.ID)
+	if err != nil {
+		return nil, fmt.Errorf("retrieve stripe subscription: %w", err)
+	}
+
+	info := &StripeLicenceInfo{
+		CheckoutSessionID: session.ID,
+		SubscriptionID:    subscription.ID,
+		Status:            string(subscription.Status),
+		CancelAtPeriodEnd: subscription.CancelAtPeriodEnd,
+	}
+
+	if subscription.Items != nil && len(subscription.Items.Data) > 0 {
+		item := subscription.Items.Data[0]
+		if item != nil && item.Price != nil {
+			if item.CurrentPeriodEnd > 0 {
+				nextPayment := time.Unix(item.CurrentPeriodEnd, 0).UTC()
+				info.NextPaymentAt = &nextPayment
+			}
+			info.PriceAmount = item.Price.UnitAmount
+			info.PriceCurrency = strings.ToUpper(string(item.Price.Currency))
+			if item.Price.Recurring != nil {
+				info.PriceInterval = string(item.Price.Recurring.Interval)
+			}
+			if item.Price.Product != nil {
+				info.PriceProductID = item.Price.Product.ID
+				info.PriceProductName = item.Price.Product.Name
+			}
+		}
+	}
+
+	return info, nil
 }
 
 func (s *Service) Delete(ctx context.Context, accountID int, id uuid.UUID) error {
@@ -61,6 +201,100 @@ func (s *Service) Delete(ctx context.Context, accountID int, id uuid.UUID) error
 	if lic.AccountID != accountID {
 		return ErrForbidden
 	}
+	return s.repo.Delete(ctx, id)
+}
+
+func (s *Service) Refund(ctx context.Context, accountID int, id uuid.UUID) error {
+	lic, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrLicenceNotFound
+		}
+		return err
+	}
+	if lic.AccountID != accountID {
+		return ErrForbidden
+	}
+
+	if s.storeService == nil || s.profileService == nil {
+		return fmt.Errorf("refund dependencies not configured")
+	}
+
+	if strings.TrimSpace(lic.Transaction) == "" {
+		return fmt.Errorf("licence transaction is missing")
+	}
+
+	sess, err := retrieveCheckoutSession(ctx, lic.Transaction)
+	if err != nil {
+		return fmt.Errorf("retrieve checkout session: %w", err)
+	}
+
+	if sess.Subscription == nil || sess.Subscription.ID == "" {
+		return fmt.Errorf("checkout session %s does not contain a subscription", lic.Transaction)
+	}
+
+	if _, err := cancelSubscription(ctx, sess.Subscription.ID); err != nil {
+		return fmt.Errorf("cancel stripe subscription: %w", err)
+	}
+
+	paymentIntentID := ""
+	chargeID := ""
+	if sess.PaymentIntent != nil {
+		paymentIntentID = sess.PaymentIntent.ID
+	}
+	if paymentIntentID == "" {
+		sub, err := retrieveSubscriptionForRefund(ctx, sess.Subscription.ID)
+		if err != nil {
+			return fmt.Errorf("retrieve stripe subscription for refund: %w", err)
+		}
+		if sub != nil && sub.LatestInvoice != nil && sub.LatestInvoice.Payments != nil {
+			for _, invPayment := range sub.LatestInvoice.Payments.Data {
+				if invPayment == nil || invPayment.Payment == nil {
+					continue
+				}
+				if invPayment.Payment.PaymentIntent != nil && invPayment.Payment.PaymentIntent.ID != "" {
+					paymentIntentID = invPayment.Payment.PaymentIntent.ID
+					break
+				}
+				if chargeID == "" && invPayment.Payment.Charge != nil && invPayment.Payment.Charge.ID != "" {
+					chargeID = invPayment.Payment.Charge.ID
+				}
+			}
+		}
+	}
+
+	if paymentIntentID != "" {
+		if _, err := createRefund(ctx, paymentIntentID); err != nil {
+			return fmt.Errorf("create stripe refund: %w", err)
+		}
+	} else if chargeID != "" {
+		if _, err := refundapi.New(&stripe.RefundParams{
+			Charge: stripe.String(chargeID),
+			Reason: stripe.String(string(stripe.RefundReasonRequestedByCustomer)),
+		}); err != nil {
+			return fmt.Errorf("create stripe refund from charge: %w", err)
+		}
+	}
+
+	st, err := s.storeService.FindByLicenceID(ctx, id)
+	if err != nil {
+		if errors.Is(err, store.ErrStoreNotFound) {
+			return s.repo.Delete(ctx, id)
+		}
+		return err
+	}
+	if st.BuyerID != accountID {
+		return ErrForbidden
+	}
+
+	if err := s.profileService.DeleteByStoreID(ctx, st.StoreID); err != nil {
+		return err
+	}
+
+	if err := s.storeService.DeleteByID(ctx, st.StoreID); err != nil {
+		return err
+	}
+
 	return s.repo.Delete(ctx, id)
 }
 
@@ -177,4 +411,39 @@ func (s *Service) CreatePaymentLink(ctx context.Context, accountID int, customer
 	}
 
 	return sess.URL, nil
+}
+
+func (s *Service) DeleteByStripeSubscriptionID(ctx context.Context, subscriptionID string) error {
+	subscriptionID = strings.TrimSpace(subscriptionID)
+	if subscriptionID == "" {
+		return fmt.Errorf("missing subscription ID")
+	}
+
+	// Fallback for any row that might already store subscription ID directly.
+	if lic, err := s.repo.FindByTransaction(ctx, subscriptionID); err == nil {
+		return s.repo.Delete(ctx, lic.LicenceID)
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+
+	sessions, err := listCheckoutSessionsBySubscription(ctx, subscriptionID)
+	if err != nil {
+		return fmt.Errorf("list checkout sessions by subscription: %w", err)
+	}
+
+	for _, sess := range sessions {
+		if sess == nil || sess.ID == "" {
+			continue
+		}
+		lic, err := s.repo.FindByTransaction(ctx, sess.ID)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				continue
+			}
+			return err
+		}
+		return s.repo.Delete(ctx, lic.LicenceID)
+	}
+
+	return nil
 }

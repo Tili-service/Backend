@@ -77,8 +77,8 @@ var (
 )
 
 type Service struct {
-	repo                  *Repository
-	emailClient email.Sender
+	repo           *Repository
+	emailClient    email.Sender
 	storeService   *store.Service
 	profileService *profile.Service
 }

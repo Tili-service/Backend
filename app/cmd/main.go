@@ -14,6 +14,7 @@ import (
 	"tili/app/internal/sale"
 	"tili/app/internal/store"
 
+	"tili/app/pkg/cache"
 	"tili/app/pkg/db"
 
 	"github.com/gin-gonic/gin"
@@ -37,25 +38,28 @@ import (
 // @description JWT obtenu après login profil avec PIN (POST /profile/login/pin)
 func main() {
 	db := db.NewDb()
+	redisClient := cache.NewRedisClient(os.Getenv("REDIS_URL"))
+	defer redisClient.Close()
 	stripe.Key = os.Getenv("STRIPE_API_KEY")
 
 	profileRepo := profile.NewRepository(db)
 	profileService := profile.NewService(profileRepo)
 	profileHandler := profile.NewHandler(profileService)
 
-	storeRepo := store.NewRepository(db)
+	storeRepo := store.NewRepository(db, redisClient)
 	storeService := store.NewService(storeRepo)
 	storeHandler := store.NewHandler(storeService, profileService)
 
-	licenseRepo := license.NewRepository(db)
+	licenseRepo := license.NewRepository(db, redisClient)
 	licenseService := license.NewService(licenseRepo)
+	licenseService.SetDependencies(storeService, profileService)
 	licenseHandler := license.NewHandler(licenseService)
 
 	accountRepo := account.NewRepository(db)
 	accountService := account.NewService(accountRepo, storeService, profileService, licenseService)
 	accountHandler := account.NewHandler(accountService)
 
-	catalogRepo := catalog.NewRepository(db)
+	catalogRepo := catalog.NewRepository(db, redisClient)
 	catalogService := catalog.NewService(catalogRepo)
 	catalogHandler := catalog.NewHandler(catalogService)
 

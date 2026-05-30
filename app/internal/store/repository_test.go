@@ -95,6 +95,26 @@ func TestRepository_FindByBuyerID(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestRepository_FindByLicenceID(t *testing.T) {
+	bunDB, mock := setupMockDB(t)
+	defer bunDB.Close()
+	repo := NewRepository(&db.Db{DB: bunDB})
+
+	licenceID := uuid.New()
+	rows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation"}).AddRow(1, "Licence Store", 2, licenceID, time.Now())
+	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(licence_id = .+\)$`).WillReturnRows(rows)
+
+	ctx := context.Background()
+	st, err := repo.FindByLicenceID(ctx, licenceID)
+
+	assert.NoError(t, err)
+	if assert.NotNil(t, st) {
+		assert.Equal(t, "Licence Store", st.Name)
+		assert.Equal(t, licenceID, st.LicenceID)
+	}
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestRepository_Delete(t *testing.T) {
 	bunDB, mock := setupMockDB(t)
 	defer bunDB.Close()

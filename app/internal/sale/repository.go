@@ -30,7 +30,6 @@ func (r *Repository) FindByID(ctx context.Context, id int) (*Sale, error) {
 	sale := &Sale{}
 	err := r.db.NewSelect().
 		Model(sale).
-		Relation("PayementMethod").
 		Where("s.sale_id = ?", id).
 		Scan(ctx)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -46,7 +45,6 @@ func (r *Repository) FindAll(ctx context.Context) ([]*Sale, error) {
 	var sales []*Sale
 	err := r.db.NewSelect().
 		Model(&sales).
-		Relation("PayementMethod").
 		OrderExpr("s.time_stamp DESC").
 		Scan(ctx)
 	if err != nil {

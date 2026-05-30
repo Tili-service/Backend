@@ -9,6 +9,7 @@ import (
 )
 
 var ErrInvalidSaleTotal = errors.New("sale total must be positive")
+var ErrInvalidPaymentsTotal = errors.New("payments total must equal the sale total")
 
 type Service struct {
 	repo *Repository
@@ -27,17 +28,28 @@ func computeTotal(lines []SaleLine) decimal.Decimal {
 	return total.Round(2)
 }
 
+func computePaymentsTotal(payments []SalePayment) decimal.Decimal {
+	total := decimal.Zero
+	for _, p := range payments {
+		total = total.Add(p.Amount)
+	}
+	return total.Round(2)
+}
+
 func (s *Service) CreateSale(ctx context.Context, input CreateSaleInput) (*Sale, error) {
 	total := computeTotal(input.Lines)
 	if !total.IsPositive() {
 		return nil, ErrInvalidSaleTotal
 	}
+	if !computePaymentsTotal(input.Payments).Equal(total) {
+		return nil, ErrInvalidPaymentsTotal
+	}
 
 	sale := &Sale{
-		Lines:            input.Lines,
-		Price:            total,
-		TimeStamp:        time.Now(),
-		PayementMethodID: input.PayementMethodID,
+		Lines:     input.Lines,
+		Price:     total,
+		TimeStamp: time.Now(),
+		Payments:  input.Payments,
 	}
 	return s.repo.Create(ctx, sale)
 }
@@ -56,17 +68,26 @@ func (s *Service) UpdateSale(ctx context.Context, id int, input UpdateSaleInput)
 		return nil, err
 	}
 
+	lines := existing.Lines
 	if input.Lines != nil {
-		total := computeTotal(*input.Lines)
-		if !total.IsPositive() {
-			return nil, ErrInvalidSaleTotal
-		}
-		existing.Lines = *input.Lines
-		existing.Price = total
+		lines = *input.Lines
 	}
-	if input.PayementMethodID != nil {
-		existing.PayementMethodID = *input.PayementMethodID
+	payments := existing.Payments
+	if input.Payments != nil {
+		payments = *input.Payments
 	}
+
+	total := computeTotal(lines)
+	if !total.IsPositive() {
+		return nil, ErrInvalidSaleTotal
+	}
+	if !computePaymentsTotal(payments).Equal(total) {
+		return nil, ErrInvalidPaymentsTotal
+	}
+
+	existing.Lines = lines
+	existing.Price = total
+	existing.Payments = payments
 
 	return s.repo.Update(ctx, existing)
 }

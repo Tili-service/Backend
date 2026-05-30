@@ -4,8 +4,6 @@ import (
 	"errors"
 	"time"
 
-	"tili/app/internal/payementmethod"
-
 	"github.com/shopspring/decimal"
 	"github.com/uptrace/bun"
 )
@@ -20,23 +18,27 @@ type SaleLine struct {
 	TaxRate   decimal.Decimal `json:"tax_rate,omitempty"`
 }
 
+type SalePayment struct {
+	PayementMethodID int             `json:"payement_method_id" binding:"required"`
+	Amount           decimal.Decimal `json:"amount"             binding:"required"`
+}
+
 type Sale struct {
 	bun.BaseModel `bun:"table:sale,alias:s" swaggerignore:"true"`
 
-	SaleID           int                            `bun:"sale_id,pk,autoincrement"                                  json:"sale_id"`
-	Lines            []SaleLine                     `bun:"element,type:jsonb"                                        json:"lines"`
-	Price            decimal.Decimal                `bun:"price,type:decimal(10,2)"                                  json:"price"`
-	TimeStamp        time.Time                      `bun:"time_stamp,default:current_timestamp"                      json:"time_stamp"`
-	PayementMethodID int                            `bun:"payement_method_id"                                        json:"payement_method_id"`
-	PayementMethod   *payementmethod.PayementMethod `bun:"rel:belongs-to,join:payement_method_id=payement_method_id" json:"payement_method,omitempty"`
+	SaleID    int             `bun:"sale_id,pk,autoincrement"             json:"sale_id"`
+	Lines     []SaleLine      `bun:"element,type:jsonb"                   json:"lines"`
+	Price     decimal.Decimal `bun:"price,type:decimal(10,2)"             json:"price"`
+	TimeStamp time.Time       `bun:"time_stamp,default:current_timestamp" json:"time_stamp"`
+	Payments  []SalePayment   `bun:"payments,type:jsonb"                  json:"payments"`
 }
 
 type CreateSaleInput struct {
-	Lines            []SaleLine `json:"lines"              binding:"required,min=1,dive"`
-	PayementMethodID int        `json:"payement_method_id" binding:"required"`
+	Lines    []SaleLine    `json:"lines"    binding:"required,min=1,dive"`
+	Payments []SalePayment `json:"payments" binding:"required,min=1,dive"`
 }
 
 type UpdateSaleInput struct {
-	Lines            *[]SaleLine `json:"lines,omitempty"              binding:"omitempty,min=1,dive"`
-	PayementMethodID *int        `json:"payement_method_id,omitempty"`
+	Lines    *[]SaleLine    `json:"lines,omitempty"    binding:"omitempty,min=1,dive"`
+	Payments *[]SalePayment `json:"payments,omitempty" binding:"omitempty,min=1,dive"`
 }

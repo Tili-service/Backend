@@ -54,7 +54,7 @@ func (h *Handler) CreateSale(c *gin.Context) {
 
 	sale, err := h.service.CreateSale(c.Request.Context(), input)
 	if err != nil {
-		if errors.Is(err, ErrInvalidSaleTotal) {
+		if errors.Is(err, ErrInvalidSaleTotal) || errors.Is(err, ErrInvalidPaymentsTotal) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
@@ -140,7 +140,7 @@ func (h *Handler) UpdateSale(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
-		if errors.Is(err, ErrInvalidSaleTotal) {
+		if errors.Is(err, ErrInvalidSaleTotal) || errors.Is(err, ErrInvalidPaymentsTotal) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}

@@ -59,6 +59,16 @@ func (r *Repository) DeactivateByID(ctx context.Context, id int) error {
 	return err
 }
 
+func (r *Repository) ReactivateByID(ctx context.Context, id int) error {
+	_, err := r.db.NewUpdate().Model((*PayementMethod)(nil)).Set("is_active = ?", true).Where("payement_method_id = ?", id).Exec(ctx)
+	return err
+}
+
+func (r *Repository) FindActiveByID(ctx context.Context, id int) error {
+	pm := new(PayementMethod)
+	return r.db.NewSelect().Model(pm).Where("payement_method_id = ? AND is_active = ?", id, true).Scan(ctx)
+}
+
 func (r *Repository) Update(ctx context.Context, pm *PayementMethod) error {
 	existingPM := new(PayementMethod)
 	err := r.db.NewSelect().Model(existingPM).Where("name = ?", pm.Name).Scan(ctx)

@@ -10,9 +10,10 @@ files=(
     "catalog.sql"
     "item.sql"
     "payment.sql"
-    "sales.sql"
     "store.sql"
     "profile.sql"
+    "sales.sql"
+    "salehistory.sql"
 )
 
 for f in "${files[@]}"; do

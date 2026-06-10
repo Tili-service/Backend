@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+
 	"tili/app/internal/middleware"
 	"tili/app/internal/token"
 
@@ -20,14 +21,13 @@ func NewHandler(service *Service) *Handler {
 
 func (h *Handler) RegisterRoutes(rg *gin.Engine) {
 	sales := rg.Group("/sales")
-	accountProtected := sales.Group("")
-	accountProtected.Use(middleware.AccountAuthMiddleware())
+	protected := sales.Group("")
+	protected.Use(middleware.ProfileAuthMiddleware())
 	{
-		accountProtected.POST("", h.CreateSale)
-		accountProtected.GET("", h.GetAllSales)
-		accountProtected.GET("/:id", h.GetSaleByID)
-
-		managerRoutes := accountProtected.Group("")
+		protected.POST("", h.CreateSale)
+		protected.GET("", h.GetAllSales)
+		protected.GET("/:id", h.GetSaleByID)
+		managerRoutes := protected.Group("")
 		managerRoutes.Use(middleware.LevelAccessRequired(token.Manager))
 		{
 			managerRoutes.PUT("/:id", h.UpdateSale)
@@ -37,6 +37,7 @@ func (h *Handler) RegisterRoutes(rg *gin.Engine) {
 }
 
 // @Summary      Create a new sale
+// @Description  Creates a sale with one or more line items. The total is computed from unit prices × quantities. Returns 400 if the computed total is not positive.
 // @Tags         sales
 // @Accept       json
 // @Produce      json
@@ -52,7 +53,12 @@ func (h *Handler) CreateSale(c *gin.Context) {
 		return
 	}
 
-	sale, err := h.service.CreateSale(c.Request.Context(), input)
+	var changedByProf *int
+	if profileID := c.GetInt("profileID"); profileID > 0 {
+		changedByProf = &profileID
+	}
+
+	sale, err := h.service.CreateSale(c.Request.Context(), input, changedByProf)
 	if err != nil {
 		if errors.Is(err, ErrInvalidSaleTotal) || errors.Is(err, ErrInvalidPaymentsTotal) || errors.Is(err, ErrInvalidPaymentAmount) || errors.Is(err, ErrPayementMethodInvalid) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -66,6 +72,7 @@ func (h *Handler) CreateSale(c *gin.Context) {
 }
 
 // @Summary      List all sales
+// @Description  Returns all non-deleted sales ordered by most recent first.
 // @Tags         sales
 // @Produce      json
 // @Success      200  {array}   Sale
@@ -82,9 +89,10 @@ func (h *Handler) GetAllSales(c *gin.Context) {
 }
 
 // @Summary      Get a sale by ID
+// @Description  Returns a single non-deleted sale by its ID.
 // @Tags         sales
 // @Produce      json
-// @Param        id   path      int  true  "Sale ID"
+// @Param        id   path      int  true  "Sale ID"  example(1)
 // @Success      200  {object}  Sale
 // @Failure      400  {object}  map[string]string
 // @Failure      404  {object}  map[string]string
@@ -111,10 +119,11 @@ func (h *Handler) GetSaleByID(c *gin.Context) {
 }
 
 // @Summary      Update a sale
+// @Description  Partially updates a sale. Only the fields provided are changed. For lines: existing item IDs update their quantity; new item IDs are added (name and unit_price required); items not mentioned are kept unchanged. The total is recomputed. The change is recorded in sale_history. Requires manager access.
 // @Tags         sales
 // @Accept       json
 // @Produce      json
-// @Param        id    path      int              true  "Sale ID"
+// @Param        id    path      int              true  "Sale ID"         example(1)
 // @Param        sale  body      UpdateSaleInput  true  "Fields to update"
 // @Success      200   {object}  Sale
 // @Failure      400   {object}  map[string]string
@@ -134,13 +143,30 @@ func (h *Handler) UpdateSale(c *gin.Context) {
 		return
 	}
 
-	sale, err := h.service.UpdateSale(c.Request.Context(), id, input)
+	var changedByProf *int
+	if profileID := c.GetInt("profileID"); profileID > 0 {
+		changedByProf = &profileID
+	}
+
+	sale, err := h.service.UpdateSale(c.Request.Context(), id, input, changedByProf)
 	if err != nil {
 		if errors.Is(err, ErrSaleNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
-		if errors.Is(err, ErrInvalidSaleTotal) || errors.Is(err, ErrInvalidPaymentsTotal) || errors.Is(err, ErrInvalidPaymentAmount) || errors.Is(err, ErrPayementMethodInvalid) {
+		if errors.Is(err, ErrNewLineIncomplete) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, ErrNewLineZeroQuantity) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, ErrSaleWouldBeEmpty) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, ErrInvalidSaleTotal) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
@@ -152,8 +178,9 @@ func (h *Handler) UpdateSale(c *gin.Context) {
 }
 
 // @Summary      Delete a sale
+// @Description  Soft-deletes a sale by setting is_deleted=true. The deletion is recorded in sale_history. Requires manager access.
 // @Tags         sales
-// @Param        id   path      int  true  "Sale ID"
+// @Param        id   path      int  true  "Sale ID"  example(1)
 // @Success      204  "No Content"
 // @Failure      400  {object}  map[string]string
 // @Failure      404  {object}  map[string]string
@@ -166,7 +193,12 @@ func (h *Handler) DeleteSale(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.DeleteSale(c.Request.Context(), id); err != nil {
+	var changedByProf *int
+	if profileID := c.GetInt("profileID"); profileID > 0 {
+		changedByProf = &profileID
+	}
+
+	if err := h.service.DeleteSale(c.Request.Context(), id, changedByProf); err != nil {
 		if errors.Is(err, ErrSaleNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return

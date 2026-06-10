@@ -12,6 +12,7 @@ import (
 	"tili/app/internal/payementmethod"
 	"tili/app/internal/profile"
 	"tili/app/internal/sale"
+	"tili/app/internal/salehistory"
 	"tili/app/internal/store"
 
 	"tili/app/pkg/db"
@@ -71,8 +72,16 @@ func main() {
 	payementmethodService := payementmethod.NewService(payementmethodRepo)
 	payementmethodHandler := payementmethod.NewHandler(payementmethodService)
 
+	saleHistoryRepo := salehistory.NewRepository(db)
+	saleHistoryService := salehistory.NewService(saleHistoryRepo)
+	saleHistoryHandler := salehistory.NewHandler(saleHistoryService)
+
 	saleRepo := sale.NewRepository(db)
+<<<<<<< HEAD
 	saleService := sale.NewService(saleRepo, payementmethodRepo)
+=======
+	saleService := sale.NewService(db, saleRepo, saleHistoryRepo)
+>>>>>>> 62293eedd62065f24cfb34b845cca3edb78a2772
 	saleHandler := sale.NewHandler(saleService)
 
 	r := gin.Default()
@@ -86,6 +95,7 @@ func main() {
 	categorieHandler.RegisterRoutes(r)
 	payementmethodHandler.RegisterRoutes(r)
 	saleHandler.RegisterRoutes(r)
+	saleHistoryHandler.RegisterRoutes(r)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 

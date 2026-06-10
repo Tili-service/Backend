@@ -14,10 +14,10 @@ require (
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.1
 	github.com/swaggo/swag v1.16.6
-	github.com/uptrace/bun v1.2.17
+	github.com/uptrace/bun v1.2.18
 	github.com/uptrace/bun/dialect/pgdialect v1.2.17
 	github.com/uptrace/bun/driver/pgdriver v1.2.17
-	github.com/uptrace/bun/extra/bundebug v1.2.17
+	github.com/uptrace/bun/extra/bundebug v1.2.18
 	golang.org/x/crypto v0.48.0
 )
 

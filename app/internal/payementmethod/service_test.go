@@ -86,6 +86,21 @@ func TestService_DeleteByID_NotFound(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestService_Reactivate_NotFound(t *testing.T) {
+	bunDB, mock := setupMockDB(t)
+	defer bunDB.Close()
+
+	repo := NewRepository(&db.Db{DB: bunDB})
+	svc := NewService(repo)
+
+	mock.ExpectQuery(`^SELECT .* FROM "payementmethod" AS "pm" WHERE \(payement_method_id = .+\)$`).WillReturnError(sql.ErrNoRows)
+
+	err := svc.Reactivate(context.Background(), 1)
+
+	assert.ErrorIs(t, err, ErrPayementMethodNotFound)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestService_GetByName_NotFound(t *testing.T) {
 	bunDB, mock := setupMockDB(t)
 	defer bunDB.Close()

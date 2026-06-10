@@ -94,6 +94,37 @@ func TestPayementMethodHandler_GetByName_NotFound(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestPayementMethodHandler_Reactivate_InvalidID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	h, _ := setupPayementMethodHandler(t)
+	r.PATCH("/payementmethod/:id/reactivate", h.Reactivate)
+
+	req := httptest.NewRequest(http.MethodPatch, "/payementmethod/abc/reactivate", nil)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestPayementMethodHandler_Reactivate_NotFound(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	h, mock := setupPayementMethodHandler(t)
+	r.PATCH("/payementmethod/:id/reactivate", h.Reactivate)
+
+	mock.ExpectQuery(`^SELECT .* FROM "payementmethod" AS "pm" WHERE \(payement_method_id = .+\)$`).WillReturnError(sql.ErrNoRows)
+
+	req := httptest.NewRequest(http.MethodPatch, "/payementmethod/1/reactivate", nil)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestPayementMethodHandler_GetAll_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()

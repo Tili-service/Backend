@@ -121,6 +121,49 @@ func TestRepository_DeactivateByID(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestRepository_ReactivateByID(t *testing.T) {
+	bunDB, mock := setupMockDB(t)
+	defer bunDB.Close()
+	repo := NewRepository(&db.Db{DB: bunDB})
+
+	mock.ExpectExec(`^UPDATE "payementmethod" AS "pm" SET .* WHERE \(payement_method_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
+
+	ctx := context.Background()
+	err := repo.ReactivateByID(ctx, 1)
+
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestRepository_FindActiveByID_Found(t *testing.T) {
+	bunDB, mock := setupMockDB(t)
+	defer bunDB.Close()
+	repo := NewRepository(&db.Db{DB: bunDB})
+
+	rows := sqlmock.NewRows([]string{"payement_method_id", "name", "is_active"}).AddRow(1, "Card", true)
+	mock.ExpectQuery(`^SELECT .* FROM "payementmethod" AS "pm" WHERE \(payement_method_id = .* AND is_active = .*\)$`).WillReturnRows(rows)
+
+	ctx := context.Background()
+	err := repo.FindActiveByID(ctx, 1)
+
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestRepository_FindActiveByID_NotFound(t *testing.T) {
+	bunDB, mock := setupMockDB(t)
+	defer bunDB.Close()
+	repo := NewRepository(&db.Db{DB: bunDB})
+
+	mock.ExpectQuery(`^SELECT .* FROM "payementmethod" AS "pm" WHERE \(payement_method_id = .* AND is_active = .*\)$`).WillReturnError(sql.ErrNoRows)
+
+	ctx := context.Background()
+	err := repo.FindActiveByID(ctx, 99)
+
+	assert.ErrorIs(t, err, sql.ErrNoRows)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestRepository_Update(t *testing.T) {
 	bunDB, mock := setupMockDB(t)
 	defer bunDB.Close()

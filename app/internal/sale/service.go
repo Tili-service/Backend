@@ -2,21 +2,29 @@ package sale
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"time"
 
 	"github.com/shopspring/decimal"
 )
 
-var ErrInvalidSaleTotal = errors.New("sale total must be positive")
-var ErrInvalidPaymentsTotal = errors.New("payments total must equal the sale total")
+var ErrInvalidSaleTotal     = errors.New("sale total must be positive")
+var ErrInvalidPaymentsTotal  = errors.New("payments total must equal the sale total")
+var ErrInvalidPaymentAmount  = errors.New("each payment amount must be positive")
+var ErrPayementMethodInvalid = errors.New("payment method not found or inactive")
 
-type Service struct {
-	repo *Repository
+type pmChecker interface {
+	FindActiveByID(ctx context.Context, id int) error
 }
 
-func NewService(repo *Repository) *Service {
-	return &Service{repo: repo}
+type Service struct {
+	repo      *Repository
+	pmChecker pmChecker
+}
+
+func NewService(repo *Repository, pmChecker pmChecker) *Service {
+	return &Service{repo: repo, pmChecker: pmChecker}
 }
 
 func computeTotal(lines []SaleLine) decimal.Decimal {
@@ -28,12 +36,18 @@ func computeTotal(lines []SaleLine) decimal.Decimal {
 	return total.Round(2)
 }
 
-func computePaymentsTotal(payments []SalePayment) decimal.Decimal {
+func validatePayments(payments []SalePayment, saleTotal decimal.Decimal) error {
 	total := decimal.Zero
 	for _, p := range payments {
+		if !p.Amount.IsPositive() {
+			return ErrInvalidPaymentAmount
+		}
 		total = total.Add(p.Amount)
 	}
-	return total.Round(2)
+	if !total.Round(2).Equal(saleTotal) {
+		return ErrInvalidPaymentsTotal
+	}
+	return nil
 }
 
 func (s *Service) CreateSale(ctx context.Context, input CreateSaleInput) (*Sale, error) {
@@ -41,10 +55,17 @@ func (s *Service) CreateSale(ctx context.Context, input CreateSaleInput) (*Sale,
 	if !total.IsPositive() {
 		return nil, ErrInvalidSaleTotal
 	}
-	if !computePaymentsTotal(input.Payments).Equal(total) {
-		return nil, ErrInvalidPaymentsTotal
+	if err := validatePayments(input.Payments, total); err != nil {
+		return nil, err
 	}
-
+	for _, p := range input.Payments {
+		if err := s.pmChecker.FindActiveByID(ctx, p.PayementMethodID); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil, ErrPayementMethodInvalid
+			}
+			return nil, err
+		}
+	}
 	sale := &Sale{
 		Lines:     input.Lines,
 		Price:     total,
@@ -81,8 +102,18 @@ func (s *Service) UpdateSale(ctx context.Context, id int, input UpdateSaleInput)
 	if !total.IsPositive() {
 		return nil, ErrInvalidSaleTotal
 	}
-	if !computePaymentsTotal(payments).Equal(total) {
-		return nil, ErrInvalidPaymentsTotal
+	if err := validatePayments(payments, total); err != nil {
+		return nil, err
+	}
+	if input.Payments != nil {
+		for _, p := range payments {
+			if err := s.pmChecker.FindActiveByID(ctx, p.PayementMethodID); err != nil {
+				if errors.Is(err, sql.ErrNoRows) {
+					return nil, ErrPayementMethodInvalid
+				}
+				return nil, err
+			}
+		}
 	}
 
 	existing.Lines = lines

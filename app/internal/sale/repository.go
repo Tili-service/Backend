@@ -46,7 +46,6 @@ func (r *Repository) FindAll(ctx context.Context) ([]*Sale, error) {
 	var sales []*Sale
 	err := r.db.NewSelect().
 		Model(&sales).
-		Relation("PayementMethod").
 		Where("s.is_deleted = ?", false).
 		OrderExpr("s.time_stamp DESC").
 		Scan(ctx)

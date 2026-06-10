@@ -13,20 +13,15 @@ import (
 	"github.com/uptrace/bun"
 )
 
-// var ErrInvalidSaleTotal = errors.New("sale total must be positive")
-// var ErrInvalidPaymentsTotal = errors.New("payments total must equal the sale total")
-// var ErrInvalidPaymentAmount = errors.New("each payment amount must be positive")
-// var ErrPayementMethodInvalid = errors.New("payment method not found or inactive")
-
 type pmChecker interface {
 	FindActiveByID(ctx context.Context, id int) error
 }
 
 type Service struct {
 	db          *bun.DB
-	repo             *Repository
+	repo        *Repository
 	historyRepo *salehistory.Repository
-	pmChecker pmChecker
+	pmChecker   pmChecker
 }
 
 func NewService(d *db.Db, repo *Repository, historyRepo *salehistory.Repository, pmChecker pmChecker) *Service {
@@ -51,7 +46,7 @@ func validatePayments(payments []SalePayment, saleTotal decimal.Decimal) error {
 		total = total.Add(p.Amount)
 	}
 	if !total.Round(2).Equal(saleTotal) {
-		return ErrInvalidSaleTotal
+		return ErrInvalidPaymentsTotal
 	}
 	return nil
 }
@@ -70,14 +65,24 @@ func snapshotLines(lines []SaleLine) []salehistory.SaleLineSnapshot {
 	return out
 }
 
-// historyFromSale builds a history row reflecting the sale's state after the change.
+func snapshotPayments(payments []SalePayment) []salehistory.SalePaymentSnapshot {
+	out := make([]salehistory.SalePaymentSnapshot, len(payments))
+	for i, p := range payments {
+		out[i] = salehistory.SalePaymentSnapshot{
+			PayementMethodID: p.PayementMethodID,
+			Amount:           p.Amount,
+		}
+	}
+	return out
+}
+
 func historyFromSale(s *Sale, changedByProfileID *int, changes map[string]any) *salehistory.SaleHistory {
 	return &salehistory.SaleHistory{
 		SaleID:             s.SaleID,
 		ChangedByProfileID: changedByProfileID,
 		Lines:              snapshotLines(s.Lines),
+		Payments:           snapshotPayments(s.Payments),
 		Price:              s.Price,
-		PayementMethodID:   s.PayementMethodID,
 		TimeStamp:          s.TimeStamp,
 		IsDeleted:          s.IsDeleted,
 		Changes:            changes,
@@ -102,9 +107,9 @@ func (s *Service) CreateSale(ctx context.Context, input CreateSaleInput, changed
 		}
 	}
 	sale := &Sale{
-		Lines:            input.Lines,
-		Price:            total,
-		TimeStamp:        time.Now(),
+		Lines:     input.Lines,
+		Price:     total,
+		TimeStamp: time.Now(),
 		Payments:  input.Payments,
 	}
 
@@ -188,6 +193,19 @@ func diffLines(oldLines, newLines []SaleLine) map[string]any {
 	return out
 }
 
+func diffPayments(oldPayments, newPayments []SalePayment) map[string]any {
+	if len(oldPayments) != len(newPayments) {
+		return map[string]any{"from": oldPayments, "to": newPayments}
+	}
+	for i := range oldPayments {
+		if oldPayments[i].PayementMethodID != newPayments[i].PayementMethodID ||
+			!oldPayments[i].Amount.Equal(newPayments[i].Amount) {
+			return map[string]any{"from": oldPayments, "to": newPayments}
+		}
+	}
+	return nil
+}
+
 // UpdateSale applies a partial update to a sale and records the post-update state
 // alongside a diff of what changed in sale_history, within the same transaction.
 // changedByProfileID is optional and identifies the profile that authored the change.
@@ -210,7 +228,7 @@ func (s *Service) UpdateSale(ctx context.Context, id int, input UpdateSaleInput,
 
 		oldLines := existing.Lines
 		oldPrice := existing.Price
-		oldPayementMethodID := existing.PayementMethodID
+		oldPayments := existing.Payments
 
 		if input.Lines != nil {
 			newLineMap := make(map[int]UpdateSaleLine)
@@ -256,9 +274,20 @@ func (s *Service) UpdateSale(ctx context.Context, id int, input UpdateSaleInput,
 			existing.Lines = updatedLines
 			existing.Price = total
 		}
-		if err := validatePayments(payments, total); err != nil {
-			return nil, err
+
+		if err := validatePayments(input.Payments, existing.Price); err != nil {
+			return err
 		}
+		for _, p := range input.Payments {
+			if err := s.pmChecker.FindActiveByID(ctx, p.PayementMethodID); err != nil {
+				if errors.Is(err, sql.ErrNoRows) {
+					return ErrPayementMethodInvalid
+				}
+				return err
+			}
+		}
+		existing.Payments = input.Payments
+
 		if _, err := tx.NewUpdate().Model(existing).WherePK().Exec(ctx); err != nil {
 			return err
 		}
@@ -270,8 +299,8 @@ func (s *Service) UpdateSale(ctx context.Context, id int, input UpdateSaleInput,
 		if !oldPrice.Equal(existing.Price) {
 			changes["price"] = map[string]any{"from": oldPrice, "to": existing.Price}
 		}
-		if oldPayementMethodID != existing.PayementMethodID {
-			changes["payement_method_id"] = map[string]any{"from": oldPayementMethodID, "to": existing.PayementMethodID}
+		if paymentDiff := diffPayments(oldPayments, existing.Payments); paymentDiff != nil {
+			changes["payments"] = paymentDiff
 		}
 
 		hist := historyFromSale(existing, changedByProfileID, changes)

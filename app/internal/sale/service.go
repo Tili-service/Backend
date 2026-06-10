@@ -9,9 +9,9 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-var ErrInvalidSaleTotal     = errors.New("sale total must be positive")
-var ErrInvalidPaymentsTotal  = errors.New("payments total must equal the sale total")
-var ErrInvalidPaymentAmount  = errors.New("each payment amount must be positive")
+var ErrInvalidSaleTotal = errors.New("sale total must be positive")
+var ErrInvalidPaymentsTotal = errors.New("payments total must equal the sale total")
+var ErrInvalidPaymentAmount = errors.New("each payment amount must be positive")
 var ErrPayementMethodInvalid = errors.New("payment method not found or inactive")
 
 type pmChecker interface {

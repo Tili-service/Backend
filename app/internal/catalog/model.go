@@ -10,9 +10,11 @@ type catalog struct {
 	catalogID   int    `bun:"catalog_id,pk,autoincrement" json:"catalog_id"  example:"1"`
 	Name        string `bun:"name,notnull"                json:"name"        example:"Winter 2026 Collection"`
 	Description string `bun:"description"                 json:"description" example:"All items available for the winter 2026 season"`
+	StoreID     int    `bun:"store_id,notnull"            json:"store_id"    example:"1"`
 }
 
 type catalogUpdate struct {
 	Name        *string `json:"name"        example:"Winter 2026 Collection"`
 	Description *string `json:"description" example:"All items available for the winter 2026 season"`
 }
+

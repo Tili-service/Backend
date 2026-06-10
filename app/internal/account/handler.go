@@ -30,6 +30,7 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 			protected.GET("", h.GetAccount) // GET /account
 			protected.DELETE("", h.Delete)  // DELETE /account
 			protected.PUT("", h.Update)     // PUT /account
+			protected.POST("/reset-password", h.ResetPassword) // POST /account/reset-password
 		}
 	}
 }
@@ -185,4 +186,41 @@ func (h *Handler) Update(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, acc)
+}
+
+// ResetPassword changes the password of the currently authenticated account
+// @Summary      Change account password
+// @Description  Changes the password of the currently authenticated account. Requires the current password.
+// @Tags         account
+// @Accept       json
+// @Produce      json
+// @Security     AccountToken
+// @Param        body body      ResetPasswordInput true "Password change payload"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      401  {object}  map[string]interface{}
+// @Failure      404  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /account/reset-password [post]
+func (h *Handler) ResetPassword(c *gin.Context) {
+	accountID := c.GetInt("accountID")
+	var input ResetPasswordInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	err := h.service.ResetPassword(c.Request.Context(), accountID, input)
+	if err != nil {
+		if errors.Is(err, ErrAccountNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, ErrInvalidPassword) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid password"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "password updated successfully"})
 }

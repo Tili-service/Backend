@@ -51,3 +51,11 @@ func (r *Repository) Update(ctx context.Context, a *Account) (*Account, error) {
 	}
 	return a, nil
 }
+
+func (r *Repository) UpdatePassword(ctx context.Context, id int, newPassword string) error {
+	_, err := r.db.NewUpdate().Model((*Account)(nil)).
+		Set("password = ?", newPassword).
+		Where("account_id = ?", id).
+		Exec(ctx)
+	return err
+}

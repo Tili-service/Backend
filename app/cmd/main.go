@@ -72,7 +72,7 @@ func main() {
 	payementmethodHandler := payementmethod.NewHandler(payementmethodService)
 
 	saleRepo := sale.NewRepository(db)
-	saleService := sale.NewService(saleRepo)
+	saleService := sale.NewService(saleRepo, payementmethodRepo)
 	saleHandler := sale.NewHandler(saleService)
 
 	r := gin.Default()

@@ -95,11 +95,11 @@ func TestHandler_GetByType_NotFound(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h, mock := setupCategorieHandler(t)
-	r.GET("/categorie/type/:type", h.GetByType)
+	r.GET("/catalog/:catalog_id/categorie/type/:type", h.GetByType)
 
-	mock.ExpectQuery(`^SELECT .* FROM "categorie" AS "cat" WHERE \(cat\.type = .+\)$`).WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery(`^SELECT .* FROM "categorie" AS "cat" WHERE \(cat\.type = .+\) AND \(cat\.catalog_id = .+\)$`).WillReturnError(sql.ErrNoRows)
 
-	req := httptest.NewRequest(http.MethodGet, "/categorie/type/missing", nil)
+	req := httptest.NewRequest(http.MethodGet, "/catalog/1/categorie/type/missing", nil)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -112,11 +112,11 @@ func TestHandler_DeleteByType_NotFound(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h, mock := setupCategorieHandler(t)
-	r.DELETE("/categorie/type/:type", h.DeleteByType)
+	r.DELETE("/catalog/:catalog_id/categorie/type/:type", h.DeleteByType)
 
-	mock.ExpectQuery(`^SELECT .* FROM "categorie" AS "cat" WHERE \(cat\.type = .+\)$`).WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery(`^SELECT .* FROM "categorie" AS "cat" WHERE \(cat\.type = .+\) AND \(cat\.catalog_id = .+\)$`).WillReturnError(sql.ErrNoRows)
 
-	req := httptest.NewRequest(http.MethodDelete, "/categorie/type/missing", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/catalog/1/categorie/type/missing", nil)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -129,12 +129,12 @@ func TestHandler_GetAll_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h, mock := setupCategorieHandler(t)
-	r.GET("/categorie", h.GetAll)
+	r.GET("/catalog/:catalog_id/categorie", h.GetAll)
 
-	rows := sqlmock.NewRows([]string{"categorie_id", "type"}).AddRow(1, "Books")
-	mock.ExpectQuery(`^SELECT .* FROM "categorie" AS "cat"$`).WillReturnRows(rows)
+	rows := sqlmock.NewRows([]string{"categorie_id", "type", "catalog_id"}).AddRow(1, "Books", 1)
+	mock.ExpectQuery(`^SELECT .* FROM "categorie" AS "cat" WHERE \(cat\.catalog_id = .+\)$`).WillReturnRows(rows)
 
-	req := httptest.NewRequest(http.MethodGet, "/categorie", nil)
+	req := httptest.NewRequest(http.MethodGet, "/catalog/1/categorie", nil)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)

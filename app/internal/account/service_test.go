@@ -196,3 +196,55 @@ func TestServiceFullDelete_LicenseDeleteError(t *testing.T) {
 	assert.EqualError(t, err, "license delete failed")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
+func TestServiceResetPassword_AccountNotFound(t *testing.T) {
+	svc, mock, cleanup := setupAccountService(t, nil)
+	defer cleanup()
+
+	mock.ExpectQuery(`^SELECT .* FROM "account" AS "a" WHERE \(account_id = .+\)$`).
+		WillReturnError(sql.ErrNoRows)
+
+	err := svc.ResetPassword(context.Background(), 1, ResetPasswordInput{OldPassword: "old", NewPassword: "newpass456"})
+
+	assert.ErrorIs(t, err, ErrAccountNotFound)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestServiceResetPassword_WrongOldPassword(t *testing.T) {
+	svc, mock, cleanup := setupAccountService(t, nil)
+	defer cleanup()
+
+	hash, err := bcrypt.GenerateFromPassword([]byte("correct"), bcrypt.DefaultCost)
+	assert.NoError(t, err)
+
+	rows := sqlmock.NewRows([]string{"account_id", "email", "password", "name", "stripe_customer_id", "created_at"}).
+		AddRow(1, "a@a.com", string(hash), "A", "cus_1", time.Now())
+	mock.ExpectQuery(`^SELECT .* FROM "account" AS "a" WHERE \(account_id = .+\)$`).
+		WillReturnRows(rows)
+
+	err = svc.ResetPassword(context.Background(), 1, ResetPasswordInput{OldPassword: "wrong", NewPassword: "newpass456"})
+
+	assert.ErrorIs(t, err, ErrInvalidPassword)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestServiceResetPassword_Success(t *testing.T) {
+	svc, mock, cleanup := setupAccountService(t, nil)
+	defer cleanup()
+
+	hash, err := bcrypt.GenerateFromPassword([]byte("secret123"), bcrypt.DefaultCost)
+	assert.NoError(t, err)
+
+	rows := sqlmock.NewRows([]string{"account_id", "email", "password", "name", "stripe_customer_id", "created_at"}).
+		AddRow(1, "a@a.com", string(hash), "A", "cus_1", time.Now())
+	mock.ExpectQuery(`^SELECT .* FROM "account" AS "a" WHERE \(account_id = .+\)$`).
+		WillReturnRows(rows)
+	mock.ExpectExec(`^UPDATE "account" AS "a" SET`).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	err = svc.ResetPassword(context.Background(), 1, ResetPasswordInput{OldPassword: "secret123", NewPassword: "newpass456"})
+
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+

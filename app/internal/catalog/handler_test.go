@@ -37,9 +37,9 @@ func TestCatalogHandler_Create_BadJSON(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h, _ := setupCatalogHandler(t)
-	r.POST("/catalog", h.Create)
+	r.POST("/store/:store_id/catalog", h.Create)
 
-	req := httptest.NewRequest(http.MethodPost, "/catalog", bytes.NewBufferString("{"))
+	req := httptest.NewRequest(http.MethodPost, "/store/1/catalog", bytes.NewBufferString("{"))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -52,9 +52,9 @@ func TestCatalogHandler_GetByID_InvalidID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h, _ := setupCatalogHandler(t)
-	r.GET("/catalog/:id", h.GetByID)
+	r.GET("/store/:store_id/catalog/:id", h.GetByID)
 
-	req := httptest.NewRequest(http.MethodGet, "/catalog/abc", nil)
+	req := httptest.NewRequest(http.MethodGet, "/store/1/catalog/abc", nil)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -66,11 +66,11 @@ func TestCatalogHandler_GetByID_NotFound(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h, mock := setupCatalogHandler(t)
-	r.GET("/catalog/:id", h.GetByID)
+	r.GET("/store/:store_id/catalog/:id", h.GetByID)
 
-	mock.ExpectQuery(`^SELECT .* FROM "catalog" AS "c" WHERE \(c\.catalog_id = .+\)$`).WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery(`^SELECT .* FROM "catalog" AS "c" WHERE \(c\.catalog_id = .+\) AND \(c\.store_id = .+\)$`).WillReturnError(sql.ErrNoRows)
 
-	req := httptest.NewRequest(http.MethodGet, "/catalog/1", nil)
+	req := httptest.NewRequest(http.MethodGet, "/store/1/catalog/1", nil)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -83,9 +83,9 @@ func TestCatalogHandler_Update_InvalidID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h, _ := setupCatalogHandler(t)
-	r.PUT("/catalog/:id", h.Update)
+	r.PUT("/store/:store_id/catalog/:id", h.Update)
 
-	req := httptest.NewRequest(http.MethodPut, "/catalog/abc", bytes.NewBufferString("{}"))
+	req := httptest.NewRequest(http.MethodPut, "/store/1/catalog/abc", bytes.NewBufferString("{}"))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -98,9 +98,9 @@ func TestCatalogHandler_Delete_InvalidID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h, _ := setupCatalogHandler(t)
-	r.DELETE("/catalog/:id", h.Delete)
+	r.DELETE("/store/:store_id/catalog/:id", h.Delete)
 
-	req := httptest.NewRequest(http.MethodDelete, "/catalog/abc", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/store/1/catalog/abc", nil)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -112,12 +112,12 @@ func TestCatalogHandler_GetAll_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h, mock := setupCatalogHandler(t)
-	r.GET("/catalog", h.GetAll)
+	r.GET("/store/:store_id/catalog", h.GetAll)
 
-	rows := sqlmock.NewRows([]string{"name", "description"}).AddRow("C1", "D1")
-	mock.ExpectQuery(`^SELECT .* FROM "catalog" AS "c"$`).WillReturnRows(rows)
+	rows := sqlmock.NewRows([]string{"name", "description", "store_id"}).AddRow("C1", "D1", 1)
+	mock.ExpectQuery(`^SELECT .* FROM "catalog" AS "c" WHERE \(c\.store_id = .+\)$`).WillReturnRows(rows)
 
-	req := httptest.NewRequest(http.MethodGet, "/catalog", nil)
+	req := httptest.NewRequest(http.MethodGet, "/store/1/catalog", nil)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)

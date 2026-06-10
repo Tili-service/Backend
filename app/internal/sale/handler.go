@@ -53,7 +53,12 @@ func (h *Handler) CreateSale(c *gin.Context) {
 		return
 	}
 
-	sale, err := h.service.CreateSale(c.Request.Context(), input)
+	var changedByProf *int
+	if profileID := c.GetInt("profileID"); profileID > 0 {
+		changedByProf = &profileID
+	}
+
+	sale, err := h.service.CreateSale(c.Request.Context(), input, changedByProf)
 	if err != nil {
 		if errors.Is(err, ErrInvalidSaleTotal) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

@@ -60,7 +60,7 @@ func historyFromSale(s *Sale, changedByProfileID *int, changes map[string]any) *
 	}
 }
 
-func (s *Service) CreateSale(ctx context.Context, input CreateSaleInput) (*Sale, error) {
+func (s *Service) CreateSale(ctx context.Context, input CreateSaleInput, changedByProfileID *int) (*Sale, error) {
 	total := computeTotal(input.Lines)
 	if !total.IsPositive() {
 		return nil, ErrInvalidSaleTotal
@@ -77,7 +77,7 @@ func (s *Service) CreateSale(ctx context.Context, input CreateSaleInput) (*Sale,
 		if _, err := tx.NewInsert().Model(sale).Exec(ctx); err != nil {
 			return err
 		}
-		hist := historyFromSale(sale, nil, map[string]any{"action": "created"})
+		hist := historyFromSale(sale, changedByProfileID, map[string]any{"action": "created"})
 		return s.historyRepo.Insert(ctx, tx, hist)
 	})
 	if err != nil {

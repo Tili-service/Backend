@@ -27,9 +27,9 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 		protected := accountRoutes.Group("")
 		protected.Use(middleware.AccountAuthMiddleware())
 		{
-			protected.GET("", h.GetAccount) // GET /account
-			protected.DELETE("", h.Delete)  // DELETE /account
-			protected.PUT("", h.Update)     // PUT /account
+			protected.GET("", h.GetAccount)                    // GET /account
+			protected.DELETE("", h.Delete)                     // DELETE /account
+			protected.PUT("", h.Update)                        // PUT /account
 			protected.POST("/reset-password", h.ResetPassword) // POST /account/reset-password
 		}
 	}

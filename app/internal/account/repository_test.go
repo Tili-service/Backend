@@ -180,4 +180,3 @@ func TestRepository_UpdatePassword_Error(t *testing.T) {
 	assert.ErrorIs(t, err, sql.ErrConnDone)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
-

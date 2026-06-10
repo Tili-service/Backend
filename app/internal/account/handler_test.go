@@ -329,4 +329,3 @@ func TestHandler_ResetPassword_Success(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "password updated successfully")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
-

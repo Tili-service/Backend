@@ -153,7 +153,6 @@ func (s *Service) GetByID(ctx context.Context, id int) (*Account, error) {
 	return s.repo.FindByID(ctx, id)
 }
 
-
 func (s *Service) ResetPassword(ctx context.Context, id int, input ResetPasswordInput) error {
 	acc, err := s.repo.FindByID(ctx, id)
 	if err != nil {

@@ -20,22 +20,22 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) RegisterRoutes(router *gin.Engine) {
-	categorieRoutes := router.Group("/catalog/:catalog_id/categorie")
+	categorieRoutes := router.Group("/categorie/catalog/:catalog_id")
 	{
 		protected := categorieRoutes.Group("")
 		protected.Use(middleware.ProfileAuthMiddleware())
 		{
-			protected.GET("", h.GetAll)               // GET /catalog/:catalog_id/categorie
-			protected.GET("/type/:type", h.GetByType) // GET /catalog/:catalog_id/categorie/type/:type
-			protected.GET("/:id", h.GetByID)          // GET /catalog/:catalog_id/categorie/:id
+			protected.GET("", h.GetAll)               // GET /categorie/catalog/:catalog_id
+			protected.GET("/type/:type", h.GetByType) // GET /categorie/catalog/:catalog_id/type/:type
+			protected.GET("/:id", h.GetByID)          // GET /categorie/catalog/:catalog_id/:id
 
 			managerRoutes := protected.Group("")
 			managerRoutes.Use(middleware.LevelAccessRequired(token.Manager))
 			{
-				managerRoutes.POST("", h.Create)                    // POST /catalog/:catalog_id/categorie
-				managerRoutes.PUT("/:id", h.Update)                 // PUT /catalog/:catalog_id/categorie/:id
-				managerRoutes.DELETE("/type/:type", h.DeleteByType) // DELETE /catalog/:catalog_id/categorie/type/:type
-				managerRoutes.DELETE("/:id", h.DeleteByID)          // DELETE /catalog/:catalog_id/categorie/:id
+				managerRoutes.POST("", h.Create)                    // POST /categorie/catalog/:catalog_id
+				managerRoutes.PUT("/:id", h.Update)                 // PUT /categorie/catalog/:catalog_id/:id
+				managerRoutes.DELETE("/type/:type", h.DeleteByType) // DELETE /categorie/catalog/:catalog_id/type/:type
+				managerRoutes.DELETE("/:id", h.DeleteByID)          // DELETE /categorie/catalog/:catalog_id/:id
 			}
 		}
 	}
@@ -64,7 +64,7 @@ func parseCatalogID(c *gin.Context) (int, bool) {
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      403  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Router       /catalog/{catalog_id}/categorie [post]
+// @Router       /categorie/catalog/{catalog_id} [post]
 func (h *Handler) Create(c *gin.Context) {
 	catalogID, ok := parseCatalogID(c)
 	if !ok {
@@ -94,7 +94,7 @@ func (h *Handler) Create(c *gin.Context) {
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Router       /catalog/{catalog_id}/categorie [get]
+// @Router       /categorie/catalog/{catalog_id} [get]
 func (h *Handler) GetAll(c *gin.Context) {
 	catalogID, ok := parseCatalogID(c)
 	if !ok {
@@ -120,7 +120,7 @@ func (h *Handler) GetAll(c *gin.Context) {
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
-// @Router       /catalog/{catalog_id}/categorie/{id} [get]
+// @Router       /categorie/catalog/{catalog_id}/{id} [get]
 func (h *Handler) GetByID(c *gin.Context) {
 	catalogID, ok := parseCatalogID(c)
 	if !ok {
@@ -155,7 +155,7 @@ func (h *Handler) GetByID(c *gin.Context) {
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
-// @Router       /catalog/{catalog_id}/categorie/type/{type} [get]
+// @Router       /categorie/catalog/{catalog_id}/type/{type} [get]
 func (h *Handler) GetByType(c *gin.Context) {
 	catalogID, ok := parseCatalogID(c)
 	if !ok {
@@ -190,7 +190,7 @@ func (h *Handler) GetByType(c *gin.Context) {
 // @Failure      403  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Router       /catalog/{catalog_id}/categorie/{id} [put]
+// @Router       /categorie/catalog/{catalog_id}/{id} [put]
 func (h *Handler) Update(c *gin.Context) {
 	catalogID, ok := parseCatalogID(c)
 	if !ok {
@@ -232,7 +232,7 @@ func (h *Handler) Update(c *gin.Context) {
 // @Failure      403  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Router       /catalog/{catalog_id}/categorie/{id} [delete]
+// @Router       /categorie/catalog/{catalog_id}/{id} [delete]
 func (h *Handler) DeleteByID(c *gin.Context) {
 	catalogID, ok := parseCatalogID(c)
 	if !ok {
@@ -269,7 +269,7 @@ func (h *Handler) DeleteByID(c *gin.Context) {
 // @Failure      403  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Router       /catalog/{catalog_id}/categorie/type/{type} [delete]
+// @Router       /categorie/catalog/{catalog_id}/type/{type} [delete]
 func (h *Handler) DeleteByType(c *gin.Context) {
 	catalogID, ok := parseCatalogID(c)
 	if !ok {

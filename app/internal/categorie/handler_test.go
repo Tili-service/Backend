@@ -37,9 +37,9 @@ func TestHandler_Create_BadJSON(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h, _ := setupCategorieHandler(t)
-	r.POST("/categorie", h.Create)
+	r.POST("/catalog/:catalog_id/categorie", h.Create)
 
-	req := httptest.NewRequest(http.MethodPost, "/categorie", bytes.NewBufferString("{"))
+	req := httptest.NewRequest(http.MethodPost, "/catalog/1/categorie", bytes.NewBufferString("{"))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -52,9 +52,9 @@ func TestHandler_GetByID_InvalidID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h, _ := setupCategorieHandler(t)
-	r.GET("/categorie/:id", h.GetByID)
+	r.GET("/catalog/:catalog_id/categorie/:id", h.GetByID)
 
-	req := httptest.NewRequest(http.MethodGet, "/categorie/abc", nil)
+	req := httptest.NewRequest(http.MethodGet, "/catalog/1/categorie/abc", nil)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -66,9 +66,9 @@ func TestHandler_Update_InvalidID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h, _ := setupCategorieHandler(t)
-	r.PUT("/categorie/:id", h.Update)
+	r.PUT("/catalog/:catalog_id/categorie/:id", h.Update)
 
-	req := httptest.NewRequest(http.MethodPut, "/categorie/abc", bytes.NewBufferString("{}"))
+	req := httptest.NewRequest(http.MethodPut, "/catalog/1/categorie/abc", bytes.NewBufferString("{}"))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -81,9 +81,9 @@ func TestHandler_DeleteByID_InvalidID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h, _ := setupCategorieHandler(t)
-	r.DELETE("/categorie/:id", h.DeleteByID)
+	r.DELETE("/catalog/:catalog_id/categorie/:id", h.DeleteByID)
 
-	req := httptest.NewRequest(http.MethodDelete, "/categorie/abc", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/catalog/1/categorie/abc", nil)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)

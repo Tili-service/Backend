@@ -227,7 +227,7 @@ func TestHandler_Update_NotFound(t *testing.T) {
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "a"."account_id", "a"."email", "a"."password", "a"."name", "a"."stripe_customer_id", "a"."created_at" FROM "account" AS "a" WHERE (account_id = 1)`)).WillReturnError(sql.ErrNoRows)
 
-	req := httptest.NewRequest("PUT", "/account", bytes.NewBufferString(`{"name":"X"}`))
+	req := httptest.NewRequest("PUT", "/account", bytes.NewBufferString(`{"name":"X","email":"test@example.com"}`))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)

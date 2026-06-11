@@ -42,7 +42,7 @@ type Sale struct {
 }
 
 type CreateSaleInput struct {
-	Lines            []SaleLine `json:"lines"              binding:"required,min=1,dive"`
+	Lines    []SaleLine    `json:"lines"              binding:"required,min=1,dive"`
 	Payments []SalePayment `json:"payments" binding:"required,min=1,dive"`
 }
 
@@ -53,6 +53,6 @@ type UpdateSaleLine struct {
 }
 
 type UpdateSaleInput struct {
-	Lines            *[]UpdateSaleLine `json:"lines,omitempty"              binding:"omitempty,min=1,dive"`
-	Payments []SalePayment `json:"payments" binding:"required,min=1,dive"`
+	Lines    *[]UpdateSaleLine `json:"lines,omitempty"              binding:"omitempty,min=1,dive"`
+	Payments []SalePayment     `json:"payments" binding:"required,min=1,dive"`
 }

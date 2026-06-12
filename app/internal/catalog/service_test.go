@@ -19,7 +19,7 @@ func TestService_Create_ValidationError(t *testing.T) {
 	svc := NewService(repo)
 
 	desc := "desc"
-	_, err := svc.Create(context.Background(), catalogUpdate{Description: &desc})
+	_, err := svc.Create(context.Background(), 1, catalogUpdate{Description: &desc})
 
 	assert.EqualError(t, err, "name is required")
 }
@@ -31,7 +31,7 @@ func TestService_Update_ValidationError(t *testing.T) {
 	repo := NewRepository(&db.Db{DB: bunDB})
 	svc := NewService(repo)
 
-	_, err := svc.Update(context.Background(), 1, catalogUpdate{})
+	_, err := svc.Update(context.Background(), 1, 1, catalogUpdate{})
 
 	assert.EqualError(t, err, "at least one field is required")
 }
@@ -43,9 +43,9 @@ func TestService_GetByID_NotFound(t *testing.T) {
 	repo := NewRepository(&db.Db{DB: bunDB})
 	svc := NewService(repo)
 
-	mock.ExpectQuery(`^SELECT .* FROM "catalog" AS "c" WHERE \(c\.catalog_id = .+\)$`).WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery(`^SELECT .* FROM "catalog" AS "c" WHERE \(c\.catalog_id = .+\) AND \(c\.store_id = .+\)$`).WillReturnError(sql.ErrNoRows)
 
-	_, err := svc.GetByID(context.Background(), 123)
+	_, err := svc.GetByID(context.Background(), 123, 1)
 
 	assert.ErrorIs(t, err, ErrCatalogNotFound)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -58,11 +58,11 @@ func TestService_GetAll_Success(t *testing.T) {
 	repo := NewRepository(&db.Db{DB: bunDB})
 	svc := NewService(repo)
 
-	rows := sqlmock.NewRows([]string{"name", "description"}).
-		AddRow("Cat 1", "Desc 1")
-	mock.ExpectQuery(`^SELECT .* FROM "catalog" AS "c"$`).WillReturnRows(rows)
+	rows := sqlmock.NewRows([]string{"name", "description", "store_id"}).
+		AddRow("Cat 1", "Desc 1", 1)
+	mock.ExpectQuery(`^SELECT .* FROM "catalog" AS "c" WHERE \(c\.store_id = .+\)$`).WillReturnRows(rows)
 
-	list, err := svc.GetAll(context.Background())
+	list, err := svc.GetAll(context.Background(), 1)
 
 	assert.NoError(t, err)
 	assert.Len(t, list, 1)
@@ -77,9 +77,9 @@ func TestService_Delete_NotFound(t *testing.T) {
 	repo := NewRepository(&db.Db{DB: bunDB})
 	svc := NewService(repo)
 
-	mock.ExpectQuery(`^SELECT .* FROM "catalog" AS "c" WHERE \(c\.catalog_id = .+\)$`).WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery(`^SELECT .* FROM "catalog" AS "c" WHERE \(c\.catalog_id = .+\) AND \(c\.store_id = .+\)$`).WillReturnError(sql.ErrNoRows)
 
-	err := svc.Delete(context.Background(), 10)
+	err := svc.Delete(context.Background(), 10, 1)
 
 	assert.ErrorIs(t, err, ErrCatalogNotFound)
 	assert.NoError(t, mock.ExpectationsWereMet())

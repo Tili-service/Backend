@@ -18,6 +18,7 @@ import (
 var (
 	ErrAccountNotFound = errors.New("account not found")
 	ErrEmailExists     = errors.New("email already exists")
+	ErrInvalidPassword = errors.New("invalid password")
 )
 
 type LicenseDeleter interface {
@@ -150,4 +151,25 @@ func (s *Service) Update(ctx context.Context, id int, input UpdateAccountInput) 
 
 func (s *Service) GetByID(ctx context.Context, id int) (*Account, error) {
 	return s.repo.FindByID(ctx, id)
+}
+
+func (s *Service) ResetPassword(ctx context.Context, id int, input ResetPasswordInput) error {
+	acc, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrAccountNotFound
+		}
+		return err
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(acc.Password), []byte(input.OldPassword)); err != nil {
+		return ErrInvalidPassword
+	}
+
+	hashed, err := bcrypt.GenerateFromPassword([]byte(input.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	return s.repo.UpdatePassword(ctx, id, string(hashed))
 }

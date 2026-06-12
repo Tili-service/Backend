@@ -81,7 +81,7 @@ func main() {
 	saleHistoryHandler := salehistory.NewHandler(saleHistoryService)
 
 	saleRepo := sale.NewRepository(db)
-	saleService := sale.NewService(db, saleRepo, saleHistoryRepo)
+	saleService := sale.NewService(db, saleRepo, saleHistoryRepo, payementmethodRepo)
 	saleHandler := sale.NewHandler(saleService)
 
 	r := gin.Default()

@@ -60,7 +60,7 @@ func (h *Handler) CreateSale(c *gin.Context) {
 
 	sale, err := h.service.CreateSale(c.Request.Context(), input, changedByProf)
 	if err != nil {
-		if errors.Is(err, ErrInvalidSaleTotal) {
+		if errors.Is(err, ErrInvalidSaleTotal) || errors.Is(err, ErrInvalidPaymentsTotal) || errors.Is(err, ErrInvalidPaymentAmount) || errors.Is(err, ErrPayementMethodInvalid) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}

@@ -67,7 +67,7 @@ services:
 
 networks:
   tili-network:
-    external: true
+    name: tili-network
 
 volumes:
   pgdata:

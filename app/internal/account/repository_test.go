@@ -2,6 +2,7 @@ package account
 
 import (
 	"context"
+	"database/sql"
 	"regexp"
 	"testing"
 	"time"
@@ -147,5 +148,35 @@ func TestRepository_Update(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, updatedAcc)
 	assert.Equal(t, "updated@example.com", updatedAcc.Email)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestRepository_UpdatePassword(t *testing.T) {
+	bunDB, mock := setupMockDB(t)
+	defer bunDB.Close()
+
+	repo := &Repository{db: bunDB}
+
+	mock.ExpectExec(`^UPDATE "account" AS "a" SET`).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	err := repo.UpdatePassword(context.Background(), 1, "newhashed")
+
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestRepository_UpdatePassword_Error(t *testing.T) {
+	bunDB, mock := setupMockDB(t)
+	defer bunDB.Close()
+
+	repo := &Repository{db: bunDB}
+
+	mock.ExpectExec(`^UPDATE "account" AS "a" SET`).
+		WillReturnError(sql.ErrConnDone)
+
+	err := repo.UpdatePassword(context.Background(), 1, "newhashed")
+
+	assert.ErrorIs(t, err, sql.ErrConnDone)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }

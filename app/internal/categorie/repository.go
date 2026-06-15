@@ -21,54 +21,78 @@ func (r *Repository) Create(ctx context.Context, c *Categorie) error {
 	return err
 }
 
-func (r *Repository) FindAll(ctx context.Context) ([]Categorie, error) {
+func (r *Repository) FindAll(ctx context.Context, catalogID int) ([]Categorie, error) {
 	var categories []Categorie
-	err := r.db.NewSelect().Model(&categories).Scan(ctx)
+	err := r.db.NewSelect().Model(&categories).Where("cat.catalog_id = ?", catalogID).Scan(ctx)
 	return categories, err
 }
 
-func (r *Repository) FindByID(ctx context.Context, id int) (*Categorie, error) {
+func (r *Repository) FindByID(ctx context.Context, id int, catalogID int) (*Categorie, error) {
 	c := new(Categorie)
-	err := r.db.NewSelect().Model(c).Where("cat.categorie_id = ?", id).Scan(ctx)
+	err := r.db.NewSelect().Model(c).
+		Where("cat.categorie_id = ?", id).
+		Where("cat.catalog_id = ?", catalogID).
+		Scan(ctx)
 	return c, err
 }
 
-func (r *Repository) FindByType(ctx context.Context, typ string) (*Categorie, error) {
+func (r *Repository) FindByType(ctx context.Context, typ string, catalogID int) (*Categorie, error) {
 	c := new(Categorie)
-	err := r.db.NewSelect().Model(c).Where("cat.type = ?", typ).Scan(ctx)
+	err := r.db.NewSelect().Model(c).
+		Where("cat.type = ?", typ).
+		Where("cat.catalog_id = ?", catalogID).
+		Scan(ctx)
 	return c, err
 }
 
-func (r *Repository) Update(ctx context.Context, id int, c *Categorie) (*Categorie, error) {
+func (r *Repository) Update(ctx context.Context, id int, catalogID int, c *Categorie) (*Categorie, error) {
 	cat := &Categorie{}
-	err := r.db.NewSelect().Model(cat).Where("cat.categorie_id = ?", id).Scan(ctx)
+	err := r.db.NewSelect().Model(cat).
+		Where("cat.categorie_id = ?", id).
+		Where("cat.catalog_id = ?", catalogID).
+		Scan(ctx)
 	if err != nil {
 		return nil, err
 	}
 	cat.Type = c.Type
-	_, err = r.db.NewUpdate().Model(cat).Where("cat.categorie_id = ?", id).Exec(ctx)
+	_, err = r.db.NewUpdate().Model(cat).
+		Where("cat.categorie_id = ?", id).
+		Where("cat.catalog_id = ?", catalogID).
+		Exec(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return cat, nil
 }
 
-func (r *Repository) DeleteById(ctx context.Context, id int) error {
+func (r *Repository) DeleteById(ctx context.Context, id int, catalogID int) error {
 	cat := &Categorie{}
-	err := r.db.NewSelect().Model(cat).Where("cat.categorie_id = ?", id).Scan(ctx)
+	err := r.db.NewSelect().Model(cat).
+		Where("cat.categorie_id = ?", id).
+		Where("cat.catalog_id = ?", catalogID).
+		Scan(ctx)
 	if err != nil {
 		return err
 	}
-	_, er := r.db.NewDelete().Model(cat).Where("cat.categorie_id = ?", id).Exec(ctx)
+	_, er := r.db.NewDelete().Model(cat).
+		Where("cat.categorie_id = ?", id).
+		Where("cat.catalog_id = ?", catalogID).
+		Exec(ctx)
 	return er
 }
 
-func (r *Repository) DeleteByType(ctx context.Context, typ string) error {
+func (r *Repository) DeleteByType(ctx context.Context, typ string, catalogID int) error {
 	cat := &Categorie{}
-	err := r.db.NewSelect().Model(cat).Where("cat.type = ?", typ).Scan(ctx)
+	err := r.db.NewSelect().Model(cat).
+		Where("cat.type = ?", typ).
+		Where("cat.catalog_id = ?", catalogID).
+		Scan(ctx)
 	if err != nil {
 		return err
 	}
-	_, er := r.db.NewDelete().Model(cat).Where("cat.type = ?", typ).Exec(ctx)
+	_, er := r.db.NewDelete().Model(cat).
+		Where("cat.type = ?", typ).
+		Where("cat.catalog_id = ?", catalogID).
+		Exec(ctx)
 	return er
 }

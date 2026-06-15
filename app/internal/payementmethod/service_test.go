@@ -60,8 +60,8 @@ func TestService_GetAll_Success(t *testing.T) {
 	repo := NewRepository(&db.Db{DB: bunDB})
 	svc := NewService(repo)
 
-	rows := sqlmock.NewRows([]string{"payement_method_id", "name"}).AddRow(1, "Card")
-	mock.ExpectQuery(`^SELECT .* FROM "payementmethod" AS "pm"$`).WillReturnRows(rows)
+	rows := sqlmock.NewRows([]string{"payement_method_id", "name", "is_active"}).AddRow(1, "Card", true)
+	mock.ExpectQuery(`^SELECT .* FROM "payementmethod" AS "pm" WHERE \(is_active = .*\)$`).WillReturnRows(rows)
 
 	list, err := svc.GetAll(context.Background())
 
@@ -81,6 +81,21 @@ func TestService_DeleteByID_NotFound(t *testing.T) {
 	mock.ExpectQuery(`^SELECT .* FROM "payementmethod" AS "pm" WHERE \(payement_method_id = .+\)$`).WillReturnError(sql.ErrNoRows)
 
 	err := svc.DeleteByID(context.Background(), 1)
+
+	assert.ErrorIs(t, err, ErrPayementMethodNotFound)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestService_Reactivate_NotFound(t *testing.T) {
+	bunDB, mock := setupMockDB(t)
+	defer bunDB.Close()
+
+	repo := NewRepository(&db.Db{DB: bunDB})
+	svc := NewService(repo)
+
+	mock.ExpectQuery(`^SELECT .* FROM "payementmethod" AS "pm" WHERE \(payement_method_id = .+\)$`).WillReturnError(sql.ErrNoRows)
+
+	err := svc.Reactivate(context.Background(), 1)
 
 	assert.ErrorIs(t, err, ErrPayementMethodNotFound)
 	assert.NoError(t, mock.ExpectationsWereMet())

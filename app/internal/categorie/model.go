@@ -7,4 +7,5 @@ type Categorie struct {
 
 	CategorieID int    `bun:"categorie_id,pk,autoincrement" json:"categorie_id" example:"1"`
 	Type        string `bun:"type"                          json:"type"         example:"Electronics"`
+	CatalogID   int    `bun:"catalog_id,notnull"            json:"catalog_id"   example:"1"`
 }

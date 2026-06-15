@@ -64,3 +64,11 @@ func (r *Repository) FindByIDForProfile(ctx context.Context, id int) (*AccountPr
 	}
 	return &AccountProfileData{Email: a.Email}, nil
 }
+
+func (r *Repository) UpdatePassword(ctx context.Context, id int, newPassword string) error {
+	_, err := r.db.NewUpdate().Model((*Account)(nil)).
+		Set("password = ?", newPassword).
+		Where("account_id = ?", id).
+		Exec(ctx)
+	return err
+}

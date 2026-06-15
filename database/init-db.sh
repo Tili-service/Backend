@@ -5,14 +5,16 @@ set -e
 files=(
     "account.sql"
     "licence.sql"
-    "categories.sql"
     "image.sql"
+    "store.sql"
     "catalog.sql"
+    "categories.sql"
     "item.sql"
     "payment.sql"
-    "sales.sql"
     "store.sql"
     "profile.sql"
+    "sales.sql"
+    "salehistory.sql"
 )
 
 for f in "${files[@]}"; do

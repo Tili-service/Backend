@@ -56,14 +56,25 @@ func (s *Service) Update(ctx context.Context, id int, input PayementMethod) (*Pa
 }
 
 func (s *Service) Delete(ctx context.Context, name string) error {
-	_, err := s.repo.FindByName(ctx, name)
+	pm, err := s.repo.FindByName(ctx, name)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrPayementMethodNotFound
 		}
 		return err
 	}
-	return s.repo.DeleteByName(ctx, name)
+	return s.repo.DeactivateByID(ctx, pm.PayementMethodID)
+}
+
+func (s *Service) Reactivate(ctx context.Context, id int) error {
+	_, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrPayementMethodNotFound
+		}
+		return err
+	}
+	return s.repo.ReactivateByID(ctx, id)
 }
 
 func (s *Service) DeleteByID(ctx context.Context, id int) error {
@@ -74,7 +85,7 @@ func (s *Service) DeleteByID(ctx context.Context, id int) error {
 		}
 		return err
 	}
-	return s.repo.DeleteByID(ctx, id)
+	return s.repo.DeactivateByID(ctx, id)
 }
 
 func (s *Service) GetAll(ctx context.Context) ([]PayementMethod, error) {

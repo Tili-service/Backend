@@ -234,11 +234,105 @@ func TestHandler_Update_NotFound(t *testing.T) {
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "a"."account_id", "a"."email", "a"."password", "a"."name", "a"."stripe_customer_id", "a"."created_at" FROM "account" AS "a" WHERE (account_id = 1)`)).WillReturnError(sql.ErrNoRows)
 
-	req := httptest.NewRequest("PUT", "/account", bytes.NewBufferString(`{"name":"X"}`))
+	req := httptest.NewRequest("PUT", "/account", bytes.NewBufferString(`{"name":"X","email":"test@example.com"}`))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func setupResetPasswordRouter(t *testing.T) (*gin.Engine, sqlmock.Sqlmock) {
+	router, mock, service := setupTestEnv(t)
+	handler := NewHandler(service)
+
+	protected := router.Group("/account")
+	protected.Use(func(c *gin.Context) {
+		c.Set("accountID", 1)
+		c.Next()
+	})
+	protected.POST("/reset-password", handler.ResetPassword)
+
+	return router, mock
+}
+
+func TestHandler_ResetPassword_BadJSON(t *testing.T) {
+	router, _ := setupResetPasswordRouter(t)
+
+	req := httptest.NewRequest("POST", "/account/reset-password", bytes.NewBufferString("{"))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestHandler_ResetPassword_MissingFields(t *testing.T) {
+	router, _ := setupResetPasswordRouter(t)
+
+	req := httptest.NewRequest("POST", "/account/reset-password", bytes.NewBufferString(`{"old_password":"secret123"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestHandler_ResetPassword_AccountNotFound(t *testing.T) {
+	router, mock := setupResetPasswordRouter(t)
+
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "a"."account_id", "a"."email", "a"."password", "a"."name", "a"."stripe_customer_id", "a"."created_at" FROM "account" AS "a" WHERE (account_id = 1)`)).
+		WillReturnError(sql.ErrNoRows)
+
+	req := httptest.NewRequest("POST", "/account/reset-password", bytes.NewBufferString(`{"old_password":"secret123","new_password":"newpass456"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestHandler_ResetPassword_InvalidPassword(t *testing.T) {
+	router, mock := setupResetPasswordRouter(t)
+
+	hash, err := bcrypt.GenerateFromPassword([]byte("correct_password"), bcrypt.DefaultCost)
+	assert.NoError(t, err)
+
+	rows := sqlmock.NewRows([]string{"account_id", "email", "name", "password", "stripe_customer_id", "created_at"}).
+		AddRow(1, "test@example.com", "Test User", string(hash), "cus_123", time.Now())
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "a"."account_id", "a"."email", "a"."password", "a"."name", "a"."stripe_customer_id", "a"."created_at" FROM "account" AS "a" WHERE (account_id = 1)`)).
+		WillReturnRows(rows)
+
+	req := httptest.NewRequest("POST", "/account/reset-password", bytes.NewBufferString(`{"old_password":"wrong_password","new_password":"newpass456"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestHandler_ResetPassword_Success(t *testing.T) {
+	router, mock := setupResetPasswordRouter(t)
+
+	hash, err := bcrypt.GenerateFromPassword([]byte("secret123"), bcrypt.DefaultCost)
+	assert.NoError(t, err)
+
+	rows := sqlmock.NewRows([]string{"account_id", "email", "name", "password", "stripe_customer_id", "created_at"}).
+		AddRow(1, "test@example.com", "Test User", string(hash), "cus_123", time.Now())
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "a"."account_id", "a"."email", "a"."password", "a"."name", "a"."stripe_customer_id", "a"."created_at" FROM "account" AS "a" WHERE (account_id = 1)`)).
+		WillReturnRows(rows)
+	mock.ExpectExec(`^UPDATE "account" AS "a" SET`).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	req := httptest.NewRequest("POST", "/account/reset-password", bytes.NewBufferString(`{"old_password":"secret123","new_password":"newpass456"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "password updated successfully")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }

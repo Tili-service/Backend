@@ -9,6 +9,7 @@ import (
 	"tili/app/internal/categorie"
 	"tili/app/internal/item"
 	"tili/app/internal/license"
+	"tili/app/internal/oauth"
 	"tili/app/internal/payementmethod"
 	"tili/app/internal/profile"
 	"tili/app/internal/sale"
@@ -46,6 +47,8 @@ func main() {
 	profileRepo := profile.NewRepository(db)
 	profileService := profile.NewService(profileRepo)
 	profileHandler := profile.NewHandler(profileService)
+
+	oauthHandler := oauth.NewHandler()
 
 	storeRepo := store.NewRepository(db, redisClient)
 	storeService := store.NewService(storeRepo)
@@ -92,6 +95,7 @@ func main() {
 	accountHandler.RegisterRoutes(r)
 	catalogHandler.RegisterRoutes(r)
 	itemHandler.RegisterRoutes(r)
+	oauthHandler.RegisterRoutes(r)
 	categorieHandler.RegisterRoutes(r)
 	payementmethodHandler.RegisterRoutes(r)
 	saleHandler.RegisterRoutes(r)

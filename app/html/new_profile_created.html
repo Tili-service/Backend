@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Profile Created</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body style="margin: 0; padding: 0; font-family: 'DM Sans', sans-serif; background-color: #f5f5f5;">
+    <!-- Wrapper -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5;">
+        <tr>
+            <td align="center" style="padding: 40px 20px;">
+                <!-- Main Container -->
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 20px rgba(60, 26, 19, 0.1);">
+                    <!-- Header -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #267A87 0%, #1a5d67 100%); padding: 40px 20px; text-align: center; border-radius: 12px 12px 0 0;">
+                            <h1 style="color: #ffffff; font-family: 'Space Grotesk', sans-serif; font-size: 28px; margin: 0; font-weight: 600;">Profile Created</h1>
+                        </td>
+                    </tr>
+
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <p style="color: #3a1a17; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
+                                Your new profile has been successfully created!
+                            </p>
+
+                            <!-- Info Cards -->
+                            <table width="100%" cellpadding="15" cellspacing="0" style="background-color: #f9f5f3; border-radius: 8px; margin-bottom: 20px;">
+                                <tr>
+                                    <td style="border-bottom: 1px solid #e5d4d0;">
+                                        <p style="color: #665559; font-size: 12px; text-transform: uppercase; margin: 0 0 5px 0; font-weight: 600;">Profile Name</p>
+                                        <p style="color: #3a1a17; font-size: 16px; margin: 0; font-weight: 600;">{{profile_name}}</p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="border-bottom: 1px solid #e5d4d0;">
+                                        <p style="color: #665559; font-size: 12px; text-transform: uppercase; margin: 0 0 5px 0; font-weight: 600;">Store ID</p>
+                                        <p style="color: #3a1a17; font-size: 16px; margin: 0; font-family: monospace;">{{profile_store_id}}</p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <p style="color: #665559; font-size: 12px; text-transform: uppercase; margin: 0 0 5px 0; font-weight: 600;">Profile PIN</p>
+                                        <p style="color: #3a1a17; font-size: 16px; margin: 0; font-family: monospace; font-weight: 600;">{{profile_pin}}</p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="color: #c74013; font-size: 13px; line-height: 1.6; margin: 20px 0 0 0; padding: 15px; background-color: #ffe5d9; border-radius: 6px;">
+                                ⚠️ Keep your PIN safe and secure. Do not share it with anyone.
+                            </p>
+
+                            <!-- CTA Button -->
+                            <table cellpadding="0" cellspacing="0" style="margin: 30px 0;">
+                                <tr>
+                                    <td align="center" style="background: linear-gradient(135deg, #267A87 0%, #1a5d67 100%); border-radius: 8px; padding: 0;">
+                                        <a href="{{manage_profile_link}}" style="display: inline-block; color: #ffffff; text-decoration: none; padding: 14px 40px; font-weight: 600; font-size: 16px;">Manage Profile</a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="color: #665559; font-size: 14px; line-height: 1.6; margin: 20px 0 0 0;">
+                                If you did not create this profile, please contact our support team immediately.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f5f5f5; padding: 30px; text-align: center; border-radius: 0 0 12px 12px; border-top: 1px solid #e5d4d0;">
+                            <p style="color: #665559; font-size: 13px; margin: 0 0 10px 0;">
+                                © 2026 Tili. All rights reserved.
+                            </p>
+                            <p style="color: #999; font-size: 12px; margin: 0;">
+                                <a href="#" style="color: #267A87; text-decoration: none;">Privacy Policy</a> • 
+                                <a href="#" style="color: #267A87; text-decoration: none;">Terms of Service</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

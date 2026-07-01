@@ -36,6 +36,12 @@ func (m *MockLicenseDeleter) DeleteByAccountID(ctx context.Context, accountID in
 	return nil
 }
 
+type MockEmailSender struct{}
+
+func (m *MockEmailSender) SendEmail(recipientEmail, subject, body string) error {
+	return nil
+}
+
 func setupTestEnv(t *testing.T) (*gin.Engine, sqlmock.Sqlmock, *Service) {
 	gin.SetMode(gin.TestMode)
 	router := gin.Default()
@@ -53,8 +59,9 @@ func setupTestEnv(t *testing.T) (*gin.Engine, sqlmock.Sqlmock, *Service) {
 	profileService := profile.NewService(profileRepo)
 
 	licenceService := &MockLicenseDeleter{}
+	emailClient := &MockEmailSender{}
 
-	service := NewService(repo, storeService, profileService, licenceService)
+	service := NewService(repo, storeService, profileService, licenceService, emailClient)
 	handler := NewHandler(service)
 
 	// Middleware stub for GetAccount

@@ -13,6 +13,7 @@ import (
 
 	"tili/app/internal/profile"
 	"tili/app/internal/store"
+	"tili/app/pkg/email"
 )
 
 var (
@@ -30,14 +31,16 @@ type Service struct {
 	storeService   *store.Service
 	profileService *profile.Service
 	licenseService LicenseDeleter
+	emailClient    email.Sender
 }
 
-func NewService(repo *Repository, storeService *store.Service, profileService *profile.Service, licenseService LicenseDeleter) *Service {
+func NewService(repo *Repository, storeService *store.Service, profileService *profile.Service, licenseService LicenseDeleter, emailClient email.Sender) *Service {
 	return &Service{
 		repo:           repo,
 		storeService:   storeService,
 		profileService: profileService,
 		licenseService: licenseService,
+		emailClient:    emailClient,
 	}
 }
 
@@ -74,6 +77,17 @@ func (s *Service) Create(ctx context.Context, input RegistrationInput) (*Account
 		return nil, err
 	}
 
+	if err != nil {
+		return nil, fmt.Errorf("erreur lors de l'initialisation du client SMTP: %w", err)
+	}
+	content, err := email.GetWelcomeEmailContent(input.Name, input.Email)
+	if err != nil {
+		return nil, fmt.Errorf("erreur lors de la génération du contenu de l'email: %w", err)
+	}
+	err = s.emailClient.SendEmail(input.Email, "Bienvenue chez Tili !", content)
+	if err != nil {
+		return nil, fmt.Errorf("erreur lors de l'envoi de l'email de bienvenue: %w", err)
+	}
 	return acc, nil
 }
 

@@ -5,13 +5,17 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"time"
 
+	"tili/app/pkg/email"
+
 	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v84"
 	"github.com/stripe/stripe-go/v84/checkout/session"
+	"github.com/stripe/stripe-go/v84/customer"
 	refundapi "github.com/stripe/stripe-go/v84/refund"
 	subscriptionapi "github.com/stripe/stripe-go/v84/subscription"
 
@@ -74,12 +78,13 @@ var (
 
 type Service struct {
 	repo           *Repository
+	emailClient    email.Sender
 	storeService   *store.Service
 	profileService *profile.Service
 }
 
-func NewService(repo *Repository) *Service {
-	return &Service{repo: repo}
+func NewService(repo *Repository, emailClient email.Sender) *Service {
+	return &Service{repo: repo, emailClient: emailClient}
 }
 
 func (s *Service) SetDependencies(storeService *store.Service, profileService *profile.Service) {
@@ -325,6 +330,18 @@ func (s *Service) Create(ctx context.Context, accountID int, input CreateLicence
 	if err := s.repo.CreateLicence(ctx, lic); err != nil {
 		return nil, err
 	}
+	emailContent, err := email.GetNewLicenseActiveEmailContent(fmt.Sprintf("%s/admin/shop/new?licenceId=%s", os.Getenv("APP_URL"), lic.LicenceID))
+	if err != nil {
+	} else {
+		account, err := s.repo.GetAccountByID(ctx, accountID)
+		if err != nil {
+			log.Printf("Error fetching account for email: %v", err)
+		} else {
+			if err := s.emailClient.SendEmail(account.Email, "Your new license is active!", emailContent); err != nil {
+				log.Printf("Error sending email: %v", err)
+			}
+		}
+	}
 	return lic, nil
 }
 
@@ -371,6 +388,26 @@ func (s *Service) CreatePaymentLink(ctx context.Context, accountID int, customer
 	sess, err := session.New(params)
 	if err != nil {
 		return "", fmt.Errorf("erreur stripe: %w", err)
+	}
+
+	var targetEmail string
+	if customerID != "" {
+		cust, err := customer.Get(customerID, nil)
+		if err != nil {
+			return "", fmt.Errorf("erreur lors de la récupération du client Stripe: %w", err)
+		}
+		targetEmail = cust.Email
+	}
+
+	if targetEmail != "" {
+		content, err := email.GetNewPaymentLinkEmailContent(input.Offer, sess.URL)
+		if err != nil {
+			return "", fmt.Errorf("erreur lors de la génération de l'email: %w", err)
+		}
+
+		if err := s.emailClient.SendEmail(targetEmail, "New Payment Link Created", content); err != nil {
+			return "", fmt.Errorf("erreur lors de l'envoi de l'email: %w", err)
+		}
 	}
 
 	return sess.URL, nil

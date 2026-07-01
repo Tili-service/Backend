@@ -64,6 +64,20 @@ services:
         condition: service_healthy
     networks:
       - tili-network
+  
+  stripe-cli:
+      profiles:
+        - dev
+      image: stripe/stripe-cli:v1.40.9
+      container_name: tili-stripe-cli
+      restart: unless-stopped
+      depends_on:
+        - backend
+      command: ["listen", "--forward-to", "backend:8000/api/webhooks/stripe"]
+      environment:
+        - STRIPE_API_KEY=${STRIPE_API_KEY}
+      networks:
+        - tili-network
 
 networks:
   tili-network:

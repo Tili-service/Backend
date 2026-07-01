@@ -9,7 +9,8 @@ import (
 )
 
 var (
-	ErrStoreNotFound = errors.New("store not found")
+	ErrStoreNotFound          = errors.New("store not found")
+	ErrStoreOwnershipMismatch = errors.New("you are not the owner of this store")
 )
 
 type Service struct {
@@ -29,6 +30,22 @@ func (s *Service) Create(ctx context.Context, input CreateStoreInput, accountID 
 		Siret:     input.Siret,
 	}
 	return s.repo.Create(ctx, store)
+}
+
+func (s *Service) LinkSumupCredentials(ctx context.Context, storeID int, accountID int, merchantCode string, accessToken string) (*Store, error) {
+	store, err := s.FindByID(ctx, storeID)
+	if err != nil {
+		return nil, err
+	}
+
+	if store.BuyerID != accountID {
+		return nil, ErrStoreOwnershipMismatch
+	}
+
+	store.SumupMerchantCode = merchantCode
+	store.SumupAccessToken = accessToken
+
+	return s.repo.Update(ctx, store)
 }
 
 func (s *Service) FindByID(ctx context.Context, id int) (*Store, error) {

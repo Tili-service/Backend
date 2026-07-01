@@ -48,11 +48,11 @@ func main() {
 	profileService := profile.NewService(profileRepo)
 	profileHandler := profile.NewHandler(profileService)
 
-	oauthHandler := oauth.NewHandler()
-
 	storeRepo := store.NewRepository(db, redisClient)
 	storeService := store.NewService(storeRepo)
 	storeHandler := store.NewHandler(storeService, profileService)
+
+	oauthHandler := oauth.NewHandler(storeService)
 
 	licenseRepo := license.NewRepository(db, redisClient)
 	licenseService := license.NewService(licenseRepo)

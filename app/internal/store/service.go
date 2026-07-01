@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
+	"tili/app/pkg/email"
 
 	"github.com/google/uuid"
 )
@@ -13,12 +15,30 @@ var (
 	ErrStoreOwnershipMismatch = errors.New("you are not the owner of this store")
 )
 
+type AccountRepository interface {
+	FindByID(ctx context.Context, id int) (*AccountData, error)
+}
+
+type AccountData struct {
+	Email string
+}
+
 type Service struct {
-	repo *Repository
+	repo        *Repository
+	accountRepo AccountRepository
+	emailClient email.Sender
 }
 
 func NewService(repo *Repository) *Service {
 	return &Service{repo: repo}
+}
+
+func NewServiceWithEmail(repo *Repository, accountRepo AccountRepository, emailClient email.Sender) *Service {
+	return &Service{
+		repo:        repo,
+		accountRepo: accountRepo,
+		emailClient: emailClient,
+	}
 }
 
 func (s *Service) Create(ctx context.Context, input CreateStoreInput, accountID int) (*Store, error) {
@@ -29,7 +49,39 @@ func (s *Service) Create(ctx context.Context, input CreateStoreInput, accountID 
 		NumeroTVA: input.NumeroTVA,
 		Siret:     input.Siret,
 	}
-	return s.repo.Create(ctx, store)
+	createdStore, err := s.repo.Create(ctx, store)
+	if err != nil {
+		return nil, err
+	}
+
+	if s.emailClient != nil && s.accountRepo != nil {
+		go s.sendStoreCreatedEmail(ctx, accountID, createdStore.Name, createdStore.StoreID)
+	}
+
+	return createdStore, nil
+}
+
+func (s *Service) sendStoreCreatedEmail(ctx context.Context, accountID int, storeName string, storeID int) {
+	account, err := s.accountRepo.FindByID(ctx, accountID)
+	if err != nil {
+		log.Printf("Failed to fetch account: %v", err)
+		return
+	}
+
+	if account == nil {
+		log.Printf("Account not found")
+		return
+	}
+
+	emailContent, err := email.GetNewStoreCreatedEmailContent(storeName, storeID)
+	if err != nil {
+		log.Printf("Failed to generate email content: %v", err)
+		return
+	}
+
+	if err := s.emailClient.SendEmail(account.Email, "New Store Created", emailContent); err != nil {
+		log.Printf("Failed to send store creation email: %v", err)
+	}
 }
 
 func (s *Service) LinkSumupCredentials(ctx context.Context, storeID int, accountID int, merchantCode string, accessToken string) (*Store, error) {

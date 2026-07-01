@@ -67,15 +67,45 @@ services:
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - STRIPE_API_KEY=${STRIPE_API_KEY}
+      - RESEND_API_KEY=${RESEND_API_KEY}
       - REDIS_URL=redis:6379
       - BACKEND_PORT=${BACKEND_PORT}
       - CLIENT_ID_SUMUP_OAUTH=${CLIENT_ID_SUMUP_OAUTH}
       - CLIENT_SECRET_SUMUP_OAUTH=${CLIENT_SECRET_SUMUP_OAUTH}
+      - APP_ENV=${APP_ENV}
+      - TILI_SMTP_HOST=${TILI_SMTP_HOST}
+      - TILI_SMTP_PORT=${TILI_SMTP_PORT}
+      - TILI_SMTP_USER=${TILI_SMTP_USER}
+      - TILI_SMTP_PASS=${TILI_SMTP_PASS}
     depends_on:
       migrate:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
+    networks:
+      - tili-network
+  stripe-cli:
+    profiles:
+      - dev
+    image: stripe/stripe-cli:v1.40.9
+    container_name: tili-stripe-cli
+    restart: unless-stopped
+    depends_on:
+      - backend
+    command: ["listen", "--forward-to", "backend:8000/api/webhooks/stripe"]
+    environment:
+      - STRIPE_API_KEY=${STRIPE_API_KEY}
+    networks:
+      - tili-network
+
+  mailpit:
+    profiles:
+      - dev
+    image: axllent/mailpit:latest
+    container_name: tili-mailpit
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
     networks:
       - tili-network
 

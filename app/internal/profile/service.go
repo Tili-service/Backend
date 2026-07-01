@@ -6,19 +6,49 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"math/big"
+	"tili/app/pkg/email"
 )
 
 var (
 	ErrProfileNotFound = errors.New("profile not found")
 )
 
+type StoreRepository interface {
+	FindByID(ctx context.Context, id int) (*StoreData, error)
+}
+
+type AccountRepository interface {
+	FindByID(ctx context.Context, id int) (*AccountData, error)
+}
+
+type StoreData struct {
+	BuyerID int
+}
+
+type AccountData struct {
+	Email string
+}
+
 type Service struct {
-	repo *Repository
+	repo        *Repository
+	storeRepo   StoreRepository
+	accountRepo AccountRepository
+	emailClient email.Sender
 }
 
 func NewService(repo *Repository) *Service {
 	return &Service{repo: repo}
+}
+
+func NewServiceWithEmail(repo *Repository, storeRepo StoreRepository, accountRepo AccountRepository, emailClient email.Sender) *Service {
+	return &Service{
+		repo:        repo,
+		storeRepo:   storeRepo,
+		accountRepo: accountRepo,
+		emailClient: emailClient,
+	}
 }
 
 func generatePIN(length int) (string, error) {
@@ -72,6 +102,10 @@ func (s *Service) Create(ctx context.Context, input CreateProfileInput) (*Profil
 		return nil, err
 	}
 
+	if s.emailClient != nil && s.storeRepo != nil && s.accountRepo != nil {
+		s.sendProfileCreatedEmail(ctx, input.StoreID, input.Name, pin)
+	}
+
 	return &ProfileWithPin{
 		ProfileID:   p.ProfileID,
 		StoreID:     p.StoreID,
@@ -80,6 +114,40 @@ func (s *Service) Create(ctx context.Context, input CreateProfileInput) (*Profil
 		LevelAccess: p.LevelAccess,
 		IsActive:    p.IsActive,
 	}, nil
+}
+
+func (s *Service) sendProfileCreatedEmail(ctx context.Context, storeID int, profileName string, profilePIN string) {
+	storeData, err := s.storeRepo.FindByID(ctx, storeID)
+	if err != nil {
+		log.Printf("Failed to fetch store: %v", err)
+		return
+	}
+
+	if storeData == nil {
+		log.Printf("Store not found")
+		return
+	}
+
+	accountData, err := s.accountRepo.FindByID(ctx, storeData.BuyerID)
+	if err != nil {
+		log.Printf("Failed to fetch account: %v", err)
+		return
+	}
+
+	if accountData == nil {
+		log.Printf("Account not found")
+		return
+	}
+
+	emailContent, err := email.GetNewProfileCreatedEmailContent(storeID, profileName, profilePIN)
+	if err != nil {
+		log.Printf("Failed to generate email content: %v", err)
+		return
+	}
+
+	if err := s.emailClient.SendEmail(accountData.Email, "New Profile Created", emailContent); err != nil {
+		log.Printf("Failed to send profile creation email: %v", err)
+	}
 }
 
 func (s *Service) GetByID(ctx context.Context, id int) (*Profile, error) {

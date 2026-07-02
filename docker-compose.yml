@@ -84,6 +84,7 @@ services:
         condition: service_healthy
     networks:
       - tili-network
+
   stripe-cli:
     profiles:
       - dev

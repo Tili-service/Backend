@@ -13,6 +13,9 @@ import (
 var (
 	ErrStoreNotFound          = errors.New("store not found")
 	ErrStoreOwnershipMismatch = errors.New("you are not the owner of this store")
+
+	SumupStatusConnected    = "connected"
+	SumupStatusDisconnected = "disconnected"
 )
 
 type AccountRepository interface {
@@ -41,6 +44,34 @@ func NewServiceWithEmail(repo *Repository, accountRepo AccountRepository, emailC
 	}
 }
 
+func decorateSumupStatus(store *Store) *Store {
+	if store == nil {
+		return nil
+	}
+
+	if store.SumupMerchantCode != "" && store.SumupAccessToken != "" {
+		store.SumupStatus = SumupStatusConnected
+		return store
+	}
+
+	store.SumupStatus = SumupStatusDisconnected
+	return store
+}
+
+func decorateSumupStatusList(stores []Store) []Store {
+	for index := range stores {
+		decorateSumupStatus(&stores[index])
+	}
+	return stores
+}
+
+func decorateSumupStatusPointers(stores []*Store) []*Store {
+	for _, store := range stores {
+		decorateSumupStatus(store)
+	}
+	return stores
+}
+
 func (s *Service) Create(ctx context.Context, input CreateStoreInput, accountID int) (*Store, error) {
 	store := &Store{
 		Name:      input.Name,
@@ -53,6 +84,7 @@ func (s *Service) Create(ctx context.Context, input CreateStoreInput, accountID 
 	if err != nil {
 		return nil, err
 	}
+	decorateSumupStatus(createdStore)
 
 	if s.emailClient != nil && s.accountRepo != nil {
 		go s.sendStoreCreatedEmail(ctx, accountID, createdStore.Name, createdStore.StoreID)
@@ -96,6 +128,7 @@ func (s *Service) LinkSumupCredentials(ctx context.Context, storeID int, account
 
 	store.SumupMerchantCode = merchantCode
 	store.SumupAccessToken = accessToken
+	decorateSumupStatus(store)
 
 	return s.repo.Update(ctx, store)
 }
@@ -108,11 +141,15 @@ func (s *Service) FindByID(ctx context.Context, id int) (*Store, error) {
 		}
 		return nil, err
 	}
-	return s2, nil
+	return decorateSumupStatus(s2), nil
 }
 
 func (s *Service) FindByBuyerID(ctx context.Context, buyerID int) ([]Store, error) {
-	return s.repo.FindByBuyerID(ctx, buyerID)
+	stores, err := s.repo.FindByBuyerID(ctx, buyerID)
+	if err != nil {
+		return nil, err
+	}
+	return decorateSumupStatusList(stores), nil
 }
 
 func (s *Service) FindByLicenceID(ctx context.Context, licenceID uuid.UUID) (*Store, error) {
@@ -123,7 +160,7 @@ func (s *Service) FindByLicenceID(ctx context.Context, licenceID uuid.UUID) (*St
 		}
 		return nil, err
 	}
-	return st, nil
+	return decorateSumupStatus(st), nil
 }
 
 func (s *Service) FindAll(ctx context.Context) ([]*Store, error) {
@@ -131,7 +168,7 @@ func (s *Service) FindAll(ctx context.Context) ([]*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	return stores, nil
+	return decorateSumupStatusPointers(stores), nil
 }
 
 func (s *Service) Delete(ctx context.Context, id int) error {
@@ -167,6 +204,7 @@ func (s *Service) Update(ctx context.Context, id int, input UpdateStoreInput) (*
 	if input.Siret != nil {
 		store.Siret = *input.Siret
 	}
+	decorateSumupStatus(store)
 
 	return s.repo.Update(ctx, store)
 }

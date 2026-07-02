@@ -167,7 +167,7 @@ func (h *Handler) OAuthCallback(c *gin.Context) {
 		return
 	}
 
-	updatedStore, err := h.storeService.LinkSumupCredentials(c.Request.Context(), storeID, accountID, merchantCode, token.AccessToken)
+	_, err = h.storeService.LinkSumupCredentials(c.Request.Context(), storeID, accountID, merchantCode, token.AccessToken)
 	if err != nil {
 		if errors.Is(err, store.ErrStoreOwnershipMismatch) {
 			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
@@ -182,5 +182,5 @@ func (h *Handler) OAuthCallback(c *gin.Context) {
 	}
 
 	clearOAuthCookies(c)
-	c.JSON(http.StatusOK, gin.H{"store": updatedStore})
+	c.Redirect(http.StatusTemporaryRedirect, os.Getenv("APP_URL") + "/admin/shop/"+strconv.Itoa(storeID)+"/services-externes")
 }

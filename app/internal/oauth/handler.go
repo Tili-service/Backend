@@ -182,5 +182,5 @@ func (h *Handler) OAuthCallback(c *gin.Context) {
 	}
 
 	clearOAuthCookies(c)
-	c.Redirect(http.StatusTemporaryRedirect, os.Getenv("APP_URL") + "/admin/shop/"+strconv.Itoa(storeID)+"/services-externes")
+	c.Redirect(http.StatusTemporaryRedirect, os.Getenv("APP_URL")+"/admin/shop/"+strconv.Itoa(storeID)+"/services-externes")
 }

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
 	"tili/app/internal/token"
@@ -40,13 +41,14 @@ func TestAccountAuthMiddleware(t *testing.T) {
 	})
 
 	t.Run("valid token", func(t *testing.T) {
-		tok, err := token.CreateAccountToken(1, "A", "a@a.com", "cus_1")
+		accountID := uuid.New()
+		tok, err := token.CreateAccountToken(accountID, "A", "a@a.com", "cus_1")
 		assert.NoError(t, err)
 
 		r := gin.New()
 		r.Use(AccountAuthMiddleware())
 		r.GET("/", func(c *gin.Context) {
-			assert.Equal(t, 1, c.GetInt("accountID"))
+			assert.Equal(t, accountID.String(), c.GetString("accountID"))
 			c.Status(http.StatusOK)
 		})
 
@@ -88,13 +90,15 @@ func TestProfileAuthMiddleware(t *testing.T) {
 	})
 
 	t.Run("valid token", func(t *testing.T) {
-		tok, err := token.CreateProfileToken(3, "P", int(token.Manager), 10)
+		profileID := uuid.New()
+		storeID := uuid.New()
+		tok, err := token.CreateProfileToken(profileID, "P", int(token.Manager), storeID)
 		assert.NoError(t, err)
 
 		r := gin.New()
 		r.Use(ProfileAuthMiddleware())
 		r.GET("/", func(c *gin.Context) {
-			assert.Equal(t, 3, c.GetInt("profileID"))
+			assert.Equal(t, profileID.String(), c.GetString("profileID"))
 			c.Status(http.StatusOK)
 		})
 

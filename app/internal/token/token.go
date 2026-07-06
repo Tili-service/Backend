@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 var secretKey = []byte(os.Getenv("JWT_SECRET_KEY"))
@@ -21,23 +22,23 @@ const (
 )
 
 type AccountClaims struct {
-	AccountID  int
+	AccountID  uuid.UUID
 	Name       string
 	Email      string
 	CustomerID string
 }
 
 type ProfileClaims struct {
-	ProfileID   int
+	ProfileID   uuid.UUID
 	Name        string
 	LevelAccess int
-	StoreID     int
+	StoreID     uuid.UUID
 }
 
-func CreateAccountToken(accountID int, name, email string, customerID string) (string, error) {
+func CreateAccountToken(accountID uuid.UUID, name, email string, customerID string) (string, error) {
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
-			"accountID":  accountID,
+			"accountID":  accountID.String(),
 			"name":       name,
 			"email":      email,
 			"customerID": customerID,
@@ -70,7 +71,7 @@ func ValidateAccountToken(tokenString string) (AccountClaims, error) {
 		return AccountClaims{}, fmt.Errorf("invalid claims")
 	}
 
-	accountID, ok := (*claims)["accountID"].(float64)
+	accountID, ok := (*claims)["accountID"].(string)
 	if !ok {
 		return AccountClaims{}, fmt.Errorf("accountID not found in token")
 	}
@@ -91,17 +92,17 @@ func ValidateAccountToken(tokenString string) (AccountClaims, error) {
 	}
 
 	return AccountClaims{
-		AccountID:  int(accountID),
+		AccountID:  uuid.MustParse(accountID),
 		Name:       name,
 		Email:      email,
 		CustomerID: customerID,
 	}, nil
 }
 
-func CreateProfileToken(profileID int, name string, levelAccess int, storeID int) (string, error) {
+func CreateProfileToken(profileID uuid.UUID, name string, levelAccess int, storeID uuid.UUID) (string, error) {
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
-			"profileID":   profileID,
+			"profileID":   profileID.String(),
 			"name":        name,
 			"levelAccess": levelAccess,
 			"storeID":     storeID,
@@ -134,7 +135,7 @@ func ValidateProfileToken(tokenString string) (ProfileClaims, error) {
 		return ProfileClaims{}, fmt.Errorf("invalid claims")
 	}
 
-	profileID, ok := (*claims)["profileID"].(float64)
+	profileID, ok := (*claims)["profileID"].(string)
 	if !ok {
 		return ProfileClaims{}, fmt.Errorf("profileID not found in token")
 	}
@@ -144,15 +145,15 @@ func ValidateProfileToken(tokenString string) (ProfileClaims, error) {
 		return ProfileClaims{}, fmt.Errorf("levelAccess not found in token")
 	}
 
-	storeID, ok := (*claims)["storeID"].(float64)
+	storeID, ok := (*claims)["storeID"].(string)
 	if !ok {
 		return ProfileClaims{}, fmt.Errorf("storeID not found in token")
 	}
 
 	return ProfileClaims{
-		ProfileID:   int(profileID),
+		ProfileID:   uuid.MustParse(profileID),
 		Name:        (*claims)["name"].(string),
 		LevelAccess: int(levelAccess),
-		StoreID:     int(storeID),
+		StoreID:     uuid.MustParse(storeID),
 	}, nil
 }

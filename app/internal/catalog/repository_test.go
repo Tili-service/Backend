@@ -26,15 +26,16 @@ func TestRepository_FindByID(t *testing.T) {
 
 	repo := &Repository{db: bunDB}
 
-	rows := sqlmock.NewRows([]string{"name", "description", "store_id"}).
-		AddRow("Winter 2026 Collection", "All items available for the winter 2026 season", uuid.New())
+	storeID := uuid.New()
+	catalogID := uuid.New()
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "c"."name", "c"."description", "c"."store_id" FROM "catalog" AS "c" WHERE (c.catalog_id = `)).
+	rows := sqlmock.NewRows([]string{"catalog_id", "name", "description", "store_id"}).
+		AddRow(catalogID, "Winter 2026 Collection", "All items available for the winter 2026 season", storeID)
+
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "c"."catalog_id", "c"."name", "c"."description", "c"."store_id" FROM "catalog" AS "c" WHERE (c.catalog_id = '`+catalogID.String()+`') AND (c.store_id = '`+storeID.String()+`')`)).
 		WillReturnRows(rows)
 
 	ctx := context.Background()
-	storeID := uuid.New()
-	catalogID := uuid.New()
 	c, err := repo.FindByID(ctx, catalogID, storeID)
 
 	assert.NoError(t, err)
@@ -50,15 +51,18 @@ func TestRepository_FindAll(t *testing.T) {
 
 	repo := &Repository{db: bunDB}
 
-	rows := sqlmock.NewRows([]string{"name", "description", "store_id"}).
-		AddRow("Cat 1", "Desc 1", 1).
-		AddRow("Cat 2", "Desc 2", 1)
+	storeID := uuid.New()
+	catalogID1 := uuid.New()
+	catalogID2 := uuid.New()
 
-	mock.ExpectQuery(`^SELECT "c"\."name", "c"\."description", "c"\."store_id" FROM "catalog" AS "c" WHERE \(c\.store_id = .+\)$`).
+	rows := sqlmock.NewRows([]string{"catalog_id", "name", "description", "store_id"}).
+		AddRow(catalogID1, "Cat 1", "Desc 1", storeID).
+		AddRow(catalogID2, "Cat 2", "Desc 2", storeID)
+
+	mock.ExpectQuery(`^SELECT "c"\."catalog_id", "c"\."name", "c"\."description", "c"\."store_id" FROM "catalog" AS "c" WHERE \(c\.store_id = .+\)$`).
 		WillReturnRows(rows)
 
 	ctx := context.Background()
-	storeID := uuid.New()
 	catalogs, err := repo.FindAll(ctx, storeID)
 
 	assert.NoError(t, err)
@@ -73,14 +77,16 @@ func TestRepository_FindByName(t *testing.T) {
 
 	repo := &Repository{db: bunDB}
 
-	rows := sqlmock.NewRows([]string{"name", "description", "store_id"}).
-		AddRow("Test Cat", "Test Desc", 1)
+	storeID := uuid.New()
+	catalogID := uuid.New()
+
+	rows := sqlmock.NewRows([]string{"catalog_id", "name", "description", "store_id"}).
+		AddRow(catalogID, "Test Cat", "Test Desc", storeID)
 
 	mock.ExpectQuery(`^SELECT .* FROM "catalog" AS "c" WHERE \(c\.name = .+\) AND \(c\.store_id = .+\)$`).
 		WillReturnRows(rows)
 
 	ctx := context.Background()
-	storeID := uuid.New()
 	c, err := repo.FindByName(ctx, "Test Cat", storeID)
 
 	assert.NoError(t, err)
@@ -130,9 +136,12 @@ func TestRepository_Update(t *testing.T) {
 
 	repo := &Repository{db: bunDB}
 
+	storeID := uuid.New()
+	catalogID := uuid.New()
+
 	// Mock FindByID inside Update
-	rows := sqlmock.NewRows([]string{"name", "description", "store_id"}).
-		AddRow("Old Name", "Old Desc", 1)
+	rows := sqlmock.NewRows([]string{"catalog_id", "name", "description", "store_id"}).
+		AddRow(catalogID, "Old Name", "Old Desc", storeID)
 	mock.ExpectQuery(`^SELECT .* FROM "catalog" AS "c" WHERE \(c\.catalog_id = .+\) AND \(c\.store_id = .+\)$`).
 		WillReturnRows(rows)
 
@@ -143,8 +152,6 @@ func TestRepository_Update(t *testing.T) {
 	newName := "New Name"
 	input := catalogUpdate{Name: &newName}
 	ctx := context.Background()
-	storeID := uuid.New()
-	catalogID := uuid.New()
 	c, err := repo.Update(ctx, catalogID, storeID, input)
 
 	assert.NoError(t, err)

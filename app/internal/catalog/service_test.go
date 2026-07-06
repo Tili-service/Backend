@@ -20,8 +20,8 @@ func TestService_Create_ValidationError(t *testing.T) {
 	svc := NewService(repo)
 
 	desc := "desc"
-	uuid, _ := uuid.NewUUID()
-	_, err := svc.Create(context.Background(), uuid, catalogUpdate{Description: &desc})
+	uuid1 := uuid.New()
+	_, err := svc.Create(context.Background(), uuid1, catalogUpdate{Description: &desc})
 
 	assert.EqualError(t, err, "name is required")
 }
@@ -32,9 +32,9 @@ func TestService_Update_ValidationError(t *testing.T) {
 
 	repo := NewRepository(&db.Db{DB: bunDB})
 	svc := NewService(repo)
-	uuid, _ := uuid.NewUUID()
+	uuid1 := uuid.New()
 
-	_, err := svc.Update(context.Background(), uuid, uuid, catalogUpdate{})
+	_, err := svc.Update(context.Background(), uuid1, uuid1, catalogUpdate{})
 
 	assert.EqualError(t, err, "at least one field is required")
 }
@@ -48,8 +48,8 @@ func TestService_GetByID_NotFound(t *testing.T) {
 
 	mock.ExpectQuery(`^SELECT .* FROM "catalog" AS "c" WHERE \(c\.catalog_id = .+\) AND \(c\.store_id = .+\)$`).WillReturnError(sql.ErrNoRows)
 
-	uuid, _ := uuid.NewUUID()
-	_, err := svc.GetByID(context.Background(), uuid, uuid)
+	uuid1 := uuid.New()
+	_, err := svc.GetByID(context.Background(), uuid1, uuid1)
 
 	assert.ErrorIs(t, err, ErrCatalogNotFound)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -62,12 +62,14 @@ func TestService_GetAll_Success(t *testing.T) {
 	repo := NewRepository(&db.Db{DB: bunDB})
 	svc := NewService(repo)
 
-	rows := sqlmock.NewRows([]string{"name", "description", "store_id"}).
-		AddRow("Cat 1", "Desc 1", 1)
+	storeID := uuid.New()
+	catalogID := uuid.New()
+
+	rows := sqlmock.NewRows([]string{"catalog_id", "name", "description", "store_id"}).
+		AddRow(catalogID, "Cat 1", "Desc 1", storeID)
 	mock.ExpectQuery(`^SELECT .* FROM "catalog" AS "c" WHERE \(c\.store_id = .+\)$`).WillReturnRows(rows)
 
-	uuid, _ := uuid.NewUUID()
-	list, err := svc.GetAll(context.Background(), uuid)
+	list, err := svc.GetAll(context.Background(), storeID)
 
 	assert.NoError(t, err)
 	assert.Len(t, list, 1)
@@ -84,8 +86,8 @@ func TestService_Delete_NotFound(t *testing.T) {
 
 	mock.ExpectQuery(`^SELECT .* FROM "catalog" AS "c" WHERE \(c\.catalog_id = .+\) AND \(c\.store_id = .+\)$`).WillReturnError(sql.ErrNoRows)
 
-	uuid, _ := uuid.NewUUID()
-	err := svc.Delete(context.Background(), uuid, uuid)
+	uuid1 := uuid.New()
+	err := svc.Delete(context.Background(), uuid1, uuid1)
 
 	assert.ErrorIs(t, err, ErrCatalogNotFound)
 	assert.NoError(t, mock.ExpectationsWereMet())

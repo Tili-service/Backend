@@ -32,7 +32,7 @@ func TestRepository_FindByID(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"catalog_id", "name", "description", "store_id"}).
 		AddRow(catalogID, "Winter 2026 Collection", "All items available for the winter 2026 season", storeID)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "c"."catalog_id", "c"."name", "c"."description", "c"."store_id" FROM "catalog" AS "c" WHERE (c.catalog_id = '`+catalogID.String()+`') AND (c.store_id = '`+storeID.String()+`')`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "c"."catalog_id", "c"."name", "c"."description", "c"."store_id" FROM "catalog" AS "c" WHERE (c.catalog_id = '` + catalogID.String() + `') AND (c.store_id = '` + storeID.String() + `')`)).
 		WillReturnRows(rows)
 
 	ctx := context.Background()

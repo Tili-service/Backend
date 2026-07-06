@@ -5,6 +5,7 @@ import (
 
 	"tili/app/pkg/db"
 
+	"github.com/google/uuid"
 	"github.com/uptrace/bun"
 )
 
@@ -23,7 +24,7 @@ func (r *Repository) Insert(ctx context.Context, exec bun.IDB, h *SaleHistory) e
 	return err
 }
 
-func (r *Repository) ListBySaleID(ctx context.Context, saleID int) ([]*SaleHistory, error) {
+func (r *Repository) ListBySaleID(ctx context.Context, saleID uuid.UUID) ([]*SaleHistory, error) {
 	var history []*SaleHistory
 	err := r.db.NewSelect().
 		Model(&history).

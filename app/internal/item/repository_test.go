@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/uptrace/bun"
@@ -29,14 +30,16 @@ func TestRepository_FindByID(t *testing.T) {
 	mockDbObj := &db.Db{DB: bunDB}
 	repo := NewRepository(mockDbObj)
 
-	rows := sqlmock.NewRows([]string{"item_id", "name", "price"}).
-		AddRow(1, "Laptop Pro 15", "999.99")
+	itemID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "i"."item_id", "i"."name", "i"."price", "i"."tax", "i"."tax_amount", "i"."categorie_id" FROM "item" AS "i" WHERE (i.item_id = 1)`)).
+	rows := sqlmock.NewRows([]string{"item_id", "name", "price"}).
+		AddRow(itemID, "Laptop Pro 15", "999.99")
+
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "i"."item_id", "i"."name", "i"."price", "i"."tax", "i"."tax_amount", "i"."categorie_id" FROM "item" AS "i" WHERE (i.item_id = '00000000-0000-0000-0000-000000000001')`)).
 		WillReturnRows(rows)
 
 	ctx := context.Background()
-	item, err := repo.FindByID(ctx, 1)
+	item, err := repo.FindByID(ctx, itemID)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, item)
@@ -44,13 +47,15 @@ func TestRepository_FindByID(t *testing.T) {
 
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
 func TestRepository_Create(t *testing.T) {
 	bunDB, mock := setupMockDB(t)
 	defer bunDB.Close()
 	mockDbObj := &db.Db{DB: bunDB}
 	repo := NewRepository(mockDbObj)
 
-	mock.ExpectQuery(`^INSERT INTO "item"`).WillReturnRows(sqlmock.NewRows([]string{"item_id"}).AddRow(1))
+	itemID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	mock.ExpectQuery(`^INSERT INTO "item"`).WillReturnRows(sqlmock.NewRows([]string{"item_id"}).AddRow(itemID))
 
 	item := &Item{Name: "New Item", Price: decimal.NewFromFloat(100.0), Tax: decimal.NewFromFloat(0.20)}
 	ctx := context.Background()
@@ -66,7 +71,9 @@ func TestRepository_FindAll(t *testing.T) {
 	mockDbObj := &db.Db{DB: bunDB}
 	repo := NewRepository(mockDbObj)
 
-	rows := sqlmock.NewRows([]string{"item_id", "name"}).AddRow(1, "Item 1").AddRow(2, "Item 2")
+	rows := sqlmock.NewRows([]string{"item_id", "name"}).
+		AddRow("00000000-0000-0000-0000-000000000001", "Item 1").
+		AddRow("00000000-0000-0000-0000-000000000002", "Item 2")
 	mock.ExpectQuery(`^SELECT "i"\."item_id", "i"\."name", "i"\."price", "i"\."tax", "i"\."tax_amount", "i"\."categorie_id" FROM "item" AS "i"$`).WillReturnRows(rows)
 
 	ctx := context.Background()
@@ -82,7 +89,7 @@ func TestRepository_FindByName(t *testing.T) {
 	defer bunDB.Close()
 	repo := NewRepository(&db.Db{DB: bunDB})
 
-	rows := sqlmock.NewRows([]string{"item_id", "name"}).AddRow(1, "Laptop")
+	rows := sqlmock.NewRows([]string{"item_id", "name"}).AddRow("00000000-0000-0000-0000-000000000001", "Laptop")
 	mock.ExpectQuery(`^SELECT .* FROM "item" AS "i" WHERE \(i\.name = .+\)$`).WillReturnRows(rows)
 
 	ctx := context.Background()
@@ -99,10 +106,11 @@ func TestRepository_DeleteByID(t *testing.T) {
 	defer bunDB.Close()
 	repo := NewRepository(&db.Db{DB: bunDB})
 
+	itemID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	mock.ExpectExec(`^DELETE FROM "item" AS "i" WHERE \(item_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
 
 	ctx := context.Background()
-	err := repo.DeleteByID(ctx, 1)
+	err := repo.DeleteByID(ctx, itemID)
 
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -113,8 +121,10 @@ func TestRepository_Update(t *testing.T) {
 	defer bunDB.Close()
 	repo := NewRepository(&db.Db{DB: bunDB})
 
+	itemID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+
 	// find by id mock
-	rows := sqlmock.NewRows([]string{"item_id", "name", "price", "tax"}).AddRow(1, "Laptop", "100.0", "0.2")
+	rows := sqlmock.NewRows([]string{"item_id", "name", "price", "tax"}).AddRow(itemID, "Laptop", "100.0", "0.2")
 	mock.ExpectQuery(`^SELECT .* FROM "item" AS "i" WHERE \(i\.item_id = .+\)$`).WillReturnRows(rows)
 
 	// update mock
@@ -124,7 +134,7 @@ func TestRepository_Update(t *testing.T) {
 	updateData := ItemUpdate{Name: &newName}
 
 	ctx := context.Background()
-	updatedItem, err := repo.Update(ctx, 1, updateData)
+	updatedItem, err := repo.Update(ctx, itemID, updateData)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, updatedItem)

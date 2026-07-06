@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -18,11 +20,11 @@ func NewService(repo *Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) Create(ctx context.Context, storeID int, input catalogUpdate) (*catalog, error) {
+func (s *Service) Create(ctx context.Context, storeID uuid.UUID, input catalogUpdate) (*Catalog, error) {
 	if input.Name == nil || *input.Name == "" {
 		return nil, errors.New("name is required")
 	}
-	c := &catalog{
+	c := &Catalog{
 		Name:    *input.Name,
 		StoreID: storeID,
 	}
@@ -35,7 +37,7 @@ func (s *Service) Create(ctx context.Context, storeID int, input catalogUpdate) 
 	return c, nil
 }
 
-func (s *Service) Update(ctx context.Context, id int, storeID int, input catalogUpdate) (*catalog, error) {
+func (s *Service) Update(ctx context.Context, id uuid.UUID, storeID uuid.UUID, input catalogUpdate) (*Catalog, error) {
 	if (input.Name == nil || *input.Name == "") && (input.Description == nil || *input.Description == "") {
 		return nil, errors.New("at least one field is required")
 	}
@@ -53,7 +55,7 @@ func (s *Service) Update(ctx context.Context, id int, storeID int, input catalog
 	return c, nil
 }
 
-func (s *Service) Delete(ctx context.Context, id int, storeID int) error {
+func (s *Service) Delete(ctx context.Context, id uuid.UUID, storeID uuid.UUID) error {
 	_, err := s.repo.FindByID(ctx, id, storeID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -64,11 +66,11 @@ func (s *Service) Delete(ctx context.Context, id int, storeID int) error {
 	return s.repo.DeleteByID(ctx, id, storeID)
 }
 
-func (s *Service) GetAll(ctx context.Context, storeID int) ([]catalog, error) {
+func (s *Service) GetAll(ctx context.Context, storeID uuid.UUID) ([]Catalog, error) {
 	return s.repo.FindAll(ctx, storeID)
 }
 
-func (s *Service) GetByID(ctx context.Context, id int, storeID int) (*catalog, error) {
+func (s *Service) GetByID(ctx context.Context, id uuid.UUID, storeID uuid.UUID) (*Catalog, error) {
 	c, err := s.repo.FindByID(ctx, id, storeID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

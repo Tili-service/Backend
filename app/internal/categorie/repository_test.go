@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
@@ -25,14 +26,17 @@ func TestRepository_FindByID(t *testing.T) {
 
 	repo := &Repository{db: bunDB}
 
-	rows := sqlmock.NewRows([]string{"categorie_id", "type", "catalog_id"}).
-		AddRow(1, "Electronics", 1)
+	catID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	catalogID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "cat"."categorie_id", "cat"."type", "cat"."catalog_id" FROM "categorie" AS "cat" WHERE (cat.categorie_id = 1) AND (cat.catalog_id = 1)`)).
+	rows := sqlmock.NewRows([]string{"categorie_id", "type", "catalog_id"}).
+		AddRow(catID, "Electronics", catalogID)
+
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "cat"."categorie_id", "cat"."type", "cat"."catalog_id" FROM "categorie" AS "cat" WHERE (cat.categorie_id = '00000000-0000-0000-0000-000000000001') AND (cat.catalog_id = '00000000-0000-0000-0000-000000000002')`)).
 		WillReturnRows(rows)
 
 	ctx := context.Background()
-	cat, err := repo.FindByID(ctx, 1, 1)
+	cat, err := repo.FindByID(ctx, catID, catalogID)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, cat)
@@ -47,13 +51,15 @@ func TestRepository_Create(t *testing.T) {
 
 	repo := &Repository{db: bunDB}
 
+	catalogID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
+
 	cat := &Categorie{
 		Type:      "Books",
-		CatalogID: 1,
+		CatalogID: catalogID,
 	}
 
 	mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "categorie"`)).
-		WillReturnRows(sqlmock.NewRows([]string{"categorie_id"}).AddRow(1))
+		WillReturnRows(sqlmock.NewRows([]string{"categorie_id"}).AddRow("00000000-0000-0000-0000-000000000001"))
 
 	ctx := context.Background()
 	err := repo.Create(ctx, cat)
@@ -61,21 +67,24 @@ func TestRepository_Create(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
 func TestRepository_FindAll(t *testing.T) {
 	bunDB, mock := setupMockDB(t)
 	defer bunDB.Close()
 
 	repo := &Repository{db: bunDB}
 
+	catalogID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
+
 	rows := sqlmock.NewRows([]string{"categorie_id", "type", "catalog_id"}).
-		AddRow(1, "Electronics", 1).
-		AddRow(2, "Books", 1)
+		AddRow("00000000-0000-0000-0000-000000000001", "Electronics", catalogID).
+		AddRow("00000000-0000-0000-0000-000000000003", "Books", catalogID)
 
 	mock.ExpectQuery(`^SELECT "cat"\."categorie_id", "cat"\."type", "cat"\."catalog_id" FROM "categorie" AS "cat" WHERE \(cat\.catalog_id = .+\)$`).
 		WillReturnRows(rows)
 
 	ctx := context.Background()
-	categories, err := repo.FindAll(ctx, 1)
+	categories, err := repo.FindAll(ctx, catalogID)
 
 	assert.NoError(t, err)
 	assert.Len(t, categories, 2)
@@ -89,14 +98,16 @@ func TestRepository_FindByType(t *testing.T) {
 
 	repo := &Repository{db: bunDB}
 
+	catalogID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
+
 	rows := sqlmock.NewRows([]string{"categorie_id", "type", "catalog_id"}).
-		AddRow(1, "Electronics", 1)
+		AddRow("00000000-0000-0000-0000-000000000001", "Electronics", catalogID)
 
 	mock.ExpectQuery(`^SELECT "cat"\."categorie_id", "cat"\."type", "cat"\."catalog_id" FROM "categorie" AS "cat" WHERE \(cat\.type = .+\) AND \(cat\.catalog_id = .+\)$`).
 		WillReturnRows(rows)
 
 	ctx := context.Background()
-	c, err := repo.FindByType(ctx, "Electronics", 1)
+	c, err := repo.FindByType(ctx, "Electronics", catalogID)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, c)
@@ -110,8 +121,11 @@ func TestRepository_Update(t *testing.T) {
 
 	repo := &Repository{db: bunDB}
 
+	catID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	catalogID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
+
 	// Mock Find
-	rows := sqlmock.NewRows([]string{"categorie_id", "type", "catalog_id"}).AddRow(1, "Old Type", 1)
+	rows := sqlmock.NewRows([]string{"categorie_id", "type", "catalog_id"}).AddRow(catID, "Old Type", catalogID)
 	mock.ExpectQuery(`^SELECT "cat"\."categorie_id", "cat"\."type", "cat"\."catalog_id" FROM "categorie" AS "cat" WHERE \(cat\.categorie_id = .+\) AND \(cat\.catalog_id = .+\)$`).
 		WillReturnRows(rows)
 
@@ -121,7 +135,7 @@ func TestRepository_Update(t *testing.T) {
 
 	c := &Categorie{Type: "New Type"}
 	ctx := context.Background()
-	updatedCat, err := repo.Update(ctx, 1, 1, c)
+	updatedCat, err := repo.Update(ctx, catID, catalogID, c)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, updatedCat)
@@ -135,8 +149,11 @@ func TestRepository_DeleteById(t *testing.T) {
 
 	repo := &Repository{db: bunDB}
 
+	catID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	catalogID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
+
 	// Mock Find
-	rows := sqlmock.NewRows([]string{"categorie_id", "type", "catalog_id"}).AddRow(1, "Electronics", 1)
+	rows := sqlmock.NewRows([]string{"categorie_id", "type", "catalog_id"}).AddRow(catID, "Electronics", catalogID)
 	mock.ExpectQuery(`^SELECT "cat"\."categorie_id", "cat"\."type", "cat"\."catalog_id" FROM "categorie" AS "cat" WHERE \(cat\.categorie_id = .+\) AND \(cat\.catalog_id = .+\)$`).
 		WillReturnRows(rows)
 
@@ -145,7 +162,7 @@ func TestRepository_DeleteById(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	ctx := context.Background()
-	err := repo.DeleteById(ctx, 1, 1)
+	err := repo.DeleteById(ctx, catID, catalogID)
 
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -157,8 +174,11 @@ func TestRepository_DeleteByType(t *testing.T) {
 
 	repo := &Repository{db: bunDB}
 
+	catID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	catalogID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
+
 	// Mock Find
-	rows := sqlmock.NewRows([]string{"categorie_id", "type", "catalog_id"}).AddRow(1, "Electronics", 1)
+	rows := sqlmock.NewRows([]string{"categorie_id", "type", "catalog_id"}).AddRow(catID, "Electronics", catalogID)
 	mock.ExpectQuery(`^SELECT "cat"\."categorie_id", "cat"\."type", "cat"\."catalog_id" FROM "categorie" AS "cat" WHERE \(cat\.type = .+\) AND \(cat\.catalog_id = .+\)$`).
 		WillReturnRows(rows)
 
@@ -167,7 +187,7 @@ func TestRepository_DeleteByType(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	ctx := context.Background()
-	err := repo.DeleteByType(ctx, "Electronics", 1)
+	err := repo.DeleteByType(ctx, "Electronics", catalogID)
 
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())

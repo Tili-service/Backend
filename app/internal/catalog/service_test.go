@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
 	"tili/app/pkg/db"
@@ -19,7 +20,8 @@ func TestService_Create_ValidationError(t *testing.T) {
 	svc := NewService(repo)
 
 	desc := "desc"
-	_, err := svc.Create(context.Background(), 1, catalogUpdate{Description: &desc})
+	uuid, _ := uuid.NewUUID()
+	_, err := svc.Create(context.Background(), uuid, catalogUpdate{Description: &desc})
 
 	assert.EqualError(t, err, "name is required")
 }
@@ -30,8 +32,9 @@ func TestService_Update_ValidationError(t *testing.T) {
 
 	repo := NewRepository(&db.Db{DB: bunDB})
 	svc := NewService(repo)
+	uuid, _ := uuid.NewUUID()
 
-	_, err := svc.Update(context.Background(), 1, 1, catalogUpdate{})
+	_, err := svc.Update(context.Background(), uuid, uuid, catalogUpdate{})
 
 	assert.EqualError(t, err, "at least one field is required")
 }
@@ -45,7 +48,8 @@ func TestService_GetByID_NotFound(t *testing.T) {
 
 	mock.ExpectQuery(`^SELECT .* FROM "catalog" AS "c" WHERE \(c\.catalog_id = .+\) AND \(c\.store_id = .+\)$`).WillReturnError(sql.ErrNoRows)
 
-	_, err := svc.GetByID(context.Background(), 123, 1)
+	uuid, _ := uuid.NewUUID()
+	_, err := svc.GetByID(context.Background(), uuid, uuid)
 
 	assert.ErrorIs(t, err, ErrCatalogNotFound)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -62,7 +66,8 @@ func TestService_GetAll_Success(t *testing.T) {
 		AddRow("Cat 1", "Desc 1", 1)
 	mock.ExpectQuery(`^SELECT .* FROM "catalog" AS "c" WHERE \(c\.store_id = .+\)$`).WillReturnRows(rows)
 
-	list, err := svc.GetAll(context.Background(), 1)
+	uuid, _ := uuid.NewUUID()
+	list, err := svc.GetAll(context.Background(), uuid)
 
 	assert.NoError(t, err)
 	assert.Len(t, list, 1)
@@ -79,7 +84,8 @@ func TestService_Delete_NotFound(t *testing.T) {
 
 	mock.ExpectQuery(`^SELECT .* FROM "catalog" AS "c" WHERE \(c\.catalog_id = .+\) AND \(c\.store_id = .+\)$`).WillReturnError(sql.ErrNoRows)
 
-	err := svc.Delete(context.Background(), 10, 1)
+	uuid, _ := uuid.NewUUID()
+	err := svc.Delete(context.Background(), uuid, uuid)
 
 	assert.ErrorIs(t, err, ErrCatalogNotFound)
 	assert.NoError(t, mock.ExpectationsWereMet())

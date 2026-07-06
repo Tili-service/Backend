@@ -48,12 +48,14 @@ func TestRepository_FindByID(t *testing.T) {
 
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
 func TestRepository_Create(t *testing.T) {
 	bunDB, mock := setupMockDB(t)
 	defer bunDB.Close()
 	repo := NewRepository(&db.Db{DB: bunDB})
 
-	mock.ExpectQuery(`^INSERT INTO "store"`).WillReturnRows(sqlmock.NewRows([]string{"store_id"}).AddRow(1))
+	storeID := uuid.New()
+	mock.ExpectQuery(`^INSERT INTO "store"`).WillReturnRows(sqlmock.NewRows([]string{"store_id"}).AddRow(storeID))
 
 	s := &Store{Name: "New Store", BuyerID: uuid.New()}
 	ctx := context.Background()

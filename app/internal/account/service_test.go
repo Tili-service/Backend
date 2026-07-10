@@ -21,7 +21,7 @@ type testLicenseDeleter struct {
 	err error
 }
 
-func (t *testLicenseDeleter) DeleteByAccountID(ctx context.Context, accountID int) error {
+func (t *testLicenseDeleter) DeleteByAccountID(ctx context.Context, accountID uuid.UUID) error {
 	return t.err
 }
 
@@ -50,7 +50,7 @@ func TestServiceCreate_EmailExists(t *testing.T) {
 	defer cleanup()
 
 	rows := sqlmock.NewRows([]string{"account_id", "email", "password", "name", "stripe_customer_id", "created_at"}).
-		AddRow(1, "a@a.com", "hash", "A", "cus_1", time.Now())
+		AddRow("00000000-0000-0000-0000-000000000001", "a@a.com", "hash", "A", "cus_1", time.Now())
 	mock.ExpectQuery(`^SELECT .* FROM "account" AS "a" WHERE \(email = .+\)$`).WillReturnRows(rows)
 
 	_, err := svc.Create(context.Background(), RegistrationInput{Name: "A", Email: "a@a.com", Password: "secret123"})
@@ -91,7 +91,7 @@ func TestServiceLogin_WrongPassword(t *testing.T) {
 	assert.NoError(t, err)
 
 	rows := sqlmock.NewRows([]string{"account_id", "email", "password", "name", "stripe_customer_id", "created_at"}).
-		AddRow(1, "a@a.com", string(hash), "A", "cus_1", time.Now())
+		AddRow("00000000-0000-0000-0000-000000000001", "a@a.com", string(hash), "A", "cus_1", time.Now())
 	mock.ExpectQuery(`^SELECT .* FROM "account" AS "a" WHERE \(email = .+\)$`).WillReturnRows(rows)
 
 	_, _, err = svc.Login(context.Background(), LoginInput{Email: "a@a.com", Password: "wrong"})
@@ -108,11 +108,11 @@ func TestServiceLogin_Success(t *testing.T) {
 	assert.NoError(t, err)
 
 	accRows := sqlmock.NewRows([]string{"account_id", "email", "password", "name", "stripe_customer_id", "created_at"}).
-		AddRow(1, "a@a.com", string(hash), "A", "cus_1", time.Now())
+		AddRow("00000000-0000-0000-0000-000000000001", "a@a.com", string(hash), "A", "cus_1", time.Now())
 	mock.ExpectQuery(`^SELECT .* FROM "account" AS "a" WHERE \(email = .+\)$`).WillReturnRows(accRows)
 
 	storeRows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation", "numero_tva", "siret"}).
-		AddRow(1, "Store", 1, uuid.New(), time.Now(), "", "")
+		AddRow("00000000-0000-0000-0000-000000000002", "Store", "00000000-0000-0000-0000-000000000001", uuid.New(), time.Now(), "", "")
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(buyer_id = .+\)$`).WillReturnRows(storeRows)
 
 	acc, stores, err := svc.Login(context.Background(), LoginInput{Email: "a@a.com", Password: "secret123"})
@@ -124,13 +124,15 @@ func TestServiceLogin_Success(t *testing.T) {
 }
 
 func TestServiceExists_Branches(t *testing.T) {
+	testID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+
 	t.Run("not found", func(t *testing.T) {
 		svc, mock, cleanup := setupAccountService(t, nil)
 		defer cleanup()
 
 		mock.ExpectQuery(`^SELECT .* FROM "account" AS "a" WHERE \(account_id = .+\)$`).WillReturnError(sql.ErrNoRows)
 
-		exists, err := svc.Exists(context.Background(), 1)
+		exists, err := svc.Exists(context.Background(), testID)
 		assert.NoError(t, err)
 		assert.False(t, exists)
 		assert.NoError(t, mock.ExpectationsWereMet())
@@ -141,10 +143,10 @@ func TestServiceExists_Branches(t *testing.T) {
 		defer cleanup()
 
 		rows := sqlmock.NewRows([]string{"account_id", "email", "password", "name", "stripe_customer_id", "created_at"}).
-			AddRow(1, "a@a.com", "hash", "A", "cus_1", time.Now())
+			AddRow(testID, "a@a.com", "hash", "A", "cus_1", time.Now())
 		mock.ExpectQuery(`^SELECT .* FROM "account" AS "a" WHERE \(account_id = .+\)$`).WillReturnRows(rows)
 
-		exists, err := svc.Exists(context.Background(), 1)
+		exists, err := svc.Exists(context.Background(), testID)
 		assert.NoError(t, err)
 		assert.True(t, exists)
 		assert.NoError(t, mock.ExpectationsWereMet())
@@ -155,9 +157,11 @@ func TestServiceFullDelete_FindStoresError(t *testing.T) {
 	svc, mock, cleanup := setupAccountService(t, nil)
 	defer cleanup()
 
+	testID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(buyer_id = .+\)$`).WillReturnError(sql.ErrConnDone)
 
-	err := svc.FullDelete(context.Background(), 1)
+	err := svc.FullDelete(context.Background(), testID)
 
 	assert.EqualError(t, err, "failed to find stores")
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -167,18 +171,21 @@ func TestServiceFullDelete_SuccessWithStore(t *testing.T) {
 	svc, mock, cleanup := setupAccountService(t, nil)
 	defer cleanup()
 
+	testID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	storeID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
+
 	storeRows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation", "numero_tva", "siret"}).
-		AddRow(1, "Store", 1, uuid.New(), time.Now(), "", "")
+		AddRow(storeID, "Store", testID, uuid.New(), time.Now(), "", "")
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(buyer_id = .+\)$`).WillReturnRows(storeRows)
 
 	mock.ExpectExec(`^DELETE FROM "profile" AS "p" WHERE \(store_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
 	storeByIDRows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation", "numero_tva", "siret"}).
-		AddRow(1, "Store", 1, uuid.New(), time.Now(), "", "")
+		AddRow(storeID, "Store", testID, uuid.New(), time.Now(), "", "")
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnRows(storeByIDRows)
 	mock.ExpectExec(`^DELETE FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectExec(`^DELETE FROM "account" AS "a" WHERE \(account_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
 
-	err := svc.FullDelete(context.Background(), 1)
+	err := svc.FullDelete(context.Background(), testID)
 
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -189,10 +196,12 @@ func TestServiceFullDelete_LicenseDeleteError(t *testing.T) {
 	svc, mock, cleanup := setupAccountService(t, licErr)
 	defer cleanup()
 
+	testID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+
 	storeRows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation", "numero_tva", "siret"})
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(buyer_id = .+\)$`).WillReturnRows(storeRows)
 
-	err := svc.FullDelete(context.Background(), 1)
+	err := svc.FullDelete(context.Background(), testID)
 
 	assert.EqualError(t, err, "license delete failed")
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -202,10 +211,12 @@ func TestServiceResetPassword_AccountNotFound(t *testing.T) {
 	svc, mock, cleanup := setupAccountService(t, nil)
 	defer cleanup()
 
+	testID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+
 	mock.ExpectQuery(`^SELECT .* FROM "account" AS "a" WHERE \(account_id = .+\)$`).
 		WillReturnError(sql.ErrNoRows)
 
-	err := svc.ResetPassword(context.Background(), 1, ResetPasswordInput{OldPassword: "old", NewPassword: "newpass456"})
+	err := svc.ResetPassword(context.Background(), testID, ResetPasswordInput{OldPassword: "old", NewPassword: "newpass456"})
 
 	assert.ErrorIs(t, err, ErrAccountNotFound)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -215,15 +226,17 @@ func TestServiceResetPassword_WrongOldPassword(t *testing.T) {
 	svc, mock, cleanup := setupAccountService(t, nil)
 	defer cleanup()
 
+	testID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+
 	hash, err := bcrypt.GenerateFromPassword([]byte("correct"), bcrypt.DefaultCost)
 	assert.NoError(t, err)
 
 	rows := sqlmock.NewRows([]string{"account_id", "email", "password", "name", "stripe_customer_id", "created_at"}).
-		AddRow(1, "a@a.com", string(hash), "A", "cus_1", time.Now())
+		AddRow(testID, "a@a.com", string(hash), "A", "cus_1", time.Now())
 	mock.ExpectQuery(`^SELECT .* FROM "account" AS "a" WHERE \(account_id = .+\)$`).
 		WillReturnRows(rows)
 
-	err = svc.ResetPassword(context.Background(), 1, ResetPasswordInput{OldPassword: "wrong", NewPassword: "newpass456"})
+	err = svc.ResetPassword(context.Background(), testID, ResetPasswordInput{OldPassword: "wrong", NewPassword: "newpass456"})
 
 	assert.ErrorIs(t, err, ErrInvalidPassword)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -233,17 +246,19 @@ func TestServiceResetPassword_Success(t *testing.T) {
 	svc, mock, cleanup := setupAccountService(t, nil)
 	defer cleanup()
 
+	testID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+
 	hash, err := bcrypt.GenerateFromPassword([]byte("secret123"), bcrypt.DefaultCost)
 	assert.NoError(t, err)
 
 	rows := sqlmock.NewRows([]string{"account_id", "email", "password", "name", "stripe_customer_id", "created_at"}).
-		AddRow(1, "a@a.com", string(hash), "A", "cus_1", time.Now())
+		AddRow(testID, "a@a.com", string(hash), "A", "cus_1", time.Now())
 	mock.ExpectQuery(`^SELECT .* FROM "account" AS "a" WHERE \(account_id = .+\)$`).
 		WillReturnRows(rows)
 	mock.ExpectExec(`^UPDATE "account" AS "a" SET`).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	err = svc.ResetPassword(context.Background(), 1, ResetPasswordInput{OldPassword: "secret123", NewPassword: "newpass456"})
+	err = svc.ResetPassword(context.Background(), testID, ResetPasswordInput{OldPassword: "secret123", NewPassword: "newpass456"})
 
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
@@ -30,8 +31,9 @@ func TestRepository_Create(t *testing.T) {
 	mock.ExpectQuery(`^SELECT .* FROM "payementmethod" AS "pm" WHERE \(name = .+\)$`).
 		WillReturnError(sql.ErrNoRows)
 
+	pmID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	mock.ExpectQuery(`^INSERT INTO "payementmethod"`).
-		WillReturnRows(sqlmock.NewRows([]string{"payement_method_id"}).AddRow(1))
+		WillReturnRows(sqlmock.NewRows([]string{"payement_method_id"}).AddRow(pmID))
 
 	pm := &PayementMethod{Name: "Card"}
 	ctx := context.Background()
@@ -47,8 +49,8 @@ func TestRepository_FindAll(t *testing.T) {
 	repo := NewRepository(&db.Db{DB: bunDB})
 
 	rows := sqlmock.NewRows([]string{"payement_method_id", "name", "is_active"}).
-		AddRow(1, "Card", true).
-		AddRow(2, "Cash", true)
+		AddRow("00000000-0000-0000-0000-000000000001", "Card", true).
+		AddRow("00000000-0000-0000-0000-000000000002", "Cash", true)
 	mock.ExpectQuery(`^SELECT .* FROM "payementmethod" AS "pm" WHERE \(is_active = .*\)$`).WillReturnRows(rows)
 
 	ctx := context.Background()
@@ -64,7 +66,7 @@ func TestRepository_FindByName(t *testing.T) {
 	defer bunDB.Close()
 	repo := NewRepository(&db.Db{DB: bunDB})
 
-	rows := sqlmock.NewRows([]string{"payement_method_id", "name"}).AddRow(1, "Card")
+	rows := sqlmock.NewRows([]string{"payement_method_id", "name"}).AddRow("00000000-0000-0000-0000-000000000001", "Card")
 	mock.ExpectQuery(`^SELECT .* FROM "payementmethod" AS "pm" WHERE \(name = .+\)$`).WillReturnRows(rows)
 
 	ctx := context.Background()
@@ -95,11 +97,12 @@ func TestRepository_FindByID(t *testing.T) {
 	defer bunDB.Close()
 	repo := NewRepository(&db.Db{DB: bunDB})
 
-	rows := sqlmock.NewRows([]string{"payement_method_id", "name"}).AddRow(1, "Card")
+	rows := sqlmock.NewRows([]string{"payement_method_id", "name"}).AddRow("00000000-0000-0000-0000-000000000001", "Card")
 	mock.ExpectQuery(`^SELECT .* FROM "payementmethod" AS "pm" WHERE \(payement_method_id = .+\)$`).WillReturnRows(rows)
 
+	pmID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	ctx := context.Background()
-	pm, err := repo.FindByID(ctx, 1)
+	pm, err := repo.FindByID(ctx, pmID)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, pm)
@@ -114,8 +117,9 @@ func TestRepository_DeactivateByID(t *testing.T) {
 
 	mock.ExpectExec(`^UPDATE "payementmethod" AS "pm" SET .* WHERE \(payement_method_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
 
+	pmID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	ctx := context.Background()
-	err := repo.DeactivateByID(ctx, 1)
+	err := repo.DeactivateByID(ctx, pmID)
 
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -128,8 +132,9 @@ func TestRepository_ReactivateByID(t *testing.T) {
 
 	mock.ExpectExec(`^UPDATE "payementmethod" AS "pm" SET .* WHERE \(payement_method_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
 
+	pmID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	ctx := context.Background()
-	err := repo.ReactivateByID(ctx, 1)
+	err := repo.ReactivateByID(ctx, pmID)
 
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -140,11 +145,12 @@ func TestRepository_FindActiveByID_Found(t *testing.T) {
 	defer bunDB.Close()
 	repo := NewRepository(&db.Db{DB: bunDB})
 
-	rows := sqlmock.NewRows([]string{"payement_method_id", "name", "is_active"}).AddRow(1, "Card", true)
+	rows := sqlmock.NewRows([]string{"payement_method_id", "name", "is_active"}).AddRow("00000000-0000-0000-0000-000000000001", "Card", true)
 	mock.ExpectQuery(`^SELECT .* FROM "payementmethod" AS "pm" WHERE \(payement_method_id = .* AND is_active = .*\)$`).WillReturnRows(rows)
 
+	pmID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	ctx := context.Background()
-	err := repo.FindActiveByID(ctx, 1)
+	err := repo.FindActiveByID(ctx, pmID)
 
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -157,8 +163,9 @@ func TestRepository_FindActiveByID_NotFound(t *testing.T) {
 
 	mock.ExpectQuery(`^SELECT .* FROM "payementmethod" AS "pm" WHERE \(payement_method_id = .* AND is_active = .*\)$`).WillReturnError(sql.ErrNoRows)
 
+	pmID := uuid.MustParse("00000000-0000-0000-0000-000000000099")
 	ctx := context.Background()
-	err := repo.FindActiveByID(ctx, 99)
+	err := repo.FindActiveByID(ctx, pmID)
 
 	assert.ErrorIs(t, err, sql.ErrNoRows)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -174,7 +181,8 @@ func TestRepository_Update(t *testing.T) {
 
 	mock.ExpectExec(`^UPDATE "payementmethod" AS "pm" SET`).WillReturnResult(sqlmock.NewResult(1, 1))
 
-	pm := &PayementMethod{PayementMethodID: 1, Name: "Updated Card"}
+	pmID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	pm := &PayementMethod{PayementMethodID: pmID, Name: "Updated Card"}
 	ctx := context.Background()
 	err := repo.Update(ctx, pm)
 

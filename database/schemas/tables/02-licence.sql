@@ -1,6 +1,6 @@
 CREATE TABLE licence (
     licence_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    account_id INTEGER NOT NULL REFERENCES account(account_id) ON DELETE CASCADE,
+    account_id UUID NOT NULL REFERENCES account(account_id) ON DELETE CASCADE,
     expiration TIMESTAMP NOT NULL,
     next_payment TIMESTAMP NOT NULL,
     transaction VARCHAR(255),

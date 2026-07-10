@@ -129,7 +129,7 @@ func TestItemHandler_GetAll_Success(t *testing.T) {
 	r.GET("/item", h.GetAll)
 
 	rows := sqlmock.NewRows([]string{"item_id", "name", "price", "tax", "tax_amount", "categorie_id"}).
-		AddRow(1, "Laptop", "100", "0.2", "16.67", 1)
+		AddRow("00000000-0000-0000-0000-000000000001", "Laptop", "100", "0.2", "16.67", "00000000-0000-0000-0000-000000000002")
 	mock.ExpectQuery(`^SELECT .* FROM "item" AS "i"$`).WillReturnRows(rows)
 
 	req := httptest.NewRequest(http.MethodGet, "/item", nil)

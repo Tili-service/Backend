@@ -7,6 +7,7 @@ import (
 
 	"tili/app/pkg/db"
 
+	"github.com/google/uuid"
 	"github.com/uptrace/bun"
 )
 
@@ -48,23 +49,23 @@ func (r *Repository) DeactivateByName(ctx context.Context, name string) error {
 	return err
 }
 
-func (r *Repository) FindByID(ctx context.Context, id int) (*PayementMethod, error) {
+func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (*PayementMethod, error) {
 	pm := new(PayementMethod)
 	err := r.db.NewSelect().Model(pm).Where("payement_method_id = ?", id).Scan(ctx)
 	return pm, err
 }
 
-func (r *Repository) DeactivateByID(ctx context.Context, id int) error {
+func (r *Repository) DeactivateByID(ctx context.Context, id uuid.UUID) error {
 	_, err := r.db.NewUpdate().Model((*PayementMethod)(nil)).Set("is_active = ?", false).Where("payement_method_id = ?", id).Exec(ctx)
 	return err
 }
 
-func (r *Repository) ReactivateByID(ctx context.Context, id int) error {
+func (r *Repository) ReactivateByID(ctx context.Context, id uuid.UUID) error {
 	_, err := r.db.NewUpdate().Model((*PayementMethod)(nil)).Set("is_active = ?", true).Where("payement_method_id = ?", id).Exec(ctx)
 	return err
 }
 
-func (r *Repository) FindActiveByID(ctx context.Context, id int) error {
+func (r *Repository) FindActiveByID(ctx context.Context, id uuid.UUID) error {
 	pm := new(PayementMethod)
 	return r.db.NewSelect().Model(pm).Where("payement_method_id = ? AND is_active = ?", id, true).Scan(ctx)
 }

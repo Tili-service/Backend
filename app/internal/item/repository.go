@@ -5,6 +5,7 @@ import (
 
 	"tili/app/pkg/db"
 
+	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/uptrace/bun"
 )
@@ -34,7 +35,7 @@ func (r *Repository) FindAll(ctx context.Context) ([]Item, error) {
 	return items, err
 }
 
-func (r *Repository) FindByID(ctx context.Context, id int) (*Item, error) {
+func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (*Item, error) {
 	i := new(Item)
 	err := r.db.NewSelect().Model(i).Where("i.item_id = ?", id).Scan(ctx)
 	return i, err
@@ -46,7 +47,7 @@ func (r *Repository) FindByName(ctx context.Context, name string) (*Item, error)
 	return i, err
 }
 
-func (r *Repository) FindByCategorieID(ctx context.Context, categorieID int) ([]Item, error) {
+func (r *Repository) FindByCategorieID(ctx context.Context, categorieID uuid.UUID) ([]Item, error) {
 	var items []Item
 	err := r.db.NewSelect().Model(&items).Where("i.categorie_id = ?", categorieID).Scan(ctx)
 	return items, err
@@ -58,7 +59,7 @@ func (r *Repository) FindByPrice(ctx context.Context, price float64) ([]Item, er
 	return items, err
 }
 
-func (r *Repository) DeleteByID(ctx context.Context, id int) error {
+func (r *Repository) DeleteByID(ctx context.Context, id uuid.UUID) error {
 	_, err := r.db.NewDelete().Model(&Item{}).Where("item_id = ?", id).Exec(ctx)
 	return err
 }
@@ -68,7 +69,7 @@ func (r *Repository) DeleteByName(ctx context.Context, name string) error {
 	return err
 }
 
-func (r *Repository) Update(ctx context.Context, id int, input ItemUpdate) (*Item, error) {
+func (r *Repository) Update(ctx context.Context, id uuid.UUID, input ItemUpdate) (*Item, error) {
 	item := &Item{}
 	err := r.db.NewSelect().Model(item).Where("i.item_id = ?", id).Scan(ctx)
 	if err != nil {
@@ -83,7 +84,7 @@ func (r *Repository) Update(ctx context.Context, id int, input ItemUpdate) (*Ite
 	if input.Tax != nil && input.Tax.IsPositive() {
 		item.Tax = *input.Tax
 	}
-	if input.CategorieID != nil && *input.CategorieID > 0 {
+	if input.CategorieID != nil && *input.CategorieID != uuid.Nil {
 		item.CategorieID = *input.CategorieID
 	}
 	item.Tax_amount = calcTaxAmount(item.Price, item.Tax)

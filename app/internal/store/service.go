@@ -15,7 +15,7 @@ var (
 )
 
 type AccountRepository interface {
-	FindByID(ctx context.Context, id int) (*AccountData, error)
+	FindByID(ctx context.Context, id uuid.UUID) (*AccountData, error)
 }
 
 type AccountData struct {
@@ -40,7 +40,7 @@ func NewServiceWithEmail(repo *Repository, accountRepo AccountRepository, emailC
 	}
 }
 
-func (s *Service) Create(ctx context.Context, input CreateStoreInput, accountID int) (*Store, error) {
+func (s *Service) Create(ctx context.Context, input CreateStoreInput, accountID uuid.UUID) (*Store, error) {
 	store := &Store{
 		Name:      input.Name,
 		BuyerID:   accountID,
@@ -60,7 +60,7 @@ func (s *Service) Create(ctx context.Context, input CreateStoreInput, accountID 
 	return createdStore, nil
 }
 
-func (s *Service) sendStoreCreatedEmail(ctx context.Context, accountID int, storeName string, storeID int) {
+func (s *Service) sendStoreCreatedEmail(ctx context.Context, accountID uuid.UUID, storeName string, storeID uuid.UUID) {
 	account, err := s.accountRepo.FindByID(ctx, accountID)
 	if err != nil {
 		log.Printf("Failed to fetch account: %v", err)
@@ -83,7 +83,7 @@ func (s *Service) sendStoreCreatedEmail(ctx context.Context, accountID int, stor
 	}
 }
 
-func (s *Service) FindByID(ctx context.Context, id int) (*Store, error) {
+func (s *Service) FindByID(ctx context.Context, id uuid.UUID) (*Store, error) {
 	s2, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -94,7 +94,7 @@ func (s *Service) FindByID(ctx context.Context, id int) (*Store, error) {
 	return s2, nil
 }
 
-func (s *Service) FindByBuyerID(ctx context.Context, buyerID int) ([]Store, error) {
+func (s *Service) FindByBuyerID(ctx context.Context, buyerID uuid.UUID) ([]Store, error) {
 	return s.repo.FindByBuyerID(ctx, buyerID)
 }
 
@@ -117,7 +117,7 @@ func (s *Service) FindAll(ctx context.Context) ([]*Store, error) {
 	return stores, nil
 }
 
-func (s *Service) Delete(ctx context.Context, id int) error {
+func (s *Service) Delete(ctx context.Context, id uuid.UUID) error {
 	_, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -128,11 +128,11 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *Service) DeleteByID(ctx context.Context, id int) error {
+func (s *Service) DeleteByID(ctx context.Context, id uuid.UUID) error {
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *Service) Update(ctx context.Context, id int, input UpdateStoreInput) (*Store, error) {
+func (s *Service) Update(ctx context.Context, id uuid.UUID, input UpdateStoreInput) (*Store, error) {
 	store, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

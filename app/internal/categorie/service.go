@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -18,7 +20,7 @@ func NewService(repo *Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) Create(ctx context.Context, catalogID int, input Categorie) (*Categorie, error) {
+func (s *Service) Create(ctx context.Context, catalogID uuid.UUID, input Categorie) (*Categorie, error) {
 	if input.Type == "" {
 		return nil, errors.New("type is required")
 	}
@@ -32,7 +34,7 @@ func (s *Service) Create(ctx context.Context, catalogID int, input Categorie) (*
 	return c, nil
 }
 
-func (s *Service) Update(ctx context.Context, id int, catalogID int, input Categorie) (*Categorie, error) {
+func (s *Service) Update(ctx context.Context, id uuid.UUID, catalogID uuid.UUID, input Categorie) (*Categorie, error) {
 	c, err := s.repo.Update(ctx, id, catalogID, &input)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -43,7 +45,7 @@ func (s *Service) Update(ctx context.Context, id int, catalogID int, input Categ
 	return c, nil
 }
 
-func (s *Service) DeleteByID(ctx context.Context, id int, catalogID int) error {
+func (s *Service) DeleteByID(ctx context.Context, id uuid.UUID, catalogID uuid.UUID) error {
 	if err := s.repo.DeleteById(ctx, id, catalogID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrCategorieNotFound
@@ -53,7 +55,7 @@ func (s *Service) DeleteByID(ctx context.Context, id int, catalogID int) error {
 	return nil
 }
 
-func (s *Service) DeleteByType(ctx context.Context, typ string, catalogID int) error {
+func (s *Service) DeleteByType(ctx context.Context, typ string, catalogID uuid.UUID) error {
 	if err := s.repo.DeleteByType(ctx, typ, catalogID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrCategorieNotFound
@@ -63,7 +65,7 @@ func (s *Service) DeleteByType(ctx context.Context, typ string, catalogID int) e
 	return nil
 }
 
-func (s *Service) FindByID(ctx context.Context, id int, catalogID int) (*Categorie, error) {
+func (s *Service) FindByID(ctx context.Context, id uuid.UUID, catalogID uuid.UUID) (*Categorie, error) {
 	c, err := s.repo.FindByID(ctx, id, catalogID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -74,7 +76,7 @@ func (s *Service) FindByID(ctx context.Context, id int, catalogID int) (*Categor
 	return c, nil
 }
 
-func (s *Service) FindByType(ctx context.Context, typ string, catalogID int) (*Categorie, error) {
+func (s *Service) FindByType(ctx context.Context, typ string, catalogID uuid.UUID) (*Categorie, error) {
 	c, err := s.repo.FindByType(ctx, typ, catalogID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -85,6 +87,6 @@ func (s *Service) FindByType(ctx context.Context, typ string, catalogID int) (*C
 	return c, nil
 }
 
-func (s *Service) FindAll(ctx context.Context, catalogID int) ([]Categorie, error) {
+func (s *Service) FindAll(ctx context.Context, catalogID uuid.UUID) ([]Categorie, error) {
 	return s.repo.FindAll(ctx, catalogID)
 }

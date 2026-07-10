@@ -92,11 +92,11 @@ func (s *Service) SetDependencies(storeService *store.Service, profileService *p
 	s.profileService = profileService
 }
 
-func (s *Service) DeleteByAccountID(ctx context.Context, accountID int) error {
+func (s *Service) DeleteByAccountID(ctx context.Context, accountID uuid.UUID) error {
 	return s.repo.DeleteLicencesByAccountID(ctx, accountID)
 }
 
-func (s *Service) GetByAccountID(ctx context.Context, accountID int) ([]Licence, error) {
+func (s *Service) GetByAccountID(ctx context.Context, accountID uuid.UUID) ([]Licence, error) {
 	licences, err := s.repo.FindLicencesByAccountID(ctx, accountID)
 	if err != nil {
 		return nil, err
@@ -190,7 +190,7 @@ func (s *Service) fetchStripeLicenceInfo(ctx context.Context, transaction string
 	return info, nil
 }
 
-func (s *Service) Delete(ctx context.Context, accountID int, id uuid.UUID) error {
+func (s *Service) Delete(ctx context.Context, accountID uuid.UUID, id uuid.UUID) error {
 	lic, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -204,7 +204,7 @@ func (s *Service) Delete(ctx context.Context, accountID int, id uuid.UUID) error
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *Service) Refund(ctx context.Context, accountID int, id uuid.UUID) error {
+func (s *Service) Refund(ctx context.Context, accountID uuid.UUID, id uuid.UUID) error {
 	lic, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -298,7 +298,7 @@ func (s *Service) Refund(ctx context.Context, accountID int, id uuid.UUID) error
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *Service) Update(ctx context.Context, accountID int, id uuid.UUID, input UpdateLicenceInput) (*Licence, error) {
+func (s *Service) Update(ctx context.Context, accountID uuid.UUID, id uuid.UUID, input UpdateLicenceInput) (*Licence, error) {
 	lic, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -318,7 +318,7 @@ func (s *Service) Update(ctx context.Context, accountID int, id uuid.UUID, input
 	return s.repo.Update(ctx, lic)
 }
 
-func (s *Service) Create(ctx context.Context, accountID int, input CreateLicenceInput) (*Licence, error) {
+func (s *Service) Create(ctx context.Context, accountID uuid.UUID, input CreateLicenceInput) (*Licence, error) {
 
 	lic := &Licence{
 		LicenceID:   uuid.New(),
@@ -345,7 +345,7 @@ func (s *Service) Create(ctx context.Context, accountID int, input CreateLicence
 	return lic, nil
 }
 
-func (s *Service) CreatePaymentLink(ctx context.Context, accountID int, customerID string, input CreatePaymentLinkInput) (string, error) {
+func (s *Service) CreatePaymentLink(ctx context.Context, accountID uuid.UUID, customerID string, input CreatePaymentLinkInput) (string, error) {
 	var priceID string
 
 	switch input.Offer {
@@ -380,7 +380,7 @@ func (s *Service) CreatePaymentLink(ctx context.Context, accountID int, customer
 		CancelURL:  stripe.String(os.Getenv("APP_URL") + "/admin/licenses?canceled=true"),
 		Customer:   customerPtr,
 		Metadata: map[string]string{
-			"account_id": fmt.Sprintf("%d", accountID),
+			"account_id": accountID.String(),
 			"offer":      input.Offer,
 		},
 	}

@@ -4,6 +4,8 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/google/uuid"
+
 	"tili/app/internal/middleware"
 	"tili/app/internal/token"
 
@@ -115,7 +117,11 @@ func (h *Handler) Login(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /account [get]
 func (h *Handler) GetAccount(c *gin.Context) {
-	accountID := c.GetInt("accountID")
+	accountID, err := uuid.Parse(c.GetString("accountID"))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid account ID"})
+		return
+	}
 	acc, err := h.service.GetByID(c.Request.Context(), accountID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve account"})
@@ -136,7 +142,11 @@ func (h *Handler) GetAccount(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /account [delete]
 func (h *Handler) Delete(c *gin.Context) {
-	accountID := c.GetInt("accountID")
+	accountID, err := uuid.Parse(c.GetString("accountID"))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid account ID"})
+		return
+	}
 
 	exist, err := h.service.Exists(c.Request.Context(), accountID)
 	if err != nil {
@@ -170,7 +180,11 @@ func (h *Handler) Delete(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /account [put]
 func (h *Handler) Update(c *gin.Context) {
-	accountID := c.GetInt("accountID")
+	accountID, err := uuid.Parse(c.GetString("accountID"))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid account ID"})
+		return
+	}
 	var input UpdateAccountInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -203,13 +217,17 @@ func (h *Handler) Update(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /account/reset-password [post]
 func (h *Handler) ResetPassword(c *gin.Context) {
-	accountID := c.GetInt("accountID")
+	accountID, err := uuid.Parse(c.GetString("accountID"))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid account ID"})
+		return
+	}
 	var input ResetPasswordInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	err := h.service.ResetPassword(c.Request.Context(), accountID, input)
+	err = h.service.ResetPassword(c.Request.Context(), accountID, input)
 	if err != nil {
 		if errors.Is(err, ErrAccountNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})

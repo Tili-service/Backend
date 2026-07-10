@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"strconv"
 
 	"tili/app/internal/middleware"
 
@@ -50,7 +49,11 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /licences [get]
 func (h *Handler) GetLicences(c *gin.Context) {
-	accountID := c.GetInt("accountID")
+	accountID, err := uuid.Parse(c.GetString("accountID"))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid account ID"})
+		return
+	}
 	licences, err := h.service.GetByAccountID(c.Request.Context(), accountID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -76,7 +79,11 @@ type PaymentLinkResponse struct {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /licences/payment [post]
 func (h *Handler) CreatePaymentLink(c *gin.Context) {
-	accountID := c.GetInt("accountID")
+	accountID, err := uuid.Parse(c.GetString("accountID"))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid account ID"})
+		return
+	}
 	customerID := c.GetString("customerID")
 
 	var input CreatePaymentLinkInput
@@ -109,7 +116,11 @@ func (h *Handler) CreatePaymentLink(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /licences/refund [post]
 func (h *Handler) RefundLicense(c *gin.Context) {
-	accountID := c.GetInt("accountID")
+	accountID, err := uuid.Parse(c.GetString("accountID"))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid account ID"})
+		return
+	}
 	licenceIDStr := c.Query("licenceId")
 	if licenceIDStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "missing licenceId query parameter"})
@@ -180,8 +191,8 @@ func (h *Handler) HandleStripeWebhook(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Metadata account_id manquante ou invalide"})
 			return
 		}
-		accountID, errConv := strconv.Atoi(accountIDStr)
-		if errConv != nil || accountID <= 0 {
+		accountID, errConv := uuid.Parse(accountIDStr)
+		if errConv != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Metadata account_id invalide"})
 			return
 		}
@@ -248,7 +259,11 @@ func (h *Handler) HandleStripeWebhook(c *gin.Context) {
 // @Failure      404  {object}  map[string]interface{}
 // @Router       /licences/{id} [get]
 func (h *Handler) GetByID(c *gin.Context) {
-	accountID := c.GetInt("accountID")
+	accountID, err := uuid.Parse(c.GetString("accountID"))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid account ID"})
+		return
+	}
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid licence ID"})
@@ -286,7 +301,11 @@ func (h *Handler) GetByID(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /licences/{id} [delete]
 func (h *Handler) Delete(c *gin.Context) {
-	accountID := c.GetInt("accountID")
+	accountID, err := uuid.Parse(c.GetString("accountID"))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid account ID"})
+		return
+	}
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid licence ID"})
@@ -324,7 +343,11 @@ func (h *Handler) Delete(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /licences/{id} [put]
 func (h *Handler) Update(c *gin.Context) {
-	accountID := c.GetInt("accountID")
+	accountID, err := uuid.Parse(c.GetString("accountID"))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid account ID"})
+		return
+	}
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid licence ID"})

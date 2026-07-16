@@ -77,7 +77,7 @@ func clearOAuthCookies(c *gin.Context) {
 // @Produce      json
 // @Router       /oauth/login [get]
 func (h *Handler) login(c *gin.Context) {
-	accountID := uuid.MustParse(c.GetString("account_id"))
+	accountID := uuid.MustParse(c.GetString("accountID"))
 	storeID, err := uuid.Parse(c.Query("store_id"))
 	if err != nil || storeID == uuid.Nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store_id"})

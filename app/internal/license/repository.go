@@ -36,8 +36,8 @@ func (r *Repository) CreateLicence(ctx context.Context, l *Licence) error {
 	return err
 }
 
-func (r *Repository) FindLicencesByAccountID(ctx context.Context, accountID int) ([]Licence, error) {
-	key := fmt.Sprintf("license:account:%d", accountID)
+func (r *Repository) FindLicencesByAccountID(ctx context.Context, accountID uuid.UUID) ([]Licence, error) {
+	key := fmt.Sprintf("license:account:%s", accountID)
 	var licences []Licence
 	if hit, err := cache.Get(ctx, r.cache, key, &licences); err == nil && hit {
 		return licences, nil
@@ -54,7 +54,7 @@ func (r *Repository) FindLicencesByAccountID(ctx context.Context, accountID int)
 	return licences, nil
 }
 
-func (r *Repository) DeleteLicencesByAccountID(ctx context.Context, accountID int) error {
+func (r *Repository) DeleteLicencesByAccountID(ctx context.Context, accountID uuid.UUID) error {
 	_, err := r.db.NewDelete().Model(&Licence{}).Where("account_id = ?", accountID).Exec(ctx)
 	_ = cache.DeletePrefix(ctx, r.cache, "license:")
 	return err
@@ -69,7 +69,7 @@ func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (*Licence, erro
 	return l, nil
 }
 
-func (r *Repository) GetAccountByID(ctx context.Context, accountID int) (*account.Account, error) {
+func (r *Repository) GetAccountByID(ctx context.Context, accountID uuid.UUID) (*account.Account, error) {
 	account := &account.Account{}
 	err := r.db.NewSelect().Model(account).Where("account_id = ?", accountID).Scan(ctx)
 	if err != nil {

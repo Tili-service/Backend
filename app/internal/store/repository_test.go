@@ -31,14 +31,16 @@ func TestRepository_FindByID(t *testing.T) {
 	repo := NewRepository(mockDbObj)
 
 	mockUUID := uuid.New()
+	storeID := uuid.New()
+	buyerID := uuid.New()
 	rows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation"}).
-		AddRow(1, "My Store", 2, mockUUID, time.Now())
+		AddRow(storeID, "My Store", buyerID, mockUUID, time.Now())
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "s"."store_id", "s"."name", "s"."buyer_id", "s"."licence_id", "s"."date_creation", "s"."numero_tva", "s"."siret" FROM "store" AS "s" WHERE (store_id = 1)`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "s"."store_id", "s"."name", "s"."buyer_id", "s"."licence_id", "s"."date_creation", "s"."numero_tva", "s"."siret" FROM "store" AS "s" WHERE (store_id = `)).
 		WillReturnRows(rows)
 
 	ctx := context.Background()
-	s, err := repo.FindByID(ctx, 1)
+	s, err := repo.FindByID(ctx, storeID)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, s)
@@ -46,14 +48,16 @@ func TestRepository_FindByID(t *testing.T) {
 
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
 func TestRepository_Create(t *testing.T) {
 	bunDB, mock := setupMockDB(t)
 	defer bunDB.Close()
 	repo := NewRepository(&db.Db{DB: bunDB})
 
-	mock.ExpectQuery(`^INSERT INTO "store"`).WillReturnRows(sqlmock.NewRows([]string{"store_id"}).AddRow(1))
+	storeID := uuid.New()
+	mock.ExpectQuery(`^INSERT INTO "store"`).WillReturnRows(sqlmock.NewRows([]string{"store_id"}).AddRow(storeID))
 
-	s := &Store{Name: "New Store", BuyerID: 2}
+	s := &Store{Name: "New Store", BuyerID: uuid.New()}
 	ctx := context.Background()
 	created, err := repo.Create(ctx, s)
 
@@ -67,7 +71,7 @@ func TestRepository_FindAll(t *testing.T) {
 	defer bunDB.Close()
 	repo := NewRepository(&db.Db{DB: bunDB})
 
-	rows := sqlmock.NewRows([]string{"store_id", "name"}).AddRow(1, "Store 1").AddRow(2, "Store 2")
+	rows := sqlmock.NewRows([]string{"store_id", "name"}).AddRow(uuid.New(), "Store 1").AddRow(uuid.New(), "Store 2")
 	mock.ExpectQuery(`^SELECT "s"\."store_id", "s"\."name", "s"\."buyer_id", "s"\."licence_id", "s"\."date_creation", "s"\."numero_tva", "s"\."siret" FROM "store" AS "s"$`).WillReturnRows(rows)
 
 	ctx := context.Background()
@@ -83,11 +87,12 @@ func TestRepository_FindByBuyerID(t *testing.T) {
 	defer bunDB.Close()
 	repo := NewRepository(&db.Db{DB: bunDB})
 
-	rows := sqlmock.NewRows([]string{"store_id", "name"}).AddRow(1, "Buyer Store")
+	rows := sqlmock.NewRows([]string{"store_id", "name"}).AddRow(uuid.New(), "Buyer Store")
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(buyer_id = .+\)$`).WillReturnRows(rows)
 
 	ctx := context.Background()
-	stores, err := repo.FindByBuyerID(ctx, 2)
+	buyerID := uuid.New()
+	stores, err := repo.FindByBuyerID(ctx, buyerID)
 
 	assert.NoError(t, err)
 	assert.Len(t, stores, 1)
@@ -101,7 +106,7 @@ func TestRepository_FindByLicenceID(t *testing.T) {
 	repo := NewRepository(&db.Db{DB: bunDB})
 
 	licenceID := uuid.New()
-	rows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation"}).AddRow(1, "Licence Store", 2, licenceID, time.Now())
+	rows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation"}).AddRow(uuid.New(), "Licence Store", uuid.New(), licenceID, time.Now())
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(licence_id = .+\)$`).WillReturnRows(rows)
 
 	ctx := context.Background()
@@ -123,7 +128,8 @@ func TestRepository_Delete(t *testing.T) {
 	mock.ExpectExec(`^DELETE FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
 
 	ctx := context.Background()
-	err := repo.Delete(ctx, 1)
+	storeID := uuid.New()
+	err := repo.Delete(ctx, storeID)
 
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -136,7 +142,8 @@ func TestRepository_Update(t *testing.T) {
 
 	mock.ExpectExec(`^UPDATE "store" AS "s" SET`).WillReturnResult(sqlmock.NewResult(1, 1))
 
-	s := &Store{StoreID: 1, Name: "Updated Store", BuyerID: 2}
+	storeID := uuid.New()
+	s := &Store{StoreID: storeID, Name: "Updated Store", BuyerID: uuid.New()}
 	ctx := context.Background()
 	updated, err := repo.Update(ctx, s)
 

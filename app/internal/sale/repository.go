@@ -7,6 +7,7 @@ import (
 
 	"tili/app/pkg/db"
 
+	"github.com/google/uuid"
 	"github.com/uptrace/bun"
 )
 
@@ -26,7 +27,7 @@ func (r *Repository) Create(ctx context.Context, s *Sale) (*Sale, error) {
 	return s, nil
 }
 
-func (r *Repository) FindByID(ctx context.Context, id int) (*Sale, error) {
+func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (*Sale, error) {
 	sale := &Sale{}
 	err := r.db.NewSelect().
 		Model(sale).

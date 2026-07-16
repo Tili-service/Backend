@@ -30,7 +30,8 @@ func TestRepository_CreateLicence(t *testing.T) {
 	mockUUID := uuid.New()
 	mock.ExpectQuery(`^INSERT INTO "licence"`).WillReturnRows(sqlmock.NewRows([]string{"licence_id"}).AddRow(mockUUID))
 
-	l := &Licence{AccountID: 1, Expiration: time.Now(), IsActive: true}
+	accID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	l := &Licence{AccountID: accID, Expiration: time.Now(), IsActive: true}
 	ctx := context.Background()
 	err := repo.CreateLicence(ctx, l)
 
@@ -44,16 +45,17 @@ func TestRepository_FindLicencesByAccountID(t *testing.T) {
 	repo := NewRepository(&db.Db{DB: bunDB})
 
 	mockUUID := uuid.New()
-	rows := sqlmock.NewRows([]string{"licence_id", "account_id"}).AddRow(mockUUID, 1)
+	accID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	rows := sqlmock.NewRows([]string{"licence_id", "account_id"}).AddRow(mockUUID, accID)
 
 	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l"`).WillReturnRows(rows)
 
 	ctx := context.Background()
-	licences, err := repo.FindLicencesByAccountID(ctx, 1)
+	licences, err := repo.FindLicencesByAccountID(ctx, accID)
 
 	assert.NoError(t, err)
 	assert.Len(t, licences, 1)
-	assert.Equal(t, 1, licences[0].AccountID)
+	assert.Equal(t, accID, licences[0].AccountID)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -64,8 +66,9 @@ func TestRepository_DeleteLicencesByAccountID(t *testing.T) {
 
 	mock.ExpectExec(`^DELETE FROM "licence" AS "l" WHERE \(account_id = .+\)`).WillReturnResult(sqlmock.NewResult(1, 1))
 
+	accID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	ctx := context.Background()
-	err := repo.DeleteLicencesByAccountID(ctx, 1)
+	err := repo.DeleteLicencesByAccountID(ctx, accID)
 
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -77,7 +80,8 @@ func TestRepository_FindByID(t *testing.T) {
 	repo := NewRepository(&db.Db{DB: bunDB})
 
 	mockUUID := uuid.New()
-	rows := sqlmock.NewRows([]string{"licence_id", "account_id"}).AddRow(mockUUID, 1)
+	accID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	rows := sqlmock.NewRows([]string{"licence_id", "account_id"}).AddRow(mockUUID, accID)
 	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l" WHERE \(licence_id = .+\)$`).WillReturnRows(rows)
 
 	ctx := context.Background()
@@ -85,7 +89,7 @@ func TestRepository_FindByID(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, l)
-	assert.Equal(t, 1, l.AccountID)
+	assert.Equal(t, accID, l.AccountID)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -112,7 +116,8 @@ func TestRepository_Update(t *testing.T) {
 	mock.ExpectExec(`^UPDATE "licence" AS "l" SET`).WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mockUUID := uuid.New()
-	l := &Licence{LicenceID: mockUUID, AccountID: 1}
+	accID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	l := &Licence{LicenceID: mockUUID, AccountID: accID}
 	ctx := context.Background()
 	updated, err := repo.Update(ctx, l)
 

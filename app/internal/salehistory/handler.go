@@ -2,12 +2,12 @@ package salehistory
 
 import (
 	"net/http"
-	"strconv"
 
 	"tili/app/internal/middleware"
 	"tili/app/internal/token"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type Handler struct {
@@ -41,7 +41,7 @@ func (h *Handler) RegisterRoutes(rg *gin.Engine) {
 // @Failure      500  {object}  map[string]string
 // @Router       /sales/{id}/history [get]
 func (h *Handler) ListBySaleID(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid sale id"})
 		return

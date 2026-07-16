@@ -9,12 +9,13 @@ import (
 	"tili/app/internal/salehistory"
 	"tili/app/pkg/db"
 
+	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/uptrace/bun"
 )
 
 type pmChecker interface {
-	FindActiveByID(ctx context.Context, id int) error
+	FindActiveByID(ctx context.Context, id uuid.UUID) error
 }
 
 type Service struct {
@@ -76,7 +77,7 @@ func snapshotPayments(payments []SalePayment) []salehistory.SalePaymentSnapshot 
 	return out
 }
 
-func historyFromSale(s *Sale, changedByProfileID *int, changes map[string]any) *salehistory.SaleHistory {
+func historyFromSale(s *Sale, changedByProfileID *uuid.UUID, changes map[string]any) *salehistory.SaleHistory {
 	return &salehistory.SaleHistory{
 		SaleID:             s.SaleID,
 		ChangedByProfileID: changedByProfileID,
@@ -89,7 +90,7 @@ func historyFromSale(s *Sale, changedByProfileID *int, changes map[string]any) *
 	}
 }
 
-func (s *Service) CreateSale(ctx context.Context, input CreateSaleInput, changedByProfileID *int) (*Sale, error) {
+func (s *Service) CreateSale(ctx context.Context, input CreateSaleInput, changedByProfileID *uuid.UUID) (*Sale, error) {
 	total := computeTotal(input.Lines)
 	if !total.IsPositive() {
 		return nil, ErrInvalidSaleTotal
@@ -126,7 +127,7 @@ func (s *Service) CreateSale(ctx context.Context, input CreateSaleInput, changed
 	return sale, nil
 }
 
-func (s *Service) GetSaleByID(ctx context.Context, id int) (*Sale, error) {
+func (s *Service) GetSaleByID(ctx context.Context, id uuid.UUID) (*Sale, error) {
 	return s.repo.FindByID(ctx, id)
 }
 
@@ -137,11 +138,11 @@ func (s *Service) GetAllSales(ctx context.Context) ([]*Sale, error) {
 // diffLines returns a diff between old and new lines keyed by item_id.
 // Shape: {"modified":[{"item_id":X,"quantity":{"from":a,"to":b}}], "added":[...], "removed":[...]}
 func diffLines(oldLines, newLines []SaleLine) map[string]any {
-	oldByItem := make(map[int]SaleLine, len(oldLines))
+	oldByItem := make(map[uuid.UUID]SaleLine, len(oldLines))
 	for _, l := range oldLines {
 		oldByItem[l.ItemID] = l
 	}
-	newByItem := make(map[int]SaleLine, len(newLines))
+	newByItem := make(map[uuid.UUID]SaleLine, len(newLines))
 	for _, l := range newLines {
 		newByItem[l.ItemID] = l
 	}
@@ -209,7 +210,7 @@ func diffPayments(oldPayments, newPayments []SalePayment) map[string]any {
 // UpdateSale applies a partial update to a sale and records the post-update state
 // alongside a diff of what changed in sale_history, within the same transaction.
 // changedByProfileID is optional and identifies the profile that authored the change.
-func (s *Service) UpdateSale(ctx context.Context, id int, input UpdateSaleInput, changedByProfileID *int) (*Sale, error) {
+func (s *Service) UpdateSale(ctx context.Context, id uuid.UUID, input UpdateSaleInput, changedByProfileID *uuid.UUID) (*Sale, error) {
 	var result *Sale
 
 	err := s.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
@@ -231,7 +232,7 @@ func (s *Service) UpdateSale(ctx context.Context, id int, input UpdateSaleInput,
 		oldPayments := existing.Payments
 
 		if input.Lines != nil {
-			newLineMap := make(map[int]UpdateSaleLine)
+			newLineMap := make(map[uuid.UUID]UpdateSaleLine)
 			for _, l := range *input.Lines {
 				newLineMap[l.ItemID] = l
 			}
@@ -321,7 +322,7 @@ func (s *Service) UpdateSale(ctx context.Context, id int, input UpdateSaleInput,
 	return result, nil
 }
 
-func (s *Service) DeleteSale(ctx context.Context, id int, changedByProfileID *int) error {
+func (s *Service) DeleteSale(ctx context.Context, id uuid.UUID, changedByProfileID *uuid.UUID) error {
 	return s.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		existing := &Sale{}
 		err := tx.NewSelect().

@@ -10,13 +10,16 @@ import (
 type Store struct {
 	bun.BaseModel `bun:"table:store,alias:s" swaggerignore:"true"`
 
-	StoreID      uuid.UUID `bun:"store_id,pk,type:uuid,default:gen_random_uuid()"               json:"store_id"`
-	Name         string    `bun:"name,notnull"                            json:"name"`
-	BuyerID      uuid.UUID `bun:"buyer_id,notnull,type:uuid"              json:"-"`
-	LicenceID    uuid.UUID `bun:"licence_id,notnull,type:uuid"            json:"licence_id"`
-	DateCreation time.Time `bun:"date_creation,default:current_timestamp" json:"date_creation"`
-	NumeroTVA    string    `bun:"numero_tva"                              json:"numero_tva,omitempty"`
-	Siret        string    `bun:"siret"                                   json:"siret,omitempty"`
+	StoreID           uuid.UUID `bun:"store_id,pk,type:uuid,default:gen_random_uuid()"               json:"store_id"`
+	Name              string    `bun:"name,notnull"                            json:"name"`
+	BuyerID           uuid.UUID `bun:"buyer_id,notnull,type:uuid"              json:"-"`
+	LicenceID         uuid.UUID `bun:"licence_id,notnull,type:uuid"            json:"licence_id"`
+	DateCreation      time.Time `bun:"date_creation,default:current_timestamp" json:"date_creation"`
+	NumeroTVA         string    `bun:"numero_tva"                              json:"numero_tva,omitempty"`
+	SumupMerchantCode string    `bun:"sumup_merchant_code"                     json:"sumup_merchant_code,omitempty"`
+	SumupAccessToken  string    `bun:"sumup_access_token"                      json:"sumup_access_token,omitempty"`
+	SumupStatus       string    `bun:"-"                                       json:"sumup_status,omitempty"`
+	Siret             string    `bun:"siret"                                   json:"siret,omitempty"`
 }
 
 type CreateStoreInput struct {

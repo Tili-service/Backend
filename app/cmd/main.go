@@ -9,6 +9,7 @@ import (
 	"tili/app/internal/categorie"
 	"tili/app/internal/item"
 	"tili/app/internal/license"
+	"tili/app/internal/oauth"
 	"tili/app/internal/payementmethod"
 	"tili/app/internal/profile"
 	"tili/app/internal/sale"
@@ -110,6 +111,8 @@ func main() {
 	storeService := store.NewServiceWithEmail(storeRepo, storeAccountAdapter, emailClient)
 	storeHandler := store.NewHandler(storeService, profileService)
 
+	oauthHandler := oauth.NewHandler(storeService)
+
 	licenseRepo := license.NewRepository(db, redisClient)
 	licenseService := license.NewService(licenseRepo, emailClient)
 	licenseService.SetDependencies(storeService, profileService)
@@ -150,6 +153,7 @@ func main() {
 	accountHandler.RegisterRoutes(r)
 	catalogHandler.RegisterRoutes(r)
 	itemHandler.RegisterRoutes(r)
+	oauthHandler.RegisterRoutes(r)
 	categorieHandler.RegisterRoutes(r)
 	payementmethodHandler.RegisterRoutes(r)
 	saleHandler.RegisterRoutes(r)

@@ -33,10 +33,10 @@ func TestRepository_FindByID(t *testing.T) {
 	mockUUID := uuid.New()
 	storeID := uuid.New()
 	buyerID := uuid.New()
-	rows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation"}).
-		AddRow(storeID, "My Store", buyerID, mockUUID, time.Now())
+	rows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation", "numero_tva", "sumup_merchant_code", "sumup_access_token", "siret"}).
+		AddRow(storeID, "My Store", buyerID, mockUUID, time.Now(), "", "", "", "")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "s"."store_id", "s"."name", "s"."buyer_id", "s"."licence_id", "s"."date_creation", "s"."numero_tva", "s"."siret" FROM "store" AS "s" WHERE (store_id = `)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "s"."store_id", "s"."name", "s"."buyer_id", "s"."licence_id", "s"."date_creation", "s"."numero_tva", "s"."sumup_merchant_code", "s"."sumup_access_token", "s"."siret" FROM "store" AS "s" WHERE (store_id = `)).
 		WillReturnRows(rows)
 
 	ctx := context.Background()
@@ -72,7 +72,7 @@ func TestRepository_FindAll(t *testing.T) {
 	repo := NewRepository(&db.Db{DB: bunDB})
 
 	rows := sqlmock.NewRows([]string{"store_id", "name"}).AddRow(uuid.New(), "Store 1").AddRow(uuid.New(), "Store 2")
-	mock.ExpectQuery(`^SELECT "s"\."store_id", "s"\."name", "s"\."buyer_id", "s"\."licence_id", "s"\."date_creation", "s"\."numero_tva", "s"\."siret" FROM "store" AS "s"$`).WillReturnRows(rows)
+	mock.ExpectQuery(`^SELECT "s"\."store_id", "s"\."name", "s"\."buyer_id", "s"\."licence_id", "s"\."date_creation", "s"\."numero_tva", "s"\."sumup_merchant_code", "s"\."sumup_access_token", "s"\."siret" FROM "store" AS "s"$`).WillReturnRows(rows)
 
 	ctx := context.Background()
 	stores, err := repo.FindAll(ctx)
@@ -106,7 +106,7 @@ func TestRepository_FindByLicenceID(t *testing.T) {
 	repo := NewRepository(&db.Db{DB: bunDB})
 
 	licenceID := uuid.New()
-	rows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation"}).AddRow(uuid.New(), "Licence Store", uuid.New(), licenceID, time.Now())
+	rows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation", "numero_tva", "sumup_merchant_code", "sumup_access_token", "siret"}).AddRow(uuid.New(), "Licence Store", uuid.New(), licenceID, time.Now(), "", "", "", "")
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(licence_id = .+\)$`).WillReturnRows(rows)
 
 	ctx := context.Background()

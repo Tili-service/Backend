@@ -6,9 +6,9 @@ import (
 	"errors"
 	"net/http"
 	"os"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"golang.org/x/oauth2"
 
 	"tili/app/internal/middleware"
@@ -58,9 +58,9 @@ func generateStateOauthCookie(c *gin.Context) string {
 	return state
 }
 
-func setOAuthContextCookies(c *gin.Context, accountID int, storeID int) {
-	c.SetCookie("oauthaccount", strconv.Itoa(accountID), 3600, "/", "localhost", false, true)
-	c.SetCookie("oauthstore", strconv.Itoa(storeID), 3600, "/", "localhost", false, true)
+func setOAuthContextCookies(c *gin.Context, accountID uuid.UUID, storeID uuid.UUID) {
+	c.SetCookie("oauthaccount", accountID.String(), 3600, "/", "localhost", false, true)
+	c.SetCookie("oauthstore", storeID.String(), 3600, "/", "localhost", false, true)
 }
 
 func clearOAuthCookies(c *gin.Context) {
@@ -77,9 +77,9 @@ func clearOAuthCookies(c *gin.Context) {
 // @Produce      json
 // @Router       /oauth/login [get]
 func (h *Handler) login(c *gin.Context) {
-	accountID := c.GetInt("accountID")
-	storeID, err := strconv.Atoi(c.Query("store_id"))
-	if err != nil || storeID <= 0 {
+	accountID := uuid.MustParse(c.GetString("account_id"))
+	storeID, err := uuid.Parse(c.Query("store_id"))
+	if err != nil || storeID == uuid.Nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store_id"})
 		return
 	}
@@ -131,8 +131,8 @@ func (h *Handler) OAuthCallback(c *gin.Context) {
 		return
 	}
 
-	accountID, err := strconv.Atoi(accountCookie)
-	if err != nil || accountID <= 0 {
+	accountID, err := uuid.Parse(accountCookie)
+	if err != nil || accountID == uuid.Nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid account_id"})
 		return
 	}
@@ -143,8 +143,8 @@ func (h *Handler) OAuthCallback(c *gin.Context) {
 		return
 	}
 
-	storeID, err := strconv.Atoi(storeCookie)
-	if err != nil || storeID <= 0 {
+	storeID, err := uuid.Parse(storeCookie)
+	if err != nil || storeID == uuid.Nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store_id"})
 		return
 	}
@@ -182,5 +182,5 @@ func (h *Handler) OAuthCallback(c *gin.Context) {
 	}
 
 	clearOAuthCookies(c)
-	c.Redirect(http.StatusTemporaryRedirect, os.Getenv("APP_URL")+"/admin/shop/"+strconv.Itoa(storeID)+"/services-externes")
+	c.Redirect(http.StatusTemporaryRedirect, os.Getenv("APP_URL")+"/admin/shop/"+storeID.String()+"/services-externes")
 }

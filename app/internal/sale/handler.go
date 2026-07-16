@@ -3,12 +3,12 @@ package sale
 import (
 	"errors"
 	"net/http"
-	"strconv"
 
 	"tili/app/internal/middleware"
 	"tili/app/internal/token"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type Handler struct {
@@ -53,8 +53,8 @@ func (h *Handler) CreateSale(c *gin.Context) {
 		return
 	}
 
-	var changedByProf *int
-	if profileID := c.GetInt("profileID"); profileID > 0 {
+	var changedByProf *uuid.UUID
+	if profileID, err := uuid.Parse(c.GetString("profileID")); err == nil && profileID != uuid.Nil {
 		changedByProf = &profileID
 	}
 
@@ -99,7 +99,7 @@ func (h *Handler) GetAllSales(c *gin.Context) {
 // @Failure      500  {object}  map[string]string
 // @Router       /sales/{id} [get]
 func (h *Handler) GetSaleByID(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid sale id"})
 		return
@@ -131,7 +131,7 @@ func (h *Handler) GetSaleByID(c *gin.Context) {
 // @Failure      500   {object}  map[string]string
 // @Router       /sales/{id} [put]
 func (h *Handler) UpdateSale(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid sale id"})
 		return
@@ -143,8 +143,8 @@ func (h *Handler) UpdateSale(c *gin.Context) {
 		return
 	}
 
-	var changedByProf *int
-	if profileID := c.GetInt("profileID"); profileID > 0 {
+	var changedByProf *uuid.UUID
+	if profileID, err := uuid.Parse(c.GetString("profileID")); err == nil && profileID != uuid.Nil {
 		changedByProf = &profileID
 	}
 
@@ -187,14 +187,14 @@ func (h *Handler) UpdateSale(c *gin.Context) {
 // @Failure      500  {object}  map[string]string
 // @Router       /sales/{id} [delete]
 func (h *Handler) DeleteSale(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid sale id"})
 		return
 	}
 
-	var changedByProf *int
-	if profileID := c.GetInt("profileID"); profileID > 0 {
+	var changedByProf *uuid.UUID
+	if profileID, err := uuid.Parse(c.GetString("profileID")); err == nil && profileID != uuid.Nil {
 		changedByProf = &profileID
 	}
 

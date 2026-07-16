@@ -5,6 +5,7 @@ import (
 
 	"tili/app/pkg/db"
 
+	"github.com/google/uuid"
 	"github.com/uptrace/bun"
 )
 
@@ -21,13 +22,13 @@ func (r *Repository) Create(ctx context.Context, c *Categorie) error {
 	return err
 }
 
-func (r *Repository) FindAll(ctx context.Context, catalogID int) ([]Categorie, error) {
+func (r *Repository) FindAll(ctx context.Context, catalogID uuid.UUID) ([]Categorie, error) {
 	var categories []Categorie
 	err := r.db.NewSelect().Model(&categories).Where("cat.catalog_id = ?", catalogID).Scan(ctx)
 	return categories, err
 }
 
-func (r *Repository) FindByID(ctx context.Context, id int, catalogID int) (*Categorie, error) {
+func (r *Repository) FindByID(ctx context.Context, id uuid.UUID, catalogID uuid.UUID) (*Categorie, error) {
 	c := new(Categorie)
 	err := r.db.NewSelect().Model(c).
 		Where("cat.categorie_id = ?", id).
@@ -36,7 +37,7 @@ func (r *Repository) FindByID(ctx context.Context, id int, catalogID int) (*Cate
 	return c, err
 }
 
-func (r *Repository) FindByType(ctx context.Context, typ string, catalogID int) (*Categorie, error) {
+func (r *Repository) FindByType(ctx context.Context, typ string, catalogID uuid.UUID) (*Categorie, error) {
 	c := new(Categorie)
 	err := r.db.NewSelect().Model(c).
 		Where("cat.type = ?", typ).
@@ -45,7 +46,7 @@ func (r *Repository) FindByType(ctx context.Context, typ string, catalogID int) 
 	return c, err
 }
 
-func (r *Repository) Update(ctx context.Context, id int, catalogID int, c *Categorie) (*Categorie, error) {
+func (r *Repository) Update(ctx context.Context, id uuid.UUID, catalogID uuid.UUID, c *Categorie) (*Categorie, error) {
 	cat := &Categorie{}
 	err := r.db.NewSelect().Model(cat).
 		Where("cat.categorie_id = ?", id).
@@ -65,7 +66,7 @@ func (r *Repository) Update(ctx context.Context, id int, catalogID int, c *Categ
 	return cat, nil
 }
 
-func (r *Repository) DeleteById(ctx context.Context, id int, catalogID int) error {
+func (r *Repository) DeleteById(ctx context.Context, id uuid.UUID, catalogID uuid.UUID) error {
 	cat := &Categorie{}
 	err := r.db.NewSelect().Model(cat).
 		Where("cat.categorie_id = ?", id).
@@ -81,7 +82,7 @@ func (r *Repository) DeleteById(ctx context.Context, id int, catalogID int) erro
 	return er
 }
 
-func (r *Repository) DeleteByType(ctx context.Context, typ string, catalogID int) error {
+func (r *Repository) DeleteByType(ctx context.Context, typ string, catalogID uuid.UUID) error {
 	cat := &Categorie{}
 	err := r.db.NewSelect().Model(cat).
 		Where("cat.type = ?", typ).

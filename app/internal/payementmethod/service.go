@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -31,7 +33,7 @@ func (s *Service) Create(ctx context.Context, input PayementMethod) (*PayementMe
 	return pm, nil
 }
 
-func (s *Service) Update(ctx context.Context, id int, input PayementMethod) (*PayementMethod, error) {
+func (s *Service) Update(ctx context.Context, id uuid.UUID, input PayementMethod) (*PayementMethod, error) {
 	if input.Name == "" {
 		return nil, errors.New("name is required")
 	}
@@ -66,7 +68,7 @@ func (s *Service) Delete(ctx context.Context, name string) error {
 	return s.repo.DeactivateByID(ctx, pm.PayementMethodID)
 }
 
-func (s *Service) Reactivate(ctx context.Context, id int) error {
+func (s *Service) Reactivate(ctx context.Context, id uuid.UUID) error {
 	_, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -77,7 +79,7 @@ func (s *Service) Reactivate(ctx context.Context, id int) error {
 	return s.repo.ReactivateByID(ctx, id)
 }
 
-func (s *Service) DeleteByID(ctx context.Context, id int) error {
+func (s *Service) DeleteByID(ctx context.Context, id uuid.UUID) error {
 	_, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

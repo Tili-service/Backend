@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/flosch/pongo2/v6"
+	"github.com/google/uuid"
 	"github.com/resend/resend-go/v2"
 	"github.com/wneessen/go-mail"
 )
@@ -120,7 +121,7 @@ var getNewLicenseActiveEmailContent = func(licenseLink string) (string, error) {
 	return content, nil
 }
 
-var getNewProfileCreatedEmailContent = func(profileStoreID int, profileName string, profilePIN string) (string, error) {
+var getNewProfileCreatedEmailContent = func(profileStoreID uuid.UUID, profileName string, profilePIN string) (string, error) {
 	tpl, err := pongo2.FromFile("html/new_profile_created.html")
 	if err != nil {
 		log.Fatalf("Erreur lors de la lecture du template: %s", err)
@@ -129,7 +130,7 @@ var getNewProfileCreatedEmailContent = func(profileStoreID int, profileName stri
 		"profile_store_id":    profileStoreID,
 		"profile_name":        profileName,
 		"profile_pin":         profilePIN,
-		"manage_profile_link": os.Getenv("APP_URL") + "/admin/shop/" + strconv.Itoa(profileStoreID) + "/profils",
+		"manage_profile_link": os.Getenv("APP_URL") + "/admin/shop/" + profileStoreID.String() + "/profils",
 	}
 
 	content, err := tpl.Execute(ctx)
@@ -139,14 +140,14 @@ var getNewProfileCreatedEmailContent = func(profileStoreID int, profileName stri
 	return content, nil
 }
 
-var getNewStoreCreatedEmailContent = func(storeName string, storeID int) (string, error) {
+var getNewStoreCreatedEmailContent = func(storeName string, storeID uuid.UUID) (string, error) {
 	tpl, err := pongo2.FromFile("html/new_store_created.html")
 	if err != nil {
 		log.Fatalf("Erreur lors de la lecture du template: %s", err)
 	}
 	ctx := pongo2.Context{
 		"store_name": storeName,
-		"store_link": os.Getenv("APP_URL") + "/admin/shop/" + strconv.Itoa(storeID) + "/dashboard",
+		"store_link": os.Getenv("APP_URL") + "/admin/shop/" + storeID.String() + "/dashboard",
 	}
 
 	content, err := tpl.Execute(ctx)
@@ -169,11 +170,11 @@ func GetNewLicenseActiveEmailContent(licenseLink string) (string, error) {
 	return getNewLicenseActiveEmailContent(licenseLink)
 }
 
-func GetNewProfileCreatedEmailContent(profileStoreID int, profileName string, profilePIN string) (string, error) {
+func GetNewProfileCreatedEmailContent(profileStoreID uuid.UUID, profileName string, profilePIN string) (string, error) {
 	return getNewProfileCreatedEmailContent(profileStoreID, profileName, profilePIN)
 }
 
-func GetNewStoreCreatedEmailContent(storeName string, storeID int) (string, error) {
+func GetNewStoreCreatedEmailContent(storeName string, storeID uuid.UUID) (string, error) {
 	return getNewStoreCreatedEmailContent(storeName, storeID)
 }
 

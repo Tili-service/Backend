@@ -40,7 +40,7 @@ func setupLicenseHandler(t *testing.T) (*Handler, sqlmock.Sqlmock) {
 
 func withLicenseAccountContext() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Set("accountID", 1)
+		c.Set("accountID", "00000000-0000-0000-0000-000000000001")
 		c.Set("customerID", "")
 		c.Next()
 	}
@@ -101,7 +101,8 @@ func TestLicenseHandler_HandleStripeWebhook_CheckoutCompleted_Success(t *testing
 	})
 	t.Cleanup(restoreEmailMock)
 
-	payload := `{"id":"evt_test","object":"event","api_version":"2026-02-25.clover","type":"checkout.session.completed","data":{"object":{"id":"cs_test_create_1","object":"checkout.session","metadata":{"account_id":"1","offer":"mensuel"}}}}`
+	accID := "00000000-0000-0000-0000-000000000001"
+	payload := `{"id":"evt_test","object":"event","api_version":"2026-02-25.clover","type":"checkout.session.completed","data":{"object":{"id":"cs_test_create_1","object":"checkout.session","metadata":{"account_id":"` + accID + `","offer":"mensuel"}}}}`
 	signed := webhook.GenerateTestSignedPayload(&webhook.UnsignedPayload{
 		Payload:   []byte(payload),
 		Secret:    secret,
@@ -111,7 +112,7 @@ func TestLicenseHandler_HandleStripeWebhook_CheckoutCompleted_Success(t *testing
 
 	mock.ExpectExec(`^INSERT INTO "licence"`).WillReturnResult(sqlmock.NewResult(1, 1))
 	// Mock the account lookup for the email sending
-	accountRows := sqlmock.NewRows([]string{"account_id", "email", "password"}).AddRow(1, "test@example.com", "")
+	accountRows := sqlmock.NewRows([]string{"account_id", "email", "password"}).AddRow(accID, "test@example.com", "")
 	mock.ExpectQuery(`^SELECT .* FROM "account"`).WillReturnRows(accountRows)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/webhooks/stripe", bytes.NewBuffer(signed.Payload))
@@ -134,7 +135,8 @@ func TestLicenseHandler_HandleStripeWebhook_SubscriptionDeleted_Success(t *testi
 	t.Setenv("STRIPE_WEBHOOK_SECRET", secret)
 
 	licID := uuid.New()
-	rows := sqlmock.NewRows([]string{"licence_id", "account_id", "transaction"}).AddRow(licID, 1, "sub_123")
+	accID := "00000000-0000-0000-0000-000000000001"
+	rows := sqlmock.NewRows([]string{"licence_id", "account_id", "transaction"}).AddRow(licID, accID, "sub_123")
 	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l" WHERE \(transaction = .+\)$`).WillReturnRows(rows)
 	mock.ExpectExec(`^DELETE FROM "licence" AS "l" WHERE \(licence_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -236,7 +238,8 @@ func TestLicenseHandler_GetByID_Forbidden(t *testing.T) {
 	r.GET("/licences/:id", h.GetByID)
 
 	licID := uuid.New()
-	rows := sqlmock.NewRows([]string{"licence_id", "account_id"}).AddRow(licID, 2)
+	forbiddenAccID := "00000000-0000-0000-0000-000000000002"
+	rows := sqlmock.NewRows([]string{"licence_id", "account_id"}).AddRow(licID, forbiddenAccID)
 	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l" WHERE \(licence_id = .+\)$`).WillReturnRows(rows)
 
 	req := httptest.NewRequest(http.MethodGet, "/licences/"+licID.String(), nil)
@@ -326,7 +329,8 @@ func TestLicenseHandler_GetByID_WithStripeInfo(t *testing.T) {
 	}
 
 	licID := uuid.New()
-	rows := sqlmock.NewRows([]string{"licence_id", "account_id", "transaction"}).AddRow(licID, 1, "cs_test_123")
+	accID := "00000000-0000-0000-0000-000000000001"
+	rows := sqlmock.NewRows([]string{"licence_id", "account_id", "transaction"}).AddRow(licID, accID, "cs_test_123")
 	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l" WHERE \(licence_id = .+\)$`).WillReturnRows(rows)
 
 	req := httptest.NewRequest(http.MethodGet, "/licences/"+licID.String(), nil)
@@ -367,7 +371,8 @@ func TestLicenseHandler_Delete_Forbidden(t *testing.T) {
 	r.DELETE("/licences/:id", h.Delete)
 
 	licID := uuid.New()
-	rows := sqlmock.NewRows([]string{"licence_id", "account_id"}).AddRow(licID, 999)
+	forbiddenAccID := "00000000-0000-0000-0000-000000000999"
+	rows := sqlmock.NewRows([]string{"licence_id", "account_id"}).AddRow(licID, forbiddenAccID)
 	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l" WHERE \(licence_id = .+\)$`).WillReturnRows(rows)
 
 	req := httptest.NewRequest(http.MethodDelete, "/licences/"+licID.String(), nil)
@@ -402,7 +407,8 @@ func TestLicenseHandler_Update_Forbidden(t *testing.T) {
 	r.PUT("/licences/:id", h.Update)
 
 	licID := uuid.New()
-	rows := sqlmock.NewRows([]string{"licence_id", "account_id"}).AddRow(licID, 999)
+	forbiddenAccID := "00000000-0000-0000-0000-000000000999"
+	rows := sqlmock.NewRows([]string{"licence_id", "account_id"}).AddRow(licID, forbiddenAccID)
 	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l" WHERE \(licence_id = .+\)$`).WillReturnRows(rows)
 
 	req := httptest.NewRequest(http.MethodPut, "/licences/"+licID.String(), bytes.NewBufferString(`{"transaction":"x"}`))

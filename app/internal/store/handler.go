@@ -3,13 +3,13 @@ package store
 import (
 	"errors"
 	"net/http"
-	"strconv"
 
 	"tili/app/internal/middleware"
 	"tili/app/internal/profile"
 	"tili/app/internal/token"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type Handler struct {
@@ -46,7 +46,11 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /store/me [get]
 func (h *Handler) GetMyStores(c *gin.Context) {
-	accountID := c.GetInt("accountID")
+	accountID, err := uuid.Parse(c.GetString("accountID"))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid account ID"})
+		return
+	}
 	stores, err := h.service.FindByBuyerID(c.Request.Context(), accountID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -68,7 +72,11 @@ func (h *Handler) GetMyStores(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /store [post]
 func (h *Handler) CreateStore(c *gin.Context) {
-	accountID := c.GetInt("accountID")
+	accountID, err := uuid.Parse(c.GetString("accountID"))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid account ID"})
+		return
+	}
 	accountName := c.GetString("name")
 
 	var input CreateStoreInput
@@ -133,8 +141,12 @@ func (h *Handler) GetAll(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /store/{id} [delete]
 func (h *Handler) DeleteStore(c *gin.Context) {
-	accountID := c.GetInt("accountID")
-	id, err := strconv.Atoi(c.Param("id"))
+	accountID, err := uuid.Parse(c.GetString("accountID"))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid account ID"})
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store ID"})
 		return
@@ -155,7 +167,8 @@ func (h *Handler) DeleteStore(c *gin.Context) {
 		return
 	}
 
-	if err := h.profileService.DeleteByStoreID(c.Request.Context(), id); err != nil {
+	profileStoreID, _ := uuid.NewUUID()
+	if err := h.profileService.DeleteByStoreID(c.Request.Context(), profileStoreID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -187,8 +200,12 @@ func (h *Handler) DeleteStore(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /store/{id} [get]
 func (h *Handler) GetByID(c *gin.Context) {
-	accountID := c.GetInt("accountID")
-	id, err := strconv.Atoi(c.Param("id"))
+	accountID, err := uuid.Parse(c.GetString("accountID"))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid account ID"})
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store ID"})
@@ -219,7 +236,7 @@ func (h *Handler) GetByID(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Security     AccountToken
-// @Param        id   path      int             true "Store ID"
+// @Param        id   path      uuid            true "Store ID"
 // @Param        body body      CreateStoreInput true "Store update payload"
 // @Success      200  {object}  store.Store
 // @Failure      400  {object}  map[string]interface{}
@@ -228,8 +245,12 @@ func (h *Handler) GetByID(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /store/{id} [put]
 func (h *Handler) updateStoreById(c *gin.Context) {
-	accountID := c.GetInt("accountID")
-	id, err := strconv.Atoi(c.Param("id"))
+	accountID, err := uuid.Parse(c.GetString("accountID"))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid account ID"})
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store ID"})
 		return

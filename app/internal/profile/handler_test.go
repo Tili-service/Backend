@@ -9,6 +9,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
 	"tili/app/pkg/db"
@@ -25,8 +26,8 @@ func setupProfileHandler(t *testing.T) (*Handler, sqlmock.Sqlmock) {
 
 func withProfileContext() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Set("profileID", 1)
-		c.Set("storeID", 10)
+		c.Set("profileID", "00000000-0000-0000-0000-000000000001")
+		c.Set("storeID", "00000000-0000-0000-0000-000000000010")
 		c.Next()
 	}
 }
@@ -139,14 +140,14 @@ func TestProfileHandler_UpdateProfileByIdAndStoreId_InvalidIDs(t *testing.T) {
 	h, _ := setupProfileHandler(t)
 	r.PUT("/profile/updateProfile/:id/:storeId", h.UpdateProfileByIdAndStoreId)
 
-	req := httptest.NewRequest(http.MethodPut, "/profile/updateProfile/abc/1", bytes.NewBufferString("{}"))
+	req := httptest.NewRequest(http.MethodPut, "/profile/updateProfile/abc/00000000-0000-0000-0000-000000000010", bytes.NewBufferString("{}"))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 
-	req2 := httptest.NewRequest(http.MethodPut, "/profile/updateProfile/1/abc", bytes.NewBufferString("{}"))
+	req2 := httptest.NewRequest(http.MethodPut, "/profile/updateProfile/00000000-0000-0000-0000-000000000001/abc", bytes.NewBufferString("{}"))
 	req2.Header.Set("Content-Type", "application/json")
 	w2 := httptest.NewRecorder()
 
@@ -160,13 +161,13 @@ func TestProfileHandler_DeactivateProfile_InvalidIDs(t *testing.T) {
 	h, _ := setupProfileHandler(t)
 	r.PUT("/profile/deactivateProfile/:id/:storeId", h.DeactivateProfile)
 
-	req := httptest.NewRequest(http.MethodPut, "/profile/deactivateProfile/abc/1", nil)
+	req := httptest.NewRequest(http.MethodPut, "/profile/deactivateProfile/abc/00000000-0000-0000-0000-000000000010", nil)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 
-	req2 := httptest.NewRequest(http.MethodPut, "/profile/deactivateProfile/1/abc", nil)
+	req2 := httptest.NewRequest(http.MethodPut, "/profile/deactivateProfile/00000000-0000-0000-0000-000000000001/abc", nil)
 	w2 := httptest.NewRecorder()
 
 	r.ServeHTTP(w2, req2)
@@ -181,7 +182,8 @@ func TestProfileHandler_LoginWithPin_InvalidPin(t *testing.T) {
 
 	mock.ExpectQuery(`^SELECT .* FROM "profile" AS "p" WHERE \(p\.store_id = .+\) AND \(p\.pin = .+\) AND \(p\.is_active = .+\)$`).WillReturnError(sql.ErrNoRows)
 
-	req := httptest.NewRequest(http.MethodPost, "/profile/login/pin", bytes.NewBufferString(`{"store_id":10,"pin":"000000"}`))
+	storeID := "00000000-0000-0000-0000-000000000010"
+	req := httptest.NewRequest(http.MethodPost, "/profile/login/pin", bytes.NewBufferString(`{"store_id":"`+storeID+`","pin":"000000"}`))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
@@ -196,10 +198,13 @@ func TestProfileHandler_LoginWithPin_Success(t *testing.T) {
 	h, mock := setupProfileHandler(t)
 	r.POST("/profile/login/pin", h.loginWithPin)
 
-	rows := sqlmock.NewRows([]string{"profile_id", "store_id", "name", "pin", "level_access", "is_active"}).AddRow(1, 10, "Alice", "123456", 3, true)
+	profID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	storeID := uuid.MustParse("00000000-0000-0000-0000-000000000010")
+
+	rows := sqlmock.NewRows([]string{"profile_id", "store_id", "name", "pin", "level_access", "is_active"}).AddRow(profID, storeID, "Alice", "123456", 3, true)
 	mock.ExpectQuery(`^SELECT .* FROM "profile" AS "p" WHERE \(p\.store_id = .+\) AND \(p\.pin = .+\) AND \(p\.is_active = .+\)$`).WillReturnRows(rows)
 
-	req := httptest.NewRequest(http.MethodPost, "/profile/login/pin", bytes.NewBufferString(`{"store_id":10,"pin":"123456"}`))
+	req := httptest.NewRequest(http.MethodPost, "/profile/login/pin", bytes.NewBufferString(`{"store_id":"`+storeID.String()+`","pin":"123456"}`))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
@@ -215,8 +220,10 @@ func TestProfileHandler_Create_Success(t *testing.T) {
 	r.Use(withProfileContext())
 	r.POST("/profile", h.Create)
 
+	profID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+
 	mock.ExpectQuery(`^SELECT EXISTS \(SELECT .* FROM "profile" AS "p" WHERE \(store_id = .+\) AND \(pin = .+\)\)$`).WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
-	mock.ExpectQuery(`^INSERT INTO "profile"`).WillReturnRows(sqlmock.NewRows([]string{"profile_id"}).AddRow(1))
+	mock.ExpectQuery(`^INSERT INTO "profile"`).WillReturnRows(sqlmock.NewRows([]string{"profile_id"}).AddRow(profID))
 
 	req := httptest.NewRequest(http.MethodPost, "/profile", bytes.NewBufferString(`{"name":"Bob","level_access":3}`))
 	req.Header.Set("Content-Type", "application/json")
@@ -235,7 +242,8 @@ func TestProfileHandler_Delete_NotFound(t *testing.T) {
 
 	mock.ExpectQuery(`^SELECT .* FROM "profile" AS "p" WHERE \(p\.profile_id = .+\)$`).WillReturnError(sql.ErrNoRows)
 
-	req := httptest.NewRequest(http.MethodDelete, "/profile/1", nil)
+	profID := uuid.New().String()
+	req := httptest.NewRequest(http.MethodDelete, "/profile/"+profID, nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -249,7 +257,8 @@ func TestProfileHandler_Update_BadJSON(t *testing.T) {
 	h, _ := setupProfileHandler(t)
 	r.PUT("/profile/:id", h.Update)
 
-	req := httptest.NewRequest(http.MethodPut, "/profile/1", bytes.NewBufferString("{"))
+	profID := uuid.New().String()
+	req := httptest.NewRequest(http.MethodPut, "/profile/"+profID, bytes.NewBufferString("{"))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
@@ -263,10 +272,13 @@ func TestProfileHandler_GetProfilesByStoreId_Success(t *testing.T) {
 	h, mock := setupProfileHandler(t)
 	r.GET("/profile/allProfilesByStoreId/:id", h.GetProfilesByStoreId)
 
-	rows := sqlmock.NewRows([]string{"profile_id", "store_id", "name", "pin", "level_access", "is_active"}).AddRow(1, 10, "A", "111111", 4, true)
+	profID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	storeID := uuid.MustParse("00000000-0000-0000-0000-000000000010")
+
+	rows := sqlmock.NewRows([]string{"profile_id", "store_id", "name", "pin", "level_access", "is_active"}).AddRow(profID, storeID, "A", "111111", 4, true)
 	mock.ExpectQuery(`^SELECT .* FROM "profile" AS "p" WHERE \(store_id = .+\)$`).WillReturnRows(rows)
 
-	req := httptest.NewRequest(http.MethodGet, "/profile/allProfilesByStoreId/10", nil)
+	req := httptest.NewRequest(http.MethodGet, "/profile/allProfilesByStoreId/"+storeID.String(), nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -280,7 +292,9 @@ func TestProfileHandler_UpdateProfileByIdAndStoreId_BadJSON(t *testing.T) {
 	h, _ := setupProfileHandler(t)
 	r.PUT("/profile/updateProfile/:id/:storeId", h.UpdateProfileByIdAndStoreId)
 
-	req := httptest.NewRequest(http.MethodPut, "/profile/updateProfile/1/10", bytes.NewBufferString("{"))
+	profID := uuid.New().String()
+	storeID := uuid.New().String()
+	req := httptest.NewRequest(http.MethodPut, "/profile/updateProfile/"+profID+"/"+storeID, bytes.NewBufferString("{"))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
@@ -294,11 +308,14 @@ func TestProfileHandler_DeactivateProfile_Success(t *testing.T) {
 	h, mock := setupProfileHandler(t)
 	r.PUT("/profile/deactivateProfile/:id/:storeId", h.DeactivateProfile)
 
-	rows := sqlmock.NewRows([]string{"profile_id", "store_id", "name", "pin", "level_access", "is_active"}).AddRow(1, 10, "A", "111111", 4, true)
+	profID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	storeID := uuid.MustParse("00000000-0000-0000-0000-000000000010")
+
+	rows := sqlmock.NewRows([]string{"profile_id", "store_id", "name", "pin", "level_access", "is_active"}).AddRow(profID, storeID, "A", "111111", 4, true)
 	mock.ExpectQuery(`^SELECT .* FROM "profile" AS "p" WHERE \(p\.profile_id = .+\)$`).WillReturnRows(rows)
 	mock.ExpectExec(`^UPDATE "profile" AS "p" SET`).WillReturnResult(sqlmock.NewResult(1, 1))
 
-	req := httptest.NewRequest(http.MethodPut, "/profile/deactivateProfile/1/10", nil)
+	req := httptest.NewRequest(http.MethodPut, "/profile/deactivateProfile/"+profID.String()+"/"+storeID.String(), nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -312,11 +329,14 @@ func TestProfileHandler_Delete_Success(t *testing.T) {
 	h, mock := setupProfileHandler(t)
 	r.DELETE("/profile/:id", h.Delete)
 
-	rows := sqlmock.NewRows([]string{"profile_id", "store_id", "name", "pin", "level_access", "is_active"}).AddRow(1, 10, "A", "111111", 4, true)
+	profID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	storeID := uuid.MustParse("00000000-0000-0000-0000-000000000010")
+
+	rows := sqlmock.NewRows([]string{"profile_id", "store_id", "name", "pin", "level_access", "is_active"}).AddRow(profID, storeID, "A", "111111", 4, true)
 	mock.ExpectQuery(`^SELECT .* FROM "profile" AS "p" WHERE \(p\.profile_id = .+\)$`).WillReturnRows(rows)
 	mock.ExpectExec(`^DELETE FROM "profile" AS "p" WHERE \(profile_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
 
-	req := httptest.NewRequest(http.MethodDelete, "/profile/1", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/profile/"+profID.String(), nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -330,11 +350,14 @@ func TestProfileHandler_Update_Success(t *testing.T) {
 	h, mock := setupProfileHandler(t)
 	r.PUT("/profile/:id", h.Update)
 
-	rows := sqlmock.NewRows([]string{"profile_id", "store_id", "name", "pin", "level_access", "is_active"}).AddRow(1, 10, "A", "111111", 4, true)
+	profID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	storeID := uuid.MustParse("00000000-0000-0000-0000-000000000010")
+
+	rows := sqlmock.NewRows([]string{"profile_id", "store_id", "name", "pin", "level_access", "is_active"}).AddRow(profID, storeID, "A", "111111", 4, true)
 	mock.ExpectQuery(`^SELECT .* FROM "profile" AS "p" WHERE \(p\.profile_id = .+\)$`).WillReturnRows(rows)
 	mock.ExpectExec(`^UPDATE "profile" AS "p" SET`).WillReturnResult(sqlmock.NewResult(1, 1))
 
-	req := httptest.NewRequest(http.MethodPut, "/profile/1", bytes.NewBufferString(`{"name":"B"}`))
+	req := httptest.NewRequest(http.MethodPut, "/profile/"+profID.String(), bytes.NewBufferString(`{"name":"B"}`))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
@@ -349,11 +372,14 @@ func TestProfileHandler_UpdateProfileByIdAndStoreId_Success(t *testing.T) {
 	h, mock := setupProfileHandler(t)
 	r.PUT("/profile/updateProfile/:id/:storeId", h.UpdateProfileByIdAndStoreId)
 
-	rows := sqlmock.NewRows([]string{"profile_id", "store_id", "name", "pin", "level_access", "is_active"}).AddRow(1, 10, "A", "111111", 4, true)
+	profID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	storeID := uuid.MustParse("00000000-0000-0000-0000-000000000010")
+
+	rows := sqlmock.NewRows([]string{"profile_id", "store_id", "name", "pin", "level_access", "is_active"}).AddRow(profID, storeID, "A", "111111", 4, true)
 	mock.ExpectQuery(`^SELECT .* FROM "profile" AS "p" WHERE \(p\.profile_id = .+\)$`).WillReturnRows(rows)
 	mock.ExpectExec(`^UPDATE "profile" AS "p" SET`).WillReturnResult(sqlmock.NewResult(1, 1))
 
-	req := httptest.NewRequest(http.MethodPut, "/profile/updateProfile/1/10", bytes.NewBufferString(`{"name":"B"}`))
+	req := httptest.NewRequest(http.MethodPut, "/profile/updateProfile/"+profID.String()+"/"+storeID.String(), bytes.NewBufferString(`{"name":"B"}`))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)

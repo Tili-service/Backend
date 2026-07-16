@@ -9,6 +9,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
 	"tili/app/pkg/db"
@@ -116,7 +117,8 @@ func TestPayementMethodHandler_Reactivate_NotFound(t *testing.T) {
 
 	mock.ExpectQuery(`^SELECT .* FROM "payementmethod" AS "pm" WHERE \(payement_method_id = .+\)$`).WillReturnError(sql.ErrNoRows)
 
-	req := httptest.NewRequest(http.MethodPatch, "/payementmethod/1/reactivate", nil)
+	pmID := uuid.New().String()
+	req := httptest.NewRequest(http.MethodPatch, "/payementmethod/"+pmID+"/reactivate", nil)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -131,7 +133,8 @@ func TestPayementMethodHandler_GetAll_Success(t *testing.T) {
 	h, mock := setupPayementMethodHandler(t)
 	r.GET("/payementmethod", h.GetAll)
 
-	rows := sqlmock.NewRows([]string{"payement_method_id", "name", "is_active"}).AddRow(1, "Card", true)
+	pmID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	rows := sqlmock.NewRows([]string{"payement_method_id", "name", "is_active"}).AddRow(pmID, "Card", true)
 	mock.ExpectQuery(`^SELECT .* FROM "payementmethod" AS "pm" WHERE \(is_active = .*\)$`).WillReturnRows(rows)
 
 	req := httptest.NewRequest(http.MethodGet, "/payementmethod", nil)

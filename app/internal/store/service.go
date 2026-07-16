@@ -19,7 +19,7 @@ var (
 )
 
 type AccountRepository interface {
-	FindByID(ctx context.Context, id int) (*AccountData, error)
+	FindByID(ctx context.Context, id uuid.UUID) (*AccountData, error)
 }
 
 type AccountData struct {
@@ -72,7 +72,7 @@ func decorateSumupStatusPointers(stores []*Store) []*Store {
 	return stores
 }
 
-func (s *Service) Create(ctx context.Context, input CreateStoreInput, accountID int) (*Store, error) {
+func (s *Service) Create(ctx context.Context, input CreateStoreInput, accountID uuid.UUID) (*Store, error) {
 	store := &Store{
 		Name:      input.Name,
 		BuyerID:   accountID,
@@ -93,7 +93,7 @@ func (s *Service) Create(ctx context.Context, input CreateStoreInput, accountID 
 	return createdStore, nil
 }
 
-func (s *Service) sendStoreCreatedEmail(ctx context.Context, accountID int, storeName string, storeID int) {
+func (s *Service) sendStoreCreatedEmail(ctx context.Context, accountID uuid.UUID, storeName string, storeID uuid.UUID) {
 	account, err := s.accountRepo.FindByID(ctx, accountID)
 	if err != nil {
 		log.Printf("Failed to fetch account: %v", err)
@@ -116,7 +116,7 @@ func (s *Service) sendStoreCreatedEmail(ctx context.Context, accountID int, stor
 	}
 }
 
-func (s *Service) LinkSumupCredentials(ctx context.Context, storeID int, accountID int, merchantCode string, accessToken string) (*Store, error) {
+func (s *Service) LinkSumupCredentials(ctx context.Context, storeID uuid.UUID, accountID uuid.UUID, merchantCode string, accessToken string) (*Store, error) {
 	store, err := s.FindByID(ctx, storeID)
 	if err != nil {
 		return nil, err
@@ -133,7 +133,7 @@ func (s *Service) LinkSumupCredentials(ctx context.Context, storeID int, account
 	return s.repo.Update(ctx, store)
 }
 
-func (s *Service) FindByID(ctx context.Context, id int) (*Store, error) {
+func (s *Service) FindByID(ctx context.Context, id uuid.UUID) (*Store, error) {
 	s2, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -144,7 +144,7 @@ func (s *Service) FindByID(ctx context.Context, id int) (*Store, error) {
 	return decorateSumupStatus(s2), nil
 }
 
-func (s *Service) FindByBuyerID(ctx context.Context, buyerID int) ([]Store, error) {
+func (s *Service) FindByBuyerID(ctx context.Context, buyerID uuid.UUID) ([]Store, error) {
 	stores, err := s.repo.FindByBuyerID(ctx, buyerID)
 	if err != nil {
 		return nil, err
@@ -171,7 +171,7 @@ func (s *Service) FindAll(ctx context.Context) ([]*Store, error) {
 	return decorateSumupStatusPointers(stores), nil
 }
 
-func (s *Service) Delete(ctx context.Context, id int) error {
+func (s *Service) Delete(ctx context.Context, id uuid.UUID) error {
 	_, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -182,11 +182,11 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *Service) DeleteByID(ctx context.Context, id int) error {
+func (s *Service) DeleteByID(ctx context.Context, id uuid.UUID) error {
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *Service) Update(ctx context.Context, id int, input UpdateStoreInput) (*Store, error) {
+func (s *Service) Update(ctx context.Context, id uuid.UUID, input UpdateStoreInput) (*Store, error) {
 	store, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

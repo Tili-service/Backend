@@ -9,6 +9,8 @@ import (
 	"log"
 	"math/big"
 	"tili/app/pkg/email"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -16,15 +18,15 @@ var (
 )
 
 type StoreRepository interface {
-	FindByID(ctx context.Context, id int) (*StoreData, error)
+	FindByID(ctx context.Context, id uuid.UUID) (*StoreData, error)
 }
 
 type AccountRepository interface {
-	FindByID(ctx context.Context, id int) (*AccountData, error)
+	FindByID(ctx context.Context, id uuid.UUID) (*AccountData, error)
 }
 
 type StoreData struct {
-	BuyerID int
+	BuyerID uuid.UUID
 }
 
 type AccountData struct {
@@ -63,7 +65,7 @@ func generatePIN(length int) (string, error) {
 	return fmt.Sprintf("%0*d", length, n), nil
 }
 
-func (s *Service) generateUniquePin(ctx context.Context, storeID int) (string, error) {
+func (s *Service) generateUniquePin(ctx context.Context, storeID uuid.UUID) (string, error) {
 	for i := 0; i < 100; i++ {
 		pin, err := generatePIN(6)
 		if err != nil {
@@ -116,7 +118,7 @@ func (s *Service) Create(ctx context.Context, input CreateProfileInput) (*Profil
 	}, nil
 }
 
-func (s *Service) sendProfileCreatedEmail(ctx context.Context, storeID int, profileName string, profilePIN string) {
+func (s *Service) sendProfileCreatedEmail(ctx context.Context, storeID uuid.UUID, profileName string, profilePIN string) {
 	storeData, err := s.storeRepo.FindByID(ctx, storeID)
 	if err != nil {
 		log.Printf("Failed to fetch store: %v", err)
@@ -150,11 +152,11 @@ func (s *Service) sendProfileCreatedEmail(ctx context.Context, storeID int, prof
 	}
 }
 
-func (s *Service) GetByID(ctx context.Context, id int) (*Profile, error) {
+func (s *Service) GetByID(ctx context.Context, id uuid.UUID) (*Profile, error) {
 	return s.repo.FindByID(ctx, id)
 }
 
-func (s *Service) Delete(ctx context.Context, id int) error {
+func (s *Service) Delete(ctx context.Context, id uuid.UUID) error {
 	_, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -165,11 +167,11 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *Service) DeleteByStoreID(ctx context.Context, storeID int) error {
+func (s *Service) DeleteByStoreID(ctx context.Context, storeID uuid.UUID) error {
 	return s.repo.DeleteByStoreID(ctx, storeID)
 }
 
-func (s *Service) LoginWithPin(ctx context.Context, storeID int, pin string) (*Profile, error) {
+func (s *Service) LoginWithPin(ctx context.Context, storeID uuid.UUID, pin string) (*Profile, error) {
 	p, err := s.repo.FindByStoreAndPin(ctx, storeID, pin)
 	if err != nil {
 		return nil, errors.New("invalid pin")
@@ -177,7 +179,7 @@ func (s *Service) LoginWithPin(ctx context.Context, storeID int, pin string) (*P
 	return p, nil
 }
 
-func (s *Service) Update(ctx context.Context, id int, input updateProfileInput) (*Profile, error) {
+func (s *Service) Update(ctx context.Context, id uuid.UUID, input updateProfileInput) (*Profile, error) {
 	profile, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -206,11 +208,11 @@ func (s *Service) Update(ctx context.Context, id int, input updateProfileInput) 
 	return profile, nil
 }
 
-func (s *Service) GetProfilesByStoreId(ctx context.Context, storeID int) ([]*Profile, error) {
+func (s *Service) GetProfilesByStoreId(ctx context.Context, storeID uuid.UUID) ([]*Profile, error) {
 	return s.repo.FindAllProfilesByStoreID(ctx, storeID)
 }
 
-func (s *Service) UpdateProfileByIdAndStoreId(ctx context.Context, idProfile int, storeId int, input updateProfileInput) (*Profile, error) {
+func (s *Service) UpdateProfileByIdAndStoreId(ctx context.Context, idProfile uuid.UUID, storeId uuid.UUID, input updateProfileInput) (*Profile, error) {
 	profile, err := s.repo.FindByID(ctx, idProfile)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -243,7 +245,7 @@ func (s *Service) UpdateProfileByIdAndStoreId(ctx context.Context, idProfile int
 	return profile, nil
 }
 
-func (s *Service) DeactivateProfile(ctx context.Context, idProfile int, storeId int) (*Profile, error) {
+func (s *Service) DeactivateProfile(ctx context.Context, idProfile uuid.UUID, storeId uuid.UUID) (*Profile, error) {
 	profile, err := s.repo.FindByID(ctx, idProfile)
 	if err != nil {
 		return nil, errors.New("profile not found")

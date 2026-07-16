@@ -3,12 +3,12 @@ package catalog
 import (
 	"errors"
 	"net/http"
-	"strconv"
 
 	"tili/app/internal/middleware"
 	"tili/app/internal/token"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type Handler struct {
@@ -39,11 +39,11 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 	}
 }
 
-func parseStoreID(c *gin.Context) (int, bool) {
-	storeID, err := strconv.Atoi(c.Param("store_id"))
+func parseStoreID(c *gin.Context) (uuid.UUID, bool) {
+	storeID, err := uuid.Parse(c.Param("store_id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store_id"})
-		return 0, false
+		return uuid.Nil, false
 	}
 	return storeID, true
 }
@@ -55,9 +55,9 @@ func parseStoreID(c *gin.Context) (int, bool) {
 // @Accept       json
 // @Produce      json
 // @Security     ProfileToken
-// @Param        store_id path      int           true "Store ID"  example(1)
+// @Param        store_id path      string        true "Store ID"  example(00000000-0000-0000-0000-000000000000)
 // @Param        body     body      catalogUpdate true "catalog payload"
-// @Success      201  {object}  catalog
+// @Success      201  {object}  Catalog
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
@@ -86,8 +86,8 @@ func (h *Handler) Create(c *gin.Context) {
 // @Tags         catalog
 // @Produce      json
 // @Security     ProfileToken
-// @Param        store_id path      int  true "Store ID"  example(1)
-// @Success      200  {array}   catalog
+// @Param        store_id path      string  true "Store ID"  example(00000000-0000-0000-0000-000000000000)
+// @Success      200  {array}   Catalog
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
@@ -111,9 +111,9 @@ func (h *Handler) GetAll(c *gin.Context) {
 // @Tags         catalog
 // @Produce      json
 // @Security     ProfileToken
-// @Param        store_id path      int  true "Store ID"   example(1)
-// @Param        id       path      int  true "catalog ID" example(1)
-// @Success      200  {object}  catalog
+// @Param        store_id path      string  true "Store ID"   example(00000000-0000-0000-0000-000000000000)
+// @Param        id       path      string  true "catalog ID" example(00000000-0000-0000-0000-000000000000)
+// @Success      200  {object}  Catalog
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
@@ -123,7 +123,7 @@ func (h *Handler) GetByID(c *gin.Context) {
 	if !ok {
 		return
 	}
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
@@ -147,10 +147,10 @@ func (h *Handler) GetByID(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Security     ProfileToken
-// @Param        store_id path      int           true "Store ID"   example(1)
-// @Param        id       path      int           true "catalog ID" example(1)
+// @Param        store_id path      string        true "Store ID"   example(00000000-0000-0000-0000-000000000000)
+// @Param        id       path      string        true "catalog ID" example(00000000-0000-0000-0000-000000000000)
 // @Param        body     body      catalogUpdate true "catalog update payload"
-// @Success      200  {object}  catalog
+// @Success      200  {object}  Catalog
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
@@ -161,7 +161,7 @@ func (h *Handler) Update(c *gin.Context) {
 	if !ok {
 		return
 	}
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
@@ -189,8 +189,8 @@ func (h *Handler) Update(c *gin.Context) {
 // @Tags         catalog
 // @Produce      json
 // @Security     ProfileToken
-// @Param        store_id path      int  true "Store ID"   example(1)
-// @Param        id       path      int  true "catalog ID" example(1)
+// @Param        store_id path      string  true "Store ID"   example(00000000-0000-0000-0000-000000000000)
+// @Param        id       path      string  true "catalog ID" example(00000000-0000-0000-0000-000000000000)
 // @Success      204  {object}  nil
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      400  {object}  map[string]interface{}
@@ -202,7 +202,7 @@ func (h *Handler) Delete(c *gin.Context) {
 	if !ok {
 		return
 	}
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return

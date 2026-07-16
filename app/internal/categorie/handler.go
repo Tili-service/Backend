@@ -3,12 +3,12 @@ package categorie
 import (
 	"errors"
 	"net/http"
-	"strconv"
 
 	"tili/app/internal/middleware"
 	"tili/app/internal/token"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type Handler struct {
@@ -41,11 +41,11 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 	}
 }
 
-func parseCatalogID(c *gin.Context) (int, bool) {
-	catalogID, err := strconv.Atoi(c.Param("catalog_id"))
+func parseCatalogID(c *gin.Context) (uuid.UUID, bool) {
+	catalogID, err := uuid.Parse(c.Param("catalog_id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid catalog_id"})
-		return 0, false
+		return uuid.Nil, false
 	}
 	return catalogID, true
 }
@@ -126,7 +126,7 @@ func (h *Handler) GetByID(c *gin.Context) {
 	if !ok {
 		return
 	}
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
@@ -196,7 +196,7 @@ func (h *Handler) Update(c *gin.Context) {
 	if !ok {
 		return
 	}
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
@@ -238,7 +238,7 @@ func (h *Handler) DeleteByID(c *gin.Context) {
 	if !ok {
 		return
 	}
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return

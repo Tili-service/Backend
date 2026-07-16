@@ -9,6 +9,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
 	"tili/app/pkg/db"
@@ -39,7 +40,8 @@ func TestCatalogHandler_Create_BadJSON(t *testing.T) {
 	h, _ := setupCatalogHandler(t)
 	r.POST("/store/:store_id/catalog", h.Create)
 
-	req := httptest.NewRequest(http.MethodPost, "/store/1/catalog", bytes.NewBufferString("{"))
+	storeID := uuid.New().String()
+	req := httptest.NewRequest(http.MethodPost, "/store/"+storeID+"/catalog", bytes.NewBufferString("{"))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -54,7 +56,8 @@ func TestCatalogHandler_GetByID_InvalidID(t *testing.T) {
 	h, _ := setupCatalogHandler(t)
 	r.GET("/store/:store_id/catalog/:id", h.GetByID)
 
-	req := httptest.NewRequest(http.MethodGet, "/store/1/catalog/abc", nil)
+	storeID := uuid.New().String()
+	req := httptest.NewRequest(http.MethodGet, "/store/"+storeID+"/catalog/abc", nil)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -70,7 +73,9 @@ func TestCatalogHandler_GetByID_NotFound(t *testing.T) {
 
 	mock.ExpectQuery(`^SELECT .* FROM "catalog" AS "c" WHERE \(c\.catalog_id = .+\) AND \(c\.store_id = .+\)$`).WillReturnError(sql.ErrNoRows)
 
-	req := httptest.NewRequest(http.MethodGet, "/store/1/catalog/1", nil)
+	storeID := uuid.New().String()
+	catalogID := uuid.New().String()
+	req := httptest.NewRequest(http.MethodGet, "/store/"+storeID+"/catalog/"+catalogID, nil)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -85,7 +90,8 @@ func TestCatalogHandler_Update_InvalidID(t *testing.T) {
 	h, _ := setupCatalogHandler(t)
 	r.PUT("/store/:store_id/catalog/:id", h.Update)
 
-	req := httptest.NewRequest(http.MethodPut, "/store/1/catalog/abc", bytes.NewBufferString("{}"))
+	storeID := uuid.New().String()
+	req := httptest.NewRequest(http.MethodPut, "/store/"+storeID+"/catalog/abc", bytes.NewBufferString("{}"))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -100,7 +106,8 @@ func TestCatalogHandler_Delete_InvalidID(t *testing.T) {
 	h, _ := setupCatalogHandler(t)
 	r.DELETE("/store/:store_id/catalog/:id", h.Delete)
 
-	req := httptest.NewRequest(http.MethodDelete, "/store/1/catalog/abc", nil)
+	storeID := uuid.New().String()
+	req := httptest.NewRequest(http.MethodDelete, "/store/"+storeID+"/catalog/abc", nil)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -114,10 +121,11 @@ func TestCatalogHandler_GetAll_Success(t *testing.T) {
 	h, mock := setupCatalogHandler(t)
 	r.GET("/store/:store_id/catalog", h.GetAll)
 
-	rows := sqlmock.NewRows([]string{"name", "description", "store_id"}).AddRow("C1", "D1", 1)
+	storeID := uuid.New()
+	rows := sqlmock.NewRows([]string{"name", "description", "store_id"}).AddRow("C1", "D1", storeID)
 	mock.ExpectQuery(`^SELECT .* FROM "catalog" AS "c" WHERE \(c\.store_id = .+\)$`).WillReturnRows(rows)
 
-	req := httptest.NewRequest(http.MethodGet, "/store/1/catalog", nil)
+	req := httptest.NewRequest(http.MethodGet, "/store/"+storeID.String()+"/catalog", nil)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)

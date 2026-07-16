@@ -1,5 +1,9 @@
 package email
 
+import (
+	"github.com/google/uuid"
+)
+
 // MockGetNewLicenseActiveEmailContent temporarily replaces the email content function
 // for testing purposes
 func MockGetNewLicenseActiveEmailContent(mockFunc func(string) (string, error)) func() {
@@ -32,7 +36,7 @@ func MockGetWelcomeEmailContent(mockFunc func(string, string) (string, error)) f
 
 // MockGetNewProfileCreatedEmailContent temporarily replaces the email content function
 // for testing purposes
-func MockGetNewProfileCreatedEmailContent(mockFunc func(int, string, string) (string, error)) func() {
+func MockGetNewProfileCreatedEmailContent(mockFunc func(uuid.UUID, string, string) (string, error)) func() {
 	original := getNewProfileCreatedEmailContent
 	getNewProfileCreatedEmailContent = mockFunc
 	return func() {
@@ -42,7 +46,7 @@ func MockGetNewProfileCreatedEmailContent(mockFunc func(int, string, string) (st
 
 // MockGetNewStoreCreatedEmailContent temporarily replaces the email content function
 // for testing purposes
-func MockGetNewStoreCreatedEmailContent(mockFunc func(string, int) (string, error)) func() {
+func MockGetNewStoreCreatedEmailContent(mockFunc func(string, uuid.UUID) (string, error)) func() {
 	original := getNewStoreCreatedEmailContent
 	getNewStoreCreatedEmailContent = mockFunc
 	return func() {

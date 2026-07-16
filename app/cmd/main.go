@@ -21,9 +21,11 @@ import (
 	"tili/app/pkg/email"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v84"
 
 	"context"
+
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -32,7 +34,7 @@ type storeRepositoryAdapter struct {
 	repo *store.Repository
 }
 
-func (a *storeRepositoryAdapter) FindByID(ctx context.Context, id int) (*profile.StoreData, error) {
+func (a *storeRepositoryAdapter) FindByID(ctx context.Context, id uuid.UUID) (*profile.StoreData, error) {
 	store, err := a.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -47,7 +49,7 @@ type accountRepositoryAdapter struct {
 	repo *account.Repository
 }
 
-func (a *accountRepositoryAdapter) FindByID(ctx context.Context, id int) (*profile.AccountData, error) {
+func (a *accountRepositoryAdapter) FindByID(ctx context.Context, id uuid.UUID) (*profile.AccountData, error) {
 	acc, err := a.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -62,7 +64,7 @@ type storeAccountRepositoryAdapter struct {
 	repo *account.Repository
 }
 
-func (a *storeAccountRepositoryAdapter) FindByID(ctx context.Context, id int) (*store.AccountData, error) {
+func (a *storeAccountRepositoryAdapter) FindByID(ctx context.Context, id uuid.UUID) (*store.AccountData, error) {
 	acc, err := a.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err

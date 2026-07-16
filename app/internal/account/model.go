@@ -3,13 +3,14 @@ package account
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/uptrace/bun"
 )
 
 type Account struct {
 	bun.BaseModel `bun:"table:account,alias:a" swaggerignore:"true"`
 
-	AccountID        int       `bun:"account_id,pk,autoincrement"          json:"account_id"`
+	AccountID        uuid.UUID `bun:"account_id,pk,type:uuid,default:gen_random_uuid()" json:"account_id"`
 	Email            string    `bun:"email,unique,notnull"                 json:"email"`
 	Password         string    `bun:"password,notnull"                     json:"-"`
 	Name             string    `bun:"name,notnull"                         json:"name"`

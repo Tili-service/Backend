@@ -10,9 +10,9 @@ import (
 type Store struct {
 	bun.BaseModel `bun:"table:store,alias:s" swaggerignore:"true"`
 
-	StoreID           int       `bun:"store_id,pk,autoincrement"               json:"store_id"`
+	StoreID           uuid.UUID `bun:"store_id,pk,type:uuid,default:gen_random_uuid()"               json:"store_id"`
 	Name              string    `bun:"name,notnull"                            json:"name"`
-	BuyerID           int       `bun:"buyer_id,notnull"                        json:"-"`
+	BuyerID           uuid.UUID `bun:"buyer_id,notnull,type:uuid"              json:"-"`
 	LicenceID         uuid.UUID `bun:"licence_id,notnull,type:uuid"            json:"licence_id"`
 	DateCreation      time.Time `bun:"date_creation,default:current_timestamp" json:"date_creation"`
 	NumeroTVA         string    `bun:"numero_tva"                              json:"numero_tva,omitempty"`
@@ -30,8 +30,8 @@ type CreateStoreInput struct {
 }
 
 type UpdateStoreInput struct {
-	Name      *string `json:"name,omitempty"`
-	BuyerID   int     `json:"buyer_id"`
-	NumeroTVA *string `json:"numero_tva,omitempty"`
-	Siret     *string `json:"siret,omitempty"`
+	Name      *string   `json:"name,omitempty"`
+	BuyerID   uuid.UUID `json:"buyer_id"`
+	NumeroTVA *string   `json:"numero_tva,omitempty"`
+	Siret     *string   `json:"siret,omitempty"`
 }

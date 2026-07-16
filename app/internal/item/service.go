@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 
+	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
 
@@ -30,8 +31,8 @@ func (s *Service) Create(ctx context.Context, inputItem Item) (*Item, error) {
 	if inputItem.Tax.IsNegative() || inputItem.Tax.GreaterThan(decimal.NewFromFloat(1)) {
 		return nil, errors.New("tax must be a positive number between 0 and 1")
 	}
-	if inputItem.CategorieID <= 0 {
-		return nil, errors.New("categorie_id must be a positive integer")
+	if inputItem.CategorieID == uuid.Nil {
+		return nil, errors.New("categorie_id is required")
 	}
 	i := &Item{
 		Name:        inputItem.Name,
@@ -45,7 +46,7 @@ func (s *Service) Create(ctx context.Context, inputItem Item) (*Item, error) {
 	return i, nil
 }
 
-func (s *Service) Update(ctx context.Context, id int, input ItemUpdate) (*Item, error) {
+func (s *Service) Update(ctx context.Context, id uuid.UUID, input ItemUpdate) (*Item, error) {
 	c, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -60,11 +61,11 @@ func (s *Service) Update(ctx context.Context, id int, input ItemUpdate) (*Item, 
 	return c, nil
 }
 
-func (s *Service) GetByCategorieID(ctx context.Context, id int) ([]Item, error) {
+func (s *Service) GetByCategorieID(ctx context.Context, id uuid.UUID) ([]Item, error) {
 	return s.repo.FindByCategorieID(ctx, id)
 }
 
-func (s *Service) Delete(ctx context.Context, id int) error {
+func (s *Service) Delete(ctx context.Context, id uuid.UUID) error {
 	_, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -79,7 +80,7 @@ func (s *Service) GetAll(ctx context.Context) ([]Item, error) {
 	return s.repo.FindAll(ctx)
 }
 
-func (s *Service) GetByID(ctx context.Context, id int) (*Item, error) {
+func (s *Service) GetByID(ctx context.Context, id uuid.UUID) (*Item, error) {
 	c, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

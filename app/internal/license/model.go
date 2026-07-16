@@ -13,7 +13,7 @@ type Licence struct {
 	bun.BaseModel `bun:"table:licence,alias:l" swaggerignore:"true"`
 
 	LicenceID   uuid.UUID          `bun:"licence_id,pk,type:uuid,default:gen_random_uuid()" json:"licence_id"`
-	AccountID   int                `bun:"account_id,notnull"                                json:"account_id"`
+	AccountID   uuid.UUID          `bun:"account_id,notnull,type:uuid"                     json:"account_id"`
 	Expiration  time.Time          `bun:"expiration,notnull"                                json:"expiration"`
 	NextPayment time.Time          `bun:"next_payment,notnull"                              json:"next_payment"`
 	Store       *store.Store       `bun:"rel:has-one,join:licence_id=licence_id"            json:"store"`

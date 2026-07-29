@@ -245,7 +245,40 @@ func (s *Service) UpdateProfileByIdAndStoreId(ctx context.Context, idProfile uui
 	return profile, nil
 }
 
-func (s *Service) DeactivateProfile(ctx context.Context, idProfile uuid.UUID, storeId uuid.UUID) (*Profile, error) {
+func (s *Service) ResetPin(ctx context.Context, idProfile int, storeId int) (*ProfileWithPin, error) {
+	profile, err := s.repo.FindByID(ctx, idProfile)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrProfileNotFound
+		}
+		return nil, err
+	}
+
+	if profile.StoreID != storeId {
+		return nil, errors.New("profile does not belong to the specified store")
+	}
+
+	pin, err := s.generateUniquePin(ctx, storeId)
+	if err != nil {
+		return nil, err
+	}
+	profile.Pin = pin
+
+	if err := s.repo.Update(ctx, profile); err != nil {
+		return nil, errors.New("failed to reset pin")
+	}
+
+	return &ProfileWithPin{
+		ProfileID:   profile.ProfileID,
+		StoreID:     profile.StoreID,
+		Name:        profile.Name,
+		Pin:         pin,
+		LevelAccess: profile.LevelAccess,
+		IsActive:    profile.IsActive,
+	}, nil
+}
+
+func (s *Service) DeactivateProfile(ctx context.Context, idProfile int, storeId int) (*Profile, error) {
 	profile, err := s.repo.FindByID(ctx, idProfile)
 	if err != nil {
 		return nil, errors.New("profile not found")

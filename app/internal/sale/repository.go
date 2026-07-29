@@ -7,6 +7,7 @@ import (
 
 	"tili/app/pkg/db"
 
+	"github.com/google/uuid"
 	"github.com/uptrace/bun"
 )
 
@@ -26,12 +27,12 @@ func (r *Repository) Create(ctx context.Context, s *Sale) (*Sale, error) {
 	return s, nil
 }
 
-func (r *Repository) FindByID(ctx context.Context, id int) (*Sale, error) {
+func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (*Sale, error) {
 	sale := &Sale{}
 	err := r.db.NewSelect().
 		Model(sale).
-		Relation("PayementMethod").
 		Where("s.sale_id = ?", id).
+		Where("s.is_deleted = ?", false).
 		Scan(ctx)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrSaleNotFound
@@ -46,7 +47,7 @@ func (r *Repository) FindAll(ctx context.Context) ([]*Sale, error) {
 	var sales []*Sale
 	err := r.db.NewSelect().
 		Model(&sales).
-		Relation("PayementMethod").
+		Where("s.is_deleted = ?", false).
 		OrderExpr("s.time_stamp DESC").
 		Scan(ctx)
 	if err != nil {
@@ -61,19 +62,4 @@ func (r *Repository) Update(ctx context.Context, s *Sale) (*Sale, error) {
 		return nil, err
 	}
 	return s, nil
-}
-
-func (r *Repository) Delete(ctx context.Context, id int) error {
-	res, err := r.db.NewDelete().Model(&Sale{}).Where("sale_id = ?", id).Exec(ctx)
-	if err != nil {
-		return err
-	}
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if rows == 0 {
-		return ErrSaleNotFound
-	}
-	return nil
 }

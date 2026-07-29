@@ -13,6 +13,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
@@ -32,7 +33,13 @@ func setupTestDB(t *testing.T) (*bun.DB, sqlmock.Sqlmock) {
 
 type MockLicenseDeleter struct{}
 
-func (m *MockLicenseDeleter) DeleteByAccountID(ctx context.Context, accountID int) error {
+func (m *MockLicenseDeleter) DeleteByAccountID(ctx context.Context, accountID uuid.UUID) error {
+	return nil
+}
+
+type MockEmailSender struct{}
+
+func (m *MockEmailSender) SendEmail(recipientEmail, subject, body string) error {
 	return nil
 }
 
@@ -45,22 +52,21 @@ func setupTestEnv(t *testing.T) (*gin.Engine, sqlmock.Sqlmock, *Service) {
 	mockDbObj := &db.Db{DB: bunDB}
 	repo := NewRepository(mockDbObj)
 
-	// Since store and profile services expect a similar db setup, we use the easiest dummy references.
-	// Depending on your requirements, you might want full interfaces. For now we use actual structs with mock DB.
 	storeRepo := store.NewRepository(mockDbObj)
 	storeService := store.NewService(storeRepo)
 	profileRepo := profile.NewRepository(mockDbObj)
 	profileService := profile.NewService(profileRepo)
 
 	licenceService := &MockLicenseDeleter{}
+	emailClient := &MockEmailSender{}
 
-	service := NewService(repo, storeService, profileService, licenceService)
+	service := NewService(repo, storeService, profileService, licenceService, emailClient)
 	handler := NewHandler(service)
 
 	// Middleware stub for GetAccount
 	protected := router.Group("/account")
 	protected.Use(func(c *gin.Context) {
-		c.Set("accountID", 1) // Force mock account ID
+		c.Set("accountID", "00000000-0000-0000-0000-000000000001") // Force mock account ID string
 		c.Next()
 	})
 	protected.GET("", handler.GetAccount)
@@ -72,11 +78,10 @@ func setupTestEnv(t *testing.T) (*gin.Engine, sqlmock.Sqlmock, *Service) {
 func TestHandler_GetAccount(t *testing.T) {
 	router, mock, _ := setupTestEnv(t)
 
-	// Expected row return for Account 1 from GetAccount
 	rows := sqlmock.NewRows([]string{"account_id", "email", "name", "password", "stripe_customer_id", "created_at"}).
-		AddRow(1, "test@example.com", "Test User", "pwd", "cus_123", time.Now())
+		AddRow("00000000-0000-0000-0000-000000000001", "test@example.com", "Test User", "pwd", "cus_123", time.Now())
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "a"."account_id", "a"."email", "a"."password", "a"."name", "a"."stripe_customer_id", "a"."created_at" FROM "account" AS "a" WHERE (account_id = 1)`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "a"."account_id", "a"."email", "a"."password", "a"."name", "a"."stripe_customer_id", "a"."created_at" FROM "account" AS "a" WHERE (account_id = '00000000-0000-0000-0000-000000000001')`)).
 		WillReturnRows(rows)
 
 	req, _ := http.NewRequest("GET", "/account", nil)
@@ -93,9 +98,9 @@ func TestHandler_Update(t *testing.T) {
 	router, mock, _ := setupTestEnv(t)
 
 	rows := sqlmock.NewRows([]string{"account_id", "email", "name", "password", "stripe_customer_id", "created_at"}).
-		AddRow(1, "old@example.com", "Old Name", "pwd", "cus_123", time.Now())
+		AddRow("00000000-0000-0000-0000-000000000001", "old@example.com", "Old Name", "pwd", "cus_123", time.Now())
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "a"."account_id", "a"."email", "a"."password", "a"."name", "a"."stripe_customer_id", "a"."created_at" FROM "account" AS "a" WHERE (account_id = 1)`)).WillReturnRows(rows)
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "a"."account_id", "a"."email", "a"."password", "a"."name", "a"."stripe_customer_id", "a"."created_at" FROM "account" AS "a" WHERE (account_id = '00000000-0000-0000-0000-000000000001')`)).WillReturnRows(rows)
 
 	mock.ExpectExec(regexp.QuoteMeta(`UPDATE "account" AS "a"`)).WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -147,12 +152,12 @@ func TestHandler_Delete_NotFound(t *testing.T) {
 
 	protected := router.Group("/account")
 	protected.Use(func(c *gin.Context) {
-		c.Set("accountID", 1)
+		c.Set("accountID", "00000000-0000-0000-0000-000000000001")
 		c.Next()
 	})
 	protected.DELETE("", handler.Delete)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "a"."account_id", "a"."email", "a"."password", "a"."name", "a"."stripe_customer_id", "a"."created_at" FROM "account" AS "a" WHERE (account_id = 1)`)).WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "a"."account_id", "a"."email", "a"."password", "a"."name", "a"."stripe_customer_id", "a"."created_at" FROM "account" AS "a" WHERE (account_id = '00000000-0000-0000-0000-000000000001')`)).WillReturnError(sql.ErrNoRows)
 
 	req, _ := http.NewRequest("DELETE", "/account", nil)
 	w := httptest.NewRecorder()
@@ -169,7 +174,7 @@ func TestHandler_Create_ConflictEmailExists(t *testing.T) {
 	router.POST("/account/create-conflict", handler.Create)
 
 	rows := sqlmock.NewRows([]string{"account_id", "email", "name", "password", "stripe_customer_id", "created_at"}).
-		AddRow(1, "already@example.com", "Already", "pwd", "cus_123", time.Now())
+		AddRow("00000000-0000-0000-0000-000000000001", "already@example.com", "Already", "pwd", "cus_123", time.Now())
 	mock.ExpectQuery(`^SELECT .* FROM "account" AS "a" WHERE \(email = .+\)$`).WillReturnRows(rows)
 
 	req := httptest.NewRequest("POST", "/account/create-conflict", bytes.NewBufferString(`{"name":"A","email":"already@example.com","password":"secret123"}`))
@@ -206,11 +211,11 @@ func TestHandler_Login_Success(t *testing.T) {
 	assert.NoError(t, err)
 
 	accRows := sqlmock.NewRows([]string{"account_id", "email", "name", "password", "stripe_customer_id", "created_at"}).
-		AddRow(1, "test@example.com", "User", string(hash), "cus_123", time.Now())
+		AddRow("00000000-0000-0000-0000-000000000001", "test@example.com", "User", string(hash), "cus_123", time.Now())
 	mock.ExpectQuery(`^SELECT .* FROM "account" AS "a" WHERE \(email = .+\)$`).WillReturnRows(accRows)
 
 	storeRows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation", "numero_tva", "siret"}).
-		AddRow(1, "Store", 1, "00000000-0000-0000-0000-000000000000", time.Now(), "", "")
+		AddRow("00000000-0000-0000-0000-000000000002", "Store", "00000000-0000-0000-0000-000000000001", "00000000-0000-0000-0000-000000000000", time.Now(), "", "")
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(buyer_id = .+\)$`).WillReturnRows(storeRows)
 
 	req := httptest.NewRequest("POST", "/account/login-success", bytes.NewBufferString(`{"email":"test@example.com","password":"secret123"}`))
@@ -225,13 +230,107 @@ func TestHandler_Login_Success(t *testing.T) {
 func TestHandler_Update_NotFound(t *testing.T) {
 	router, mock, _ := setupTestEnv(t)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "a"."account_id", "a"."email", "a"."password", "a"."name", "a"."stripe_customer_id", "a"."created_at" FROM "account" AS "a" WHERE (account_id = 1)`)).WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "a"."account_id", "a"."email", "a"."password", "a"."name", "a"."stripe_customer_id", "a"."created_at" FROM "account" AS "a" WHERE (account_id = '00000000-0000-0000-0000-000000000001')`)).WillReturnError(sql.ErrNoRows)
 
-	req := httptest.NewRequest("PUT", "/account", bytes.NewBufferString(`{"name":"X"}`))
+	req := httptest.NewRequest("PUT", "/account", bytes.NewBufferString(`{"name":"X","email":"test@example.com"}`))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func setupResetPasswordRouter(t *testing.T) (*gin.Engine, sqlmock.Sqlmock) {
+	router, mock, service := setupTestEnv(t)
+	handler := NewHandler(service)
+
+	protected := router.Group("/account")
+	protected.Use(func(c *gin.Context) {
+		c.Set("accountID", "00000000-0000-0000-0000-000000000001")
+		c.Next()
+	})
+	protected.POST("/reset-password", handler.ResetPassword)
+
+	return router, mock
+}
+
+func TestHandler_ResetPassword_BadJSON(t *testing.T) {
+	router, _ := setupResetPasswordRouter(t)
+
+	req := httptest.NewRequest("POST", "/account/reset-password", bytes.NewBufferString("{"))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestHandler_ResetPassword_MissingFields(t *testing.T) {
+	router, _ := setupResetPasswordRouter(t)
+
+	req := httptest.NewRequest("POST", "/account/reset-password", bytes.NewBufferString(`{"old_password":"secret123"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestHandler_ResetPassword_AccountNotFound(t *testing.T) {
+	router, mock := setupResetPasswordRouter(t)
+
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "a"."account_id", "a"."email", "a"."password", "a"."name", "a"."stripe_customer_id", "a"."created_at" FROM "account" AS "a" WHERE (account_id = '00000000-0000-0000-0000-000000000001')`)).
+		WillReturnError(sql.ErrNoRows)
+
+	req := httptest.NewRequest("POST", "/account/reset-password", bytes.NewBufferString(`{"old_password":"secret123","new_password":"newpass456"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestHandler_ResetPassword_InvalidPassword(t *testing.T) {
+	router, mock := setupResetPasswordRouter(t)
+
+	hash, err := bcrypt.GenerateFromPassword([]byte("correct_password"), bcrypt.DefaultCost)
+	assert.NoError(t, err)
+
+	rows := sqlmock.NewRows([]string{"account_id", "email", "name", "password", "stripe_customer_id", "created_at"}).
+		AddRow("00000000-0000-0000-0000-000000000001", "test@example.com", "Test User", string(hash), "cus_123", time.Now())
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "a"."account_id", "a"."email", "a"."password", "a"."name", "a"."stripe_customer_id", "a"."created_at" FROM "account" AS "a" WHERE (account_id = '00000000-0000-0000-0000-000000000001')`)).
+		WillReturnRows(rows)
+
+	req := httptest.NewRequest("POST", "/account/reset-password", bytes.NewBufferString(`{"old_password":"wrong_password","new_password":"newpass456"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestHandler_ResetPassword_Success(t *testing.T) {
+	router, mock := setupResetPasswordRouter(t)
+
+	hash, err := bcrypt.GenerateFromPassword([]byte("secret123"), bcrypt.DefaultCost)
+	assert.NoError(t, err)
+
+	rows := sqlmock.NewRows([]string{"account_id", "email", "name", "password", "stripe_customer_id", "created_at"}).
+		AddRow("00000000-0000-0000-0000-000000000001", "test@example.com", "Test User", string(hash), "cus_123", time.Now())
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "a"."account_id", "a"."email", "a"."password", "a"."name", "a"."stripe_customer_id", "a"."created_at" FROM "account" AS "a" WHERE (account_id = '00000000-0000-0000-0000-000000000001')`)).
+		WillReturnRows(rows)
+	mock.ExpectExec(`^UPDATE "account" AS "a" SET`).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	req := httptest.NewRequest("POST", "/account/reset-password", bytes.NewBufferString(`{"old_password":"secret123","new_password":"newpass456"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "password updated successfully")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }

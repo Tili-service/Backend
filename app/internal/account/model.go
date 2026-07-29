@@ -3,13 +3,14 @@ package account
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/uptrace/bun"
 )
 
 type Account struct {
 	bun.BaseModel `bun:"table:account,alias:a" swaggerignore:"true"`
 
-	AccountID        int       `bun:"account_id,pk,autoincrement"          json:"account_id"`
+	AccountID        uuid.UUID `bun:"account_id,pk,type:uuid,default:gen_random_uuid()" json:"account_id"`
 	Email            string    `bun:"email,unique,notnull"                 json:"email"`
 	Password         string    `bun:"password,notnull"                     json:"-"`
 	Name             string    `bun:"name,notnull"                         json:"name"`
@@ -30,5 +31,10 @@ type LoginInput struct {
 
 type UpdateAccountInput struct {
 	Name  *string `json:"name,omitempty"`
-	Email *string `json:"email,omitempty" binding:"omitempty,email"`
+	Email *string `json:"email,omitempty" binding:"required,email"`
+}
+
+type ResetPasswordInput struct {
+	OldPassword string `json:"old_password" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required,min=6"`
 }

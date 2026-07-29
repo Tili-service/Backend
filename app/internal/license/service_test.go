@@ -21,7 +21,7 @@ func TestService_GetByID_NotFound(t *testing.T) {
 	defer bunDB.Close()
 
 	repo := NewRepository(&db.Db{DB: bunDB})
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 
 	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l" WHERE \(licence_id = .+\)$`).WillReturnError(sql.ErrNoRows)
 
@@ -78,10 +78,11 @@ func TestService_GetByID_WithStripeInfo(t *testing.T) {
 	}
 
 	repo := NewRepository(&db.Db{DB: bunDB})
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 
 	licID := uuid.New()
-	rows := sqlmock.NewRows([]string{"licence_id", "account_id", "transaction"}).AddRow(licID, 1, "cs_test_123")
+	accID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	rows := sqlmock.NewRows([]string{"licence_id", "account_id", "transaction"}).AddRow(licID, accID, "cs_test_123")
 	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l" WHERE \(licence_id = .+\)$`).WillReturnRows(rows)
 
 	lic, err := svc.GetByID(context.Background(), licID)
@@ -110,13 +111,16 @@ func TestService_Delete_Forbidden(t *testing.T) {
 	defer bunDB.Close()
 
 	repo := NewRepository(&db.Db{DB: bunDB})
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 
 	licID := uuid.New()
-	rows := sqlmock.NewRows([]string{"licence_id", "account_id"}).AddRow(licID, 99)
+	forbiddenAccID := uuid.MustParse("00000000-0000-0000-0000-000000000099")
+	accID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+
+	rows := sqlmock.NewRows([]string{"licence_id", "account_id"}).AddRow(licID, forbiddenAccID)
 	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l" WHERE \(licence_id = .+\)$`).WillReturnRows(rows)
 
-	err := svc.Delete(context.Background(), 1, licID)
+	err := svc.Delete(context.Background(), accID, licID)
 
 	assert.ErrorIs(t, err, ErrForbidden)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -127,13 +131,16 @@ func TestService_Update_Forbidden(t *testing.T) {
 	defer bunDB.Close()
 
 	repo := NewRepository(&db.Db{DB: bunDB})
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 
 	licID := uuid.New()
-	rows := sqlmock.NewRows([]string{"licence_id", "account_id"}).AddRow(licID, 99)
+	forbiddenAccID := uuid.MustParse("00000000-0000-0000-0000-000000000099")
+	accID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+
+	rows := sqlmock.NewRows([]string{"licence_id", "account_id"}).AddRow(licID, forbiddenAccID)
 	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l" WHERE \(licence_id = .+\)$`).WillReturnRows(rows)
 
-	_, err := svc.Update(context.Background(), 1, licID, UpdateLicenceInput{})
+	_, err := svc.Update(context.Background(), accID, licID, UpdateLicenceInput{})
 
 	assert.ErrorIs(t, err, ErrForbidden)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -144,9 +151,10 @@ func TestService_CreatePaymentLink_InvalidOffer(t *testing.T) {
 	defer bunDB.Close()
 
 	repo := NewRepository(&db.Db{DB: bunDB})
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 
-	_, err := svc.CreatePaymentLink(context.Background(), 1, "", CreatePaymentLinkInput{Offer: "weekly"})
+	accID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	_, err := svc.CreatePaymentLink(context.Background(), accID, "", CreatePaymentLinkInput{Offer: "weekly"})
 
 	assert.EqualError(t, err, "offre invalide: weekly")
 }
@@ -159,9 +167,10 @@ func TestService_CreatePaymentLink_MissingConfig(t *testing.T) {
 	t.Setenv("APP_URL", "https://example.com")
 
 	repo := NewRepository(&db.Db{DB: bunDB})
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 
-	_, err := svc.CreatePaymentLink(context.Background(), 1, "", CreatePaymentLinkInput{Offer: "mensuel"})
+	accID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	_, err := svc.CreatePaymentLink(context.Background(), accID, "", CreatePaymentLinkInput{Offer: "mensuel"})
 
 	assert.EqualError(t, err, "config manquante pour l'offre: mensuel")
 }
@@ -171,17 +180,18 @@ func TestService_GetByAccountID_Success(t *testing.T) {
 	defer bunDB.Close()
 
 	repo := NewRepository(&db.Db{DB: bunDB})
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 
 	licID := uuid.New()
-	rows := sqlmock.NewRows([]string{"licence_id", "account_id"}).AddRow(licID, 1)
+	accID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	rows := sqlmock.NewRows([]string{"licence_id", "account_id"}).AddRow(licID, accID)
 	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l"`).WillReturnRows(rows)
 
-	list, err := svc.GetByAccountID(context.Background(), 1)
+	list, err := svc.GetByAccountID(context.Background(), accID)
 
 	assert.NoError(t, err)
 	assert.Len(t, list, 1)
-	assert.Equal(t, 1, list[0].AccountID)
+	assert.Equal(t, accID, list[0].AccountID)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -190,11 +200,12 @@ func TestService_DeleteByAccountID_Success(t *testing.T) {
 	defer bunDB.Close()
 
 	repo := NewRepository(&db.Db{DB: bunDB})
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 
 	mock.ExpectExec(`^DELETE FROM "licence" AS "l" WHERE \(account_id = .+\)`).WillReturnResult(sqlmock.NewResult(1, 1))
 
-	err := svc.DeleteByAccountID(context.Background(), 1)
+	accID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	err := svc.DeleteByAccountID(context.Background(), accID)
 
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -232,20 +243,21 @@ func TestService_Refund_Success(t *testing.T) {
 	repo := NewRepository(&db.Db{DB: bunDB})
 	storeSvc := store.NewService(store.NewRepository(&db.Db{DB: bunDB}))
 	profileSvc := profile.NewService(profile.NewRepository(&db.Db{DB: bunDB}))
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 	svc.SetDependencies(storeSvc, profileSvc)
 
 	licID := uuid.New()
-	storeID := 10
-	storeRows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation", "numero_tva", "siret"}).AddRow(storeID, "Refund Store", 1, licID, time.Now(), "", "")
-	licRows := sqlmock.NewRows([]string{"licence_id", "account_id", "transaction"}).AddRow(licID, 1, "cs_test_123")
+	accID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	storeID := uuid.MustParse("00000000-0000-0000-0000-000000000010")
+	storeRows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation", "numero_tva", "siret"}).AddRow(storeID, "Refund Store", accID, licID, time.Now(), "", "")
+	licRows := sqlmock.NewRows([]string{"licence_id", "account_id", "transaction"}).AddRow(licID, accID, "cs_test_123")
 	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l" WHERE \(licence_id = .+\)$`).WillReturnRows(licRows)
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(licence_id = .+\)$`).WillReturnRows(storeRows)
 	mock.ExpectExec(`^DELETE FROM "profile" AS "p" WHERE \(store_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectExec(`^DELETE FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectExec(`^DELETE FROM "licence" AS "l" WHERE \(licence_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
 
-	err := svc.Refund(context.Background(), 1, licID)
+	err := svc.Refund(context.Background(), accID, licID)
 
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -300,20 +312,21 @@ func TestService_Refund_Success_ResolvePaymentIntentFromSubscription(t *testing.
 	repo := NewRepository(&db.Db{DB: bunDB})
 	storeSvc := store.NewService(store.NewRepository(&db.Db{DB: bunDB}))
 	profileSvc := profile.NewService(profile.NewRepository(&db.Db{DB: bunDB}))
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 	svc.SetDependencies(storeSvc, profileSvc)
 
 	licID := uuid.New()
-	storeID := 11
-	storeRows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation", "numero_tva", "siret"}).AddRow(storeID, "Refund Store 2", 1, licID, time.Now(), "", "")
-	licRows := sqlmock.NewRows([]string{"licence_id", "account_id", "transaction"}).AddRow(licID, 1, "cs_test_456")
+	accID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	storeID := uuid.MustParse("00000000-0000-0000-0000-000000000011")
+	storeRows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation", "numero_tva", "siret"}).AddRow(storeID, "Refund Store 2", accID, licID, time.Now(), "", "")
+	licRows := sqlmock.NewRows([]string{"licence_id", "account_id", "transaction"}).AddRow(licID, accID, "cs_test_456")
 	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l" WHERE \(licence_id = .+\)$`).WillReturnRows(licRows)
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(licence_id = .+\)$`).WillReturnRows(storeRows)
 	mock.ExpectExec(`^DELETE FROM "profile" AS "p" WHERE \(store_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectExec(`^DELETE FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectExec(`^DELETE FROM "licence" AS "l" WHERE \(licence_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
 
-	err := svc.Refund(context.Background(), 1, licID)
+	err := svc.Refund(context.Background(), accID, licID)
 
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -356,42 +369,23 @@ func TestService_Refund_Success_NoPaymentReference(t *testing.T) {
 	repo := NewRepository(&db.Db{DB: bunDB})
 	storeSvc := store.NewService(store.NewRepository(&db.Db{DB: bunDB}))
 	profileSvc := profile.NewService(profile.NewRepository(&db.Db{DB: bunDB}))
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 	svc.SetDependencies(storeSvc, profileSvc)
 
 	licID := uuid.New()
-	storeID := 12
-	storeRows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation", "numero_tva", "siret"}).AddRow(storeID, "Refund Store 3", 1, licID, time.Now(), "", "")
-	licRows := sqlmock.NewRows([]string{"licence_id", "account_id", "transaction"}).AddRow(licID, 1, "cs_test_789")
+	accID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	storeID := uuid.MustParse("00000000-0000-0000-0000-000000000012")
+	storeRows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation", "numero_tva", "siret"}).AddRow(storeID, "Refund Store 3", accID, licID, time.Now(), "", "")
+	licRows := sqlmock.NewRows([]string{"licence_id", "account_id", "transaction"}).AddRow(licID, accID, "cs_test_789")
 	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l" WHERE \(licence_id = .+\)$`).WillReturnRows(licRows)
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(licence_id = .+\)$`).WillReturnRows(storeRows)
 	mock.ExpectExec(`^DELETE FROM "profile" AS "p" WHERE \(store_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectExec(`^DELETE FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectExec(`^DELETE FROM "licence" AS "l" WHERE \(licence_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
 
-	err := svc.Refund(context.Background(), 1, licID)
+	err := svc.Refund(context.Background(), accID, licID)
 
 	assert.NoError(t, err)
-	assert.NoError(t, mock.ExpectationsWereMet())
-}
-
-func TestService_Create_Success(t *testing.T) {
-	bunDB, mock := setupMockDB(t)
-	defer bunDB.Close()
-
-	repo := NewRepository(&db.Db{DB: bunDB})
-	svc := NewService(repo)
-
-	mock.ExpectExec(`^INSERT INTO "licence"`).WillReturnResult(sqlmock.NewResult(1, 1))
-
-	lic, err := svc.Create(context.Background(), 1, CreateLicenceInput{DurationDays: 30, Transaction: "txn_123"})
-
-	assert.NoError(t, err)
-	if assert.NotNil(t, lic) {
-		assert.Equal(t, 1, lic.AccountID)
-		assert.True(t, lic.IsActive)
-		assert.WithinDuration(t, time.Now().Add(30*24*time.Hour), lic.Expiration, time.Second)
-	}
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -410,11 +404,12 @@ func TestService_DeleteByStripeSubscriptionID_Success(t *testing.T) {
 	}
 
 	repo := NewRepository(&db.Db{DB: bunDB})
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 
 	licID := uuid.New()
+	accID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l" WHERE \(transaction = .+\)$`).WillReturnError(sql.ErrNoRows)
-	rows := sqlmock.NewRows([]string{"licence_id", "account_id", "transaction"}).AddRow(licID, 1, "cs_test_123")
+	rows := sqlmock.NewRows([]string{"licence_id", "account_id", "transaction"}).AddRow(licID, accID, "cs_test_123")
 	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l" WHERE \(transaction = .+\)$`).WillReturnRows(rows)
 	mock.ExpectExec(`^DELETE FROM "licence" AS "l" WHERE \(licence_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -439,7 +434,7 @@ func TestService_DeleteByStripeSubscriptionID_NotFound(t *testing.T) {
 	}
 
 	repo := NewRepository(&db.Db{DB: bunDB})
-	svc := NewService(repo)
+	svc := NewService(repo, &MockEmailSender{})
 
 	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l" WHERE \(transaction = .+\)$`).WillReturnError(sql.ErrNoRows)
 	mock.ExpectQuery(`^SELECT .* FROM "licence" AS "l" WHERE \(transaction = .+\)$`).WillReturnError(sql.ErrNoRows)

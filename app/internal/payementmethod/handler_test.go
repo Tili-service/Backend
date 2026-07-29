@@ -9,6 +9,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
 	"tili/app/pkg/db"
@@ -94,14 +95,47 @@ func TestPayementMethodHandler_GetByName_NotFound(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestPayementMethodHandler_Reactivate_InvalidID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	h, _ := setupPayementMethodHandler(t)
+	r.PATCH("/payementmethod/:id/reactivate", h.Reactivate)
+
+	req := httptest.NewRequest(http.MethodPatch, "/payementmethod/abc/reactivate", nil)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestPayementMethodHandler_Reactivate_NotFound(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	h, mock := setupPayementMethodHandler(t)
+	r.PATCH("/payementmethod/:id/reactivate", h.Reactivate)
+
+	mock.ExpectQuery(`^SELECT .* FROM "payementmethod" AS "pm" WHERE \(payement_method_id = .+\)$`).WillReturnError(sql.ErrNoRows)
+
+	pmID := uuid.New().String()
+	req := httptest.NewRequest(http.MethodPatch, "/payementmethod/"+pmID+"/reactivate", nil)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestPayementMethodHandler_GetAll_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h, mock := setupPayementMethodHandler(t)
 	r.GET("/payementmethod", h.GetAll)
 
-	rows := sqlmock.NewRows([]string{"payement_method_id", "name"}).AddRow(1, "Card")
-	mock.ExpectQuery(`^SELECT .* FROM "payementmethod" AS "pm"$`).WillReturnRows(rows)
+	pmID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	rows := sqlmock.NewRows([]string{"payement_method_id", "name", "is_active"}).AddRow(pmID, "Card", true)
+	mock.ExpectQuery(`^SELECT .* FROM "payementmethod" AS "pm" WHERE \(is_active = .*\)$`).WillReturnRows(rows)
 
 	req := httptest.NewRequest(http.MethodGet, "/payementmethod", nil)
 	w := httptest.NewRecorder()

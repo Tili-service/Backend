@@ -3,12 +3,12 @@ package item
 import (
 	"errors"
 	"net/http"
-	"strconv"
 
 	"tili/app/internal/middleware"
 	"tili/app/internal/token"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type Handler struct {
@@ -86,7 +86,7 @@ func (h *Handler) Create(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /item/{id} [put]
 func (h *Handler) Update(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
@@ -123,7 +123,7 @@ func (h *Handler) Update(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /item/{id} [delete]
 func (h *Handler) Delete(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
@@ -172,7 +172,7 @@ func (h *Handler) GetAll(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /item/{id} [get]
 func (h *Handler) GetByID(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
@@ -228,7 +228,7 @@ func (h *Handler) GetByName(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /item/categorie/{id} [get]
 func (h *Handler) GetByCategorieID(c *gin.Context) {
-	categorieID, err := strconv.Atoi(c.Param("id"))
+	categorieID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid category ID"})
 		return

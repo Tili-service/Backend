@@ -9,6 +9,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
 	"tili/app/pkg/db"
@@ -37,9 +38,10 @@ func TestHandler_Create_BadJSON(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h, _ := setupCategorieHandler(t)
-	r.POST("/categorie", h.Create)
+	r.POST("/catalog/:catalog_id/categorie", h.Create)
 
-	req := httptest.NewRequest(http.MethodPost, "/categorie", bytes.NewBufferString("{"))
+	catalogID := uuid.New().String()
+	req := httptest.NewRequest(http.MethodPost, "/catalog/"+catalogID+"/categorie", bytes.NewBufferString("{"))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -52,9 +54,10 @@ func TestHandler_GetByID_InvalidID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h, _ := setupCategorieHandler(t)
-	r.GET("/categorie/:id", h.GetByID)
+	r.GET("/catalog/:catalog_id/categorie/:id", h.GetByID)
 
-	req := httptest.NewRequest(http.MethodGet, "/categorie/abc", nil)
+	catalogID := uuid.New().String()
+	req := httptest.NewRequest(http.MethodGet, "/catalog/"+catalogID+"/categorie/abc", nil)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -66,9 +69,10 @@ func TestHandler_Update_InvalidID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h, _ := setupCategorieHandler(t)
-	r.PUT("/categorie/:id", h.Update)
+	r.PUT("/catalog/:catalog_id/categorie/:id", h.Update)
 
-	req := httptest.NewRequest(http.MethodPut, "/categorie/abc", bytes.NewBufferString("{}"))
+	catalogID := uuid.New().String()
+	req := httptest.NewRequest(http.MethodPut, "/catalog/"+catalogID+"/categorie/abc", bytes.NewBufferString("{}"))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -81,9 +85,10 @@ func TestHandler_DeleteByID_InvalidID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h, _ := setupCategorieHandler(t)
-	r.DELETE("/categorie/:id", h.DeleteByID)
+	r.DELETE("/catalog/:catalog_id/categorie/:id", h.DeleteByID)
 
-	req := httptest.NewRequest(http.MethodDelete, "/categorie/abc", nil)
+	catalogID := uuid.New().String()
+	req := httptest.NewRequest(http.MethodDelete, "/catalog/"+catalogID+"/categorie/abc", nil)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -95,11 +100,13 @@ func TestHandler_GetByType_NotFound(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h, mock := setupCategorieHandler(t)
-	r.GET("/categorie/type/:type", h.GetByType)
+	r.GET("/catalog/:catalog_id/categorie/type/:type", h.GetByType)
 
-	mock.ExpectQuery(`^SELECT .* FROM "categorie" AS "cat" WHERE \(cat\.type = .+\)$`).WillReturnError(sql.ErrNoRows)
+	catalogID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
 
-	req := httptest.NewRequest(http.MethodGet, "/categorie/type/missing", nil)
+	mock.ExpectQuery(`^SELECT .* FROM "categorie" AS "cat" WHERE \(cat\.type = .+\) AND \(cat\.catalog_id = .+\)$`).WillReturnError(sql.ErrNoRows)
+
+	req := httptest.NewRequest(http.MethodGet, "/catalog/"+catalogID.String()+"/categorie/type/missing", nil)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -112,11 +119,13 @@ func TestHandler_DeleteByType_NotFound(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h, mock := setupCategorieHandler(t)
-	r.DELETE("/categorie/type/:type", h.DeleteByType)
+	r.DELETE("/catalog/:catalog_id/categorie/type/:type", h.DeleteByType)
 
-	mock.ExpectQuery(`^SELECT .* FROM "categorie" AS "cat" WHERE \(cat\.type = .+\)$`).WillReturnError(sql.ErrNoRows)
+	catalogID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
 
-	req := httptest.NewRequest(http.MethodDelete, "/categorie/type/missing", nil)
+	mock.ExpectQuery(`^SELECT .* FROM "categorie" AS "cat" WHERE \(cat\.type = .+\) AND \(cat\.catalog_id = .+\)$`).WillReturnError(sql.ErrNoRows)
+
+	req := httptest.NewRequest(http.MethodDelete, "/catalog/"+catalogID.String()+"/categorie/type/missing", nil)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -129,12 +138,15 @@ func TestHandler_GetAll_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h, mock := setupCategorieHandler(t)
-	r.GET("/categorie", h.GetAll)
+	r.GET("/catalog/:catalog_id/categorie", h.GetAll)
 
-	rows := sqlmock.NewRows([]string{"categorie_id", "type"}).AddRow(1, "Books")
-	mock.ExpectQuery(`^SELECT .* FROM "categorie" AS "cat"$`).WillReturnRows(rows)
+	catalogID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
+	catID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 
-	req := httptest.NewRequest(http.MethodGet, "/categorie", nil)
+	rows := sqlmock.NewRows([]string{"categorie_id", "type", "catalog_id"}).AddRow(catID, "Books", catalogID)
+	mock.ExpectQuery(`^SELECT .* FROM "categorie" AS "cat" WHERE \(cat\.catalog_id = .+\)$`).WillReturnRows(rows)
+
+	req := httptest.NewRequest(http.MethodGet, "/catalog/"+catalogID.String()+"/categorie", nil)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)

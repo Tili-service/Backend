@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -31,7 +33,7 @@ func (s *Service) Create(ctx context.Context, input PayementMethod) (*PayementMe
 	return pm, nil
 }
 
-func (s *Service) Update(ctx context.Context, id int, input PayementMethod) (*PayementMethod, error) {
+func (s *Service) Update(ctx context.Context, id uuid.UUID, input PayementMethod) (*PayementMethod, error) {
 	if input.Name == "" {
 		return nil, errors.New("name is required")
 	}
@@ -56,17 +58,17 @@ func (s *Service) Update(ctx context.Context, id int, input PayementMethod) (*Pa
 }
 
 func (s *Service) Delete(ctx context.Context, name string) error {
-	_, err := s.repo.FindByName(ctx, name)
+	pm, err := s.repo.FindByName(ctx, name)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrPayementMethodNotFound
 		}
 		return err
 	}
-	return s.repo.DeleteByName(ctx, name)
+	return s.repo.DeactivateByID(ctx, pm.PayementMethodID)
 }
 
-func (s *Service) DeleteByID(ctx context.Context, id int) error {
+func (s *Service) Reactivate(ctx context.Context, id uuid.UUID) error {
 	_, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -74,7 +76,18 @@ func (s *Service) DeleteByID(ctx context.Context, id int) error {
 		}
 		return err
 	}
-	return s.repo.DeleteByID(ctx, id)
+	return s.repo.ReactivateByID(ctx, id)
+}
+
+func (s *Service) DeleteByID(ctx context.Context, id uuid.UUID) error {
+	_, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrPayementMethodNotFound
+		}
+		return err
+	}
+	return s.repo.DeactivateByID(ctx, id)
 }
 
 func (s *Service) GetAll(ctx context.Context) ([]PayementMethod, error) {

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
 	"tili/app/pkg/db"
@@ -18,7 +19,8 @@ func TestService_Create_ValidationError(t *testing.T) {
 	repo := NewRepository(&db.Db{DB: bunDB})
 	svc := NewService(repo)
 
-	_, err := svc.Create(context.Background(), Categorie{})
+	uuid1, _ := uuid.NewUUID()
+	_, err := svc.Create(context.Background(), uuid1, Categorie{})
 
 	assert.EqualError(t, err, "type is required")
 }
@@ -30,9 +32,9 @@ func TestService_FindByID_NotFound(t *testing.T) {
 	repo := NewRepository(&db.Db{DB: bunDB})
 	svc := NewService(repo)
 
-	mock.ExpectQuery(`^SELECT .* FROM "categorie" AS "cat" WHERE \(cat\.categorie_id = .+\)$`).WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery(`^SELECT .* FROM "categorie" AS "cat" WHERE \(cat\.categorie_id = .+\) AND \(cat\.catalog_id = .+\)$`).WillReturnError(sql.ErrNoRows)
 
-	_, err := svc.FindByID(context.Background(), 1)
+	_, err := svc.FindByID(context.Background(), uuid.UUID{}, uuid.UUID{})
 
 	assert.ErrorIs(t, err, ErrCategorieNotFound)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -45,9 +47,9 @@ func TestService_DeleteByID_NotFound(t *testing.T) {
 	repo := NewRepository(&db.Db{DB: bunDB})
 	svc := NewService(repo)
 
-	mock.ExpectQuery(`^SELECT .* FROM "categorie" AS "cat" WHERE \(cat\.categorie_id = .+\)$`).WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery(`^SELECT .* FROM "categorie" AS "cat" WHERE \(cat\.categorie_id = .+\) AND \(cat\.catalog_id = .+\)$`).WillReturnError(sql.ErrNoRows)
 
-	err := svc.DeleteByID(context.Background(), 1)
+	err := svc.DeleteByID(context.Background(), uuid.UUID{}, uuid.UUID{})
 
 	assert.ErrorIs(t, err, ErrCategorieNotFound)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -60,10 +62,10 @@ func TestService_FindAll_Success(t *testing.T) {
 	repo := NewRepository(&db.Db{DB: bunDB})
 	svc := NewService(repo)
 
-	rows := sqlmock.NewRows([]string{"categorie_id", "type"}).AddRow(1, "Books")
-	mock.ExpectQuery(`^SELECT .* FROM "categorie" AS "cat"$`).WillReturnRows(rows)
+	rows := sqlmock.NewRows([]string{"categorie_id", "type", "catalog_id"}).AddRow(uuid.UUID{}, "Books", uuid.UUID{})
+	mock.ExpectQuery(`^SELECT .* FROM "categorie" AS "cat" WHERE \(cat\.catalog_id = .+\)$`).WillReturnRows(rows)
 
-	list, err := svc.FindAll(context.Background())
+	list, err := svc.FindAll(context.Background(), uuid.UUID{})
 
 	assert.NoError(t, err)
 	assert.Len(t, list, 1)
@@ -78,9 +80,9 @@ func TestService_Update_NotFound(t *testing.T) {
 	repo := NewRepository(&db.Db{DB: bunDB})
 	svc := NewService(repo)
 
-	mock.ExpectQuery(`^SELECT .* FROM "categorie" AS "cat" WHERE \(cat\.categorie_id = .+\)$`).WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery(`^SELECT .* FROM "categorie" AS "cat" WHERE \(cat\.categorie_id = .+\) AND \(cat\.catalog_id = .+\)$`).WillReturnError(sql.ErrNoRows)
 
-	_, err := svc.Update(context.Background(), 1, Categorie{Type: "Books"})
+	_, err := svc.Update(context.Background(), uuid.UUID{}, uuid.UUID{}, Categorie{Type: "Books"})
 
 	assert.ErrorIs(t, err, ErrCategorieNotFound)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -93,9 +95,9 @@ func TestService_FindByType_NotFound(t *testing.T) {
 	repo := NewRepository(&db.Db{DB: bunDB})
 	svc := NewService(repo)
 
-	mock.ExpectQuery(`^SELECT .* FROM "categorie" AS "cat" WHERE \(cat\.type = .+\)$`).WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery(`^SELECT .* FROM "categorie" AS "cat" WHERE \(cat\.type = .+\) AND \(cat\.catalog_id = .+\)$`).WillReturnError(sql.ErrNoRows)
 
-	_, err := svc.FindByType(context.Background(), "missing")
+	_, err := svc.FindByType(context.Background(), "missing", uuid.UUID{})
 
 	assert.ErrorIs(t, err, ErrCategorieNotFound)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -108,9 +110,9 @@ func TestService_DeleteByType_NotFound(t *testing.T) {
 	repo := NewRepository(&db.Db{DB: bunDB})
 	svc := NewService(repo)
 
-	mock.ExpectQuery(`^SELECT .* FROM "categorie" AS "cat" WHERE \(cat\.type = .+\)$`).WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery(`^SELECT .* FROM "categorie" AS "cat" WHERE \(cat\.type = .+\) AND \(cat\.catalog_id = .+\)$`).WillReturnError(sql.ErrNoRows)
 
-	err := svc.DeleteByType(context.Background(), "missing")
+	err := svc.DeleteByType(context.Background(), "missing", uuid.UUID{})
 
 	assert.ErrorIs(t, err, ErrCategorieNotFound)
 	assert.NoError(t, mock.ExpectationsWereMet())

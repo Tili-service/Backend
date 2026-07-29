@@ -1,6 +1,6 @@
 CREATE TABLE profile (
-    profile_id SERIAL PRIMARY KEY,
-    store_id INTEGER NOT NULL REFERENCES store(store_id) ON DELETE CASCADE,
+    profile_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    store_id UUID NOT NULL REFERENCES store(store_id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     pin VARCHAR(10) NOT NULL,
     level_access INTEGER NOT NULL DEFAULT 4,

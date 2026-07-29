@@ -2,12 +2,14 @@ package catalog
 
 import (
 	"context"
+	"fmt"
 
 	"tili/app/pkg/cache"
 	"tili/app/pkg/db"
 
 	"github.com/redis/go-redis/v9"
 
+	"github.com/google/uuid"
 	"github.com/uptrace/bun"
 )
 
@@ -24,19 +26,19 @@ func NewRepository(d *db.Db, cacheClients ...*redis.Client) *Repository {
 	return &Repository{db: d.DB, cache: cacheClient}
 }
 
-func (r *Repository) Create(ctx context.Context, c *catalog) error {
+func (r *Repository) Create(ctx context.Context, c *Catalog) error {
 	_, err := r.db.NewInsert().Model(c).Exec(ctx)
-	_ = cache.DeletePrefix(ctx, r.cache, "catalog:")
+	_ = cache.DeletePrefix(ctx, r.cache, fmt.Sprintf("catalog:store:%s:", c.StoreID))
 	return err
 }
 
-func (r *Repository) FindAll(ctx context.Context) ([]catalog, error) {
-	const key = "catalog:all"
-	var catalogs []catalog
+func (r *Repository) FindAll(ctx context.Context, storeID uuid.UUID) ([]Catalog, error) {
+	key := fmt.Sprintf("catalog:store:%s:all", storeID)
+	var catalogs []Catalog
 	if hit, err := cache.Get(ctx, r.cache, key, &catalogs); err == nil && hit {
 		return catalogs, nil
 	}
-	err := r.db.NewSelect().Model(&catalogs).Scan(ctx)
+	err := r.db.NewSelect().Model(&catalogs).Where("c.store_id = ?", storeID).Scan(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -44,46 +46,64 @@ func (r *Repository) FindAll(ctx context.Context) ([]catalog, error) {
 	return catalogs, err
 }
 
-func (r *Repository) FindByID(ctx context.Context, id int) (*catalog, error) {
-	c := new(catalog)
-	err := r.db.NewSelect().Model(c).Where("c.catalog_id = ?", id).Scan(ctx)
+func (r *Repository) FindByID(ctx context.Context, id uuid.UUID, storeID uuid.UUID) (*Catalog, error) {
+	c := new(Catalog)
+	err := r.db.NewSelect().Model(c).
+		Where("c.catalog_id = ?", id).
+		Where("c.store_id = ?", storeID).
+		Scan(ctx)
 	return c, err
 }
 
-func (r *Repository) FindByName(ctx context.Context, name string) (*catalog, error) {
-	c := new(catalog)
-	err := r.db.NewSelect().Model(c).Where("c.name = ?", name).Scan(ctx)
+func (r *Repository) FindByName(ctx context.Context, name string, storeID uuid.UUID) (*Catalog, error) {
+	c := new(Catalog)
+	err := r.db.NewSelect().Model(c).
+		Where("c.name = ?", name).
+		Where("c.store_id = ?", storeID).
+		Scan(ctx)
 	return c, err
 }
 
-func (r *Repository) DeleteByID(ctx context.Context, id int) error {
-	_, err := r.db.NewDelete().Model(&catalog{}).Where("catalog_id = ?", id).Exec(ctx)
-	_ = cache.DeletePrefix(ctx, r.cache, "catalog:")
+func (r *Repository) DeleteByID(ctx context.Context, id uuid.UUID, storeID uuid.UUID) error {
+	_, err := r.db.NewDelete().Model(&Catalog{}).
+		Where("catalog_id = ?", id).
+		Where("store_id = ?", storeID).
+		Exec(ctx)
+	_ = cache.DeletePrefix(ctx, r.cache, fmt.Sprintf("catalog:store:%s:", storeID))
 	return err
 }
 
-func (r *Repository) DeleteByName(ctx context.Context, name string) error {
-	_, err := r.db.NewDelete().Model(&catalog{}).Where("name = ?", name).Exec(ctx)
-	_ = cache.DeletePrefix(ctx, r.cache, "catalog:")
+func (r *Repository) DeleteByName(ctx context.Context, name string, storeID uuid.UUID) error {
+	_, err := r.db.NewDelete().Model(&Catalog{}).
+		Where("name = ?", name).
+		Where("store_id = ?", storeID).
+		Exec(ctx)
+	_ = cache.DeletePrefix(ctx, r.cache, fmt.Sprintf("catalog:store:%s:", storeID))
 	return err
 }
 
-func (r *Repository) Update(ctx context.Context, id int, input catalogUpdate) (*catalog, error) {
-	catalog := &catalog{}
-	err := r.db.NewSelect().Model(catalog).Where("c.catalog_id = ?", id).Scan(ctx)
+func (r *Repository) Update(ctx context.Context, id uuid.UUID, storeID uuid.UUID, input catalogUpdate) (*Catalog, error) {
+	c := &Catalog{}
+	err := r.db.NewSelect().Model(c).
+		Where("c.catalog_id = ?", id).
+		Where("c.store_id = ?", storeID).
+		Scan(ctx)
 	if err != nil {
 		return nil, err
 	}
 	if input.Name != nil {
-		catalog.Name = *input.Name
+		c.Name = *input.Name
 	}
 	if input.Description != nil {
-		catalog.Description = *input.Description
+		c.Description = *input.Description
 	}
-	_, err = r.db.NewUpdate().Model(catalog).Where("catalog_id = ?", id).Exec(ctx)
+	_, err = r.db.NewUpdate().Model(c).
+		Where("catalog_id = ?", id).
+		Where("store_id = ?", storeID).
+		Exec(ctx)
 	if err != nil {
 		return nil, err
 	}
-	_ = cache.DeletePrefix(ctx, r.cache, "catalog:")
-	return catalog, nil
+	_ = cache.DeletePrefix(ctx, r.cache, fmt.Sprintf("catalog:store:%s:", storeID))
+	return c, nil
 }

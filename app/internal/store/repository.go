@@ -37,8 +37,8 @@ func (r *Repository) Create(ctx context.Context, s *Store) (*Store, error) {
 	return s, nil
 }
 
-func (r *Repository) FindByID(ctx context.Context, id int) (*Store, error) {
-	key := fmt.Sprintf("store:id:%d", id)
+func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (*Store, error) {
+	key := fmt.Sprintf("store:id:%s", id)
 	store := &Store{}
 	if hit, err := cache.Get(ctx, r.cache, key, store); err == nil && hit {
 		return store, nil
@@ -65,8 +65,8 @@ func (r *Repository) FindAll(ctx context.Context) ([]*Store, error) {
 	return stores, nil
 }
 
-func (r *Repository) FindByBuyerID(ctx context.Context, buyerID int) ([]Store, error) {
-	key := fmt.Sprintf("store:buyer:%d", buyerID)
+func (r *Repository) FindByBuyerID(ctx context.Context, buyerID uuid.UUID) ([]Store, error) {
+	key := fmt.Sprintf("store:buyer:%s", buyerID)
 	var stores []Store
 	if hit, err := cache.Get(ctx, r.cache, key, &stores); err == nil && hit {
 		return stores, nil
@@ -85,7 +85,7 @@ func (r *Repository) FindByLicenceID(ctx context.Context, licenceID uuid.UUID) (
 	return store, err
 }
 
-func (r *Repository) Delete(ctx context.Context, id int) error {
+func (r *Repository) Delete(ctx context.Context, id uuid.UUID) error {
 	_, err := r.db.NewDelete().Model(&Store{}).Where("store_id = ?", id).Exec(ctx)
 	_ = cache.DeletePrefix(ctx, r.cache, "store:")
 	_ = cache.DeletePrefix(ctx, r.cache, "license:")
@@ -100,4 +100,17 @@ func (r *Repository) Update(ctx context.Context, s *Store) (*Store, error) {
 	_ = cache.DeletePrefix(ctx, r.cache, "store:")
 	_ = cache.DeletePrefix(ctx, r.cache, "license:")
 	return s, nil
+}
+
+type StoreProfileData struct {
+	BuyerID uuid.UUID
+}
+
+func (r *Repository) FindByIDForProfile(ctx context.Context, id uuid.UUID) (*StoreProfileData, error) {
+	store := &Store{}
+	err := r.db.NewSelect().Model(store).Where("store_id = ?", id).Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &StoreProfileData{BuyerID: store.BuyerID}, nil
 }

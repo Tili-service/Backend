@@ -24,7 +24,7 @@ func AccountAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		c.Set("accountID", claims.AccountID)
+		c.Set("accountID", claims.AccountID.String())
 		c.Set("customerID", claims.CustomerID)
 		c.Set("name", claims.Name)
 		c.Set("email", claims.Email)
@@ -48,10 +48,10 @@ func ProfileAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		c.Set("profileID", claims.ProfileID)
+		c.Set("profileID", claims.ProfileID.String())
 		c.Set("name", claims.Name)
 		c.Set("accessLevel", claims.LevelAccess)
-		c.Set("storeID", claims.StoreID)
+		c.Set("storeID", claims.StoreID.String())
 		c.Next()
 	}
 }

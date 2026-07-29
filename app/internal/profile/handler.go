@@ -3,12 +3,12 @@ package profile
 import (
 	"errors"
 	"net/http"
-	"strconv"
 
 	"tili/app/internal/middleware"
 	"tili/app/internal/token"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type Handler struct {
@@ -93,7 +93,11 @@ func (h *Handler) loginWithPin(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /profile/me [get]
 func (h *Handler) me(c *gin.Context) {
-	profileID := c.GetInt("profileID")
+	profileID, err := uuid.Parse(c.GetString("profileID"))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid profile ID"})
+		return
+	}
 	p, err := h.service.GetByID(c.Request.Context(), profileID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve profile"})
@@ -115,7 +119,11 @@ func (h *Handler) me(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /profile [post]
 func (h *Handler) Create(c *gin.Context) {
-	storeID := c.GetInt("storeID")
+	storeID, err := uuid.Parse(c.GetString("storeID"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store ID"})
+		return
+	}
 	var input CreateProfileInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -144,7 +152,7 @@ func (h *Handler) Create(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /profile/{id} [delete]
 func (h *Handler) Delete(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
@@ -175,7 +183,7 @@ func (h *Handler) Delete(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /profile/{id} [put]
 func (h *Handler) Update(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
@@ -207,7 +215,7 @@ func (h *Handler) Update(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /profile/allProfilesByStoreId/{id} [get]
 func (h *Handler) GetProfilesByStoreId(c *gin.Context) {
-	storeId, err := strconv.Atoi(c.Param("id"))
+	storeId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store ID"})
 		return
@@ -237,12 +245,12 @@ func (h *Handler) GetProfilesByStoreId(c *gin.Context) {
 // @Failure      500     {object}  map[string]interface{}
 // @Router       /profile/updateProfile/{id}/{storeId} [put]
 func (h *Handler) UpdateProfileByIdAndStoreId(c *gin.Context) {
-	idProfile, err := strconv.Atoi(c.Param("id"))
+	idProfile, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid profile ID"})
 		return
 	}
-	storeId, err := strconv.Atoi(c.Param("storeId"))
+	storeId, err := uuid.Parse(c.Param("storeId"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store ID"})
 		return
@@ -314,12 +322,12 @@ func (h *Handler) ResetPin(c *gin.Context) {
 // @Failure      500     {object}  map[string]interface{}
 // @Router       /profile/deactivateProfile/{id}/{storeId} [put]
 func (h *Handler) DeactivateProfile(c *gin.Context) {
-	idProfile, err := strconv.Atoi(c.Param("id"))
+	idProfile, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid profile ID"})
 		return
 	}
-	storeId, err := strconv.Atoi(c.Param("storeId"))
+	storeId, err := uuid.Parse(c.Param("storeId"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store ID"})
 		return

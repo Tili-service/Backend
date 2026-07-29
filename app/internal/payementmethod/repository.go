@@ -7,6 +7,7 @@ import (
 
 	"tili/app/pkg/db"
 
+	"github.com/google/uuid"
 	"github.com/uptrace/bun"
 )
 
@@ -33,7 +34,7 @@ func (r *Repository) Create(ctx context.Context, pm *PayementMethod) error {
 
 func (r *Repository) FindAll(ctx context.Context) ([]PayementMethod, error) {
 	var payementMethods []PayementMethod
-	err := r.db.NewSelect().Model(&payementMethods).Scan(ctx)
+	err := r.db.NewSelect().Model(&payementMethods).Where("is_active = ?", true).Scan(ctx)
 	return payementMethods, err
 }
 
@@ -43,20 +44,30 @@ func (r *Repository) FindByName(ctx context.Context, name string) (*PayementMeth
 	return pm, err
 }
 
-func (r *Repository) DeleteByName(ctx context.Context, name string) error {
-	_, err := r.db.NewDelete().Model((*PayementMethod)(nil)).Where("name = ?", name).Exec(ctx)
+func (r *Repository) DeactivateByName(ctx context.Context, name string) error {
+	_, err := r.db.NewUpdate().Model((*PayementMethod)(nil)).Set("is_active = ?", false).Where("name = ?", name).Exec(ctx)
 	return err
 }
 
-func (r *Repository) FindByID(ctx context.Context, id int) (*PayementMethod, error) {
+func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (*PayementMethod, error) {
 	pm := new(PayementMethod)
 	err := r.db.NewSelect().Model(pm).Where("payement_method_id = ?", id).Scan(ctx)
 	return pm, err
 }
 
-func (r *Repository) DeleteByID(ctx context.Context, id int) error {
-	_, err := r.db.NewDelete().Model((*PayementMethod)(nil)).Where("payement_method_id = ?", id).Exec(ctx)
+func (r *Repository) DeactivateByID(ctx context.Context, id uuid.UUID) error {
+	_, err := r.db.NewUpdate().Model((*PayementMethod)(nil)).Set("is_active = ?", false).Where("payement_method_id = ?", id).Exec(ctx)
 	return err
+}
+
+func (r *Repository) ReactivateByID(ctx context.Context, id uuid.UUID) error {
+	_, err := r.db.NewUpdate().Model((*PayementMethod)(nil)).Set("is_active = ?", true).Where("payement_method_id = ?", id).Exec(ctx)
+	return err
+}
+
+func (r *Repository) FindActiveByID(ctx context.Context, id uuid.UUID) error {
+	pm := new(PayementMethod)
+	return r.db.NewSelect().Model(pm).Where("payement_method_id = ? AND is_active = ?", id, true).Scan(ctx)
 }
 
 func (r *Repository) Update(ctx context.Context, pm *PayementMethod) error {

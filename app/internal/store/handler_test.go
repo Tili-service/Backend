@@ -33,7 +33,7 @@ func setupStoreHandler(t *testing.T) *Handler {
 
 func withAccountContext() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Set("accountID", 1)
+		c.Set("accountID", "00000000-0000-0000-0000-000000000001")
 		c.Set("name", "owner")
 		c.Next()
 	}
@@ -121,7 +121,8 @@ func TestStoreHandler_GetAll_Success(t *testing.T) {
 	t.Cleanup(func() { _ = bunDB.Close() })
 	h.service = NewService(NewRepository(&db.Db{DB: bunDB}))
 
-	rows := sqlmock.NewRows([]string{"store_id", "name"}).AddRow(1, "S1")
+	storeID := uuid.New()
+	rows := sqlmock.NewRows([]string{"store_id", "name"}).AddRow(storeID, "S1")
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s"$`).WillReturnRows(rows)
 
 	req := httptest.NewRequest(http.MethodGet, "/store", nil)
@@ -165,7 +166,9 @@ func TestStoreHandler_GetMyStores_Success(t *testing.T) {
 	t.Cleanup(func() { _ = bunDB.Close() })
 	h.service = NewService(NewRepository(&db.Db{DB: bunDB}))
 
-	rows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id"}).AddRow(1, "Mine", 1)
+	storeID := uuid.New()
+	buyerID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	rows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id"}).AddRow(storeID, "Mine", buyerID)
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(buyer_id = .+\)$`).WillReturnRows(rows)
 
 	req := httptest.NewRequest(http.MethodGet, "/store/me", nil)
@@ -212,7 +215,8 @@ func TestStoreHandler_DeleteStore_NotFound(t *testing.T) {
 
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnError(sql.ErrNoRows)
 
-	req := httptest.NewRequest(http.MethodDelete, "/store/1", nil)
+	storeID := uuid.New().String()
+	req := httptest.NewRequest(http.MethodDelete, "/store/"+storeID, nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -231,11 +235,13 @@ func TestStoreHandler_DeleteStore_Forbidden(t *testing.T) {
 	t.Cleanup(func() { _ = bunDB.Close() })
 	h.service = NewService(NewRepository(&db.Db{DB: bunDB}))
 
+	storeID := uuid.New()
+	forbiddenBuyerID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
 	rows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation", "numero_tva", "siret"}).
-		AddRow(1, "S1", 2, uuid.New(), time.Now(), "", "")
+		AddRow(storeID, "S1", forbiddenBuyerID, uuid.New(), time.Now(), "", "")
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnRows(rows)
 
-	req := httptest.NewRequest(http.MethodDelete, "/store/1", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/store/"+storeID.String(), nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -256,7 +262,8 @@ func TestStoreHandler_DeleteStore_InternalErrorOnFind(t *testing.T) {
 
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnError(errors.New("db fail"))
 
-	req := httptest.NewRequest(http.MethodDelete, "/store/1", nil)
+	storeID := uuid.New().String()
+	req := httptest.NewRequest(http.MethodDelete, "/store/"+storeID, nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -276,12 +283,14 @@ func TestStoreHandler_DeleteStore_ProfileDeleteError(t *testing.T) {
 	h.service = NewService(NewRepository(&db.Db{DB: bunDB}))
 	h.profileService = profile.NewService(profile.NewRepository(&db.Db{DB: bunDB}))
 
+	storeID := uuid.New()
+	buyerID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	rows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation", "numero_tva", "siret"}).
-		AddRow(1, "S1", 1, uuid.New(), time.Now(), "", "")
+		AddRow(storeID, "S1", buyerID, uuid.New(), time.Now(), "", "")
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnRows(rows)
 	mock.ExpectExec(`^DELETE FROM "profile" AS "p" WHERE \(store_id = .+\)$`).WillReturnError(errors.New("profile delete failed"))
 
-	req := httptest.NewRequest(http.MethodDelete, "/store/1", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/store/"+storeID.String(), nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -301,13 +310,15 @@ func TestStoreHandler_DeleteStore_ServiceDeleteNotFound(t *testing.T) {
 	h.service = NewService(NewRepository(&db.Db{DB: bunDB}))
 	h.profileService = profile.NewService(profile.NewRepository(&db.Db{DB: bunDB}))
 
+	storeID := uuid.New()
+	buyerID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	rows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation", "numero_tva", "siret"}).
-		AddRow(1, "S1", 1, uuid.New(), time.Now(), "", "")
+		AddRow(storeID, "S1", buyerID, uuid.New(), time.Now(), "", "")
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnRows(rows)
 	mock.ExpectExec(`^DELETE FROM "profile" AS "p" WHERE \(store_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnError(sql.ErrNoRows)
 
-	req := httptest.NewRequest(http.MethodDelete, "/store/1", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/store/"+storeID.String(), nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -327,16 +338,18 @@ func TestStoreHandler_DeleteStore_Success(t *testing.T) {
 	h.service = NewService(NewRepository(&db.Db{DB: bunDB}))
 	h.profileService = profile.NewService(profile.NewRepository(&db.Db{DB: bunDB}))
 
+	storeID := uuid.New()
+	buyerID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	rows1 := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation", "numero_tva", "siret"}).
-		AddRow(1, "S1", 1, uuid.New(), time.Now(), "", "")
+		AddRow(storeID, "S1", buyerID, uuid.New(), time.Now(), "", "")
 	rows2 := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation", "numero_tva", "siret"}).
-		AddRow(1, "S1", 1, uuid.New(), time.Now(), "", "")
+		AddRow(storeID, "S1", buyerID, uuid.New(), time.Now(), "", "")
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnRows(rows1)
 	mock.ExpectExec(`^DELETE FROM "profile" AS "p" WHERE \(store_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnRows(rows2)
 	mock.ExpectExec(`^DELETE FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnResult(sqlmock.NewResult(1, 1))
 
-	req := httptest.NewRequest(http.MethodDelete, "/store/1", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/store/"+storeID.String(), nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -357,7 +370,8 @@ func TestStoreHandler_GetByID_NotFound(t *testing.T) {
 
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnError(sql.ErrNoRows)
 
-	req := httptest.NewRequest(http.MethodGet, "/store/1", nil)
+	storeID := uuid.New().String()
+	req := httptest.NewRequest(http.MethodGet, "/store/"+storeID, nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -376,11 +390,13 @@ func TestStoreHandler_GetByID_Forbidden(t *testing.T) {
 	t.Cleanup(func() { _ = bunDB.Close() })
 	h.service = NewService(NewRepository(&db.Db{DB: bunDB}))
 
+	storeID := uuid.New()
+	forbiddenBuyerID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
 	rows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation", "numero_tva", "siret"}).
-		AddRow(1, "S1", 2, uuid.New(), time.Now(), "", "")
+		AddRow(storeID, "S1", forbiddenBuyerID, uuid.New(), time.Now(), "", "")
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnRows(rows)
 
-	req := httptest.NewRequest(http.MethodGet, "/store/1", nil)
+	req := httptest.NewRequest(http.MethodGet, "/store/"+storeID.String(), nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -401,7 +417,8 @@ func TestStoreHandler_UpdateStoreById_NotFound(t *testing.T) {
 
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnError(sql.ErrNoRows)
 
-	req := httptest.NewRequest(http.MethodPut, "/store/1", bytes.NewBufferString(`{"name":"new"}`))
+	storeID := uuid.New().String()
+	req := httptest.NewRequest(http.MethodPut, "/store/"+storeID, bytes.NewBufferString(`{"name":"new"}`))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
@@ -421,11 +438,13 @@ func TestStoreHandler_UpdateStoreById_Forbidden(t *testing.T) {
 	t.Cleanup(func() { _ = bunDB.Close() })
 	h.service = NewService(NewRepository(&db.Db{DB: bunDB}))
 
+	storeID := uuid.New()
+	forbiddenBuyerID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
 	rows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation", "numero_tva", "siret"}).
-		AddRow(1, "S1", 2, uuid.New(), time.Now(), "", "")
+		AddRow(storeID, "S1", forbiddenBuyerID, uuid.New(), time.Now(), "", "")
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnRows(rows)
 
-	req := httptest.NewRequest(http.MethodPut, "/store/1", bytes.NewBufferString(`{"name":"new"}`))
+	req := httptest.NewRequest(http.MethodPut, "/store/"+storeID.String(), bytes.NewBufferString(`{"name":"new"}`))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
@@ -445,11 +464,13 @@ func TestStoreHandler_UpdateStoreById_BadJSON(t *testing.T) {
 	t.Cleanup(func() { _ = bunDB.Close() })
 	h.service = NewService(NewRepository(&db.Db{DB: bunDB}))
 
+	storeID := uuid.New()
+	buyerID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	rows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation", "numero_tva", "siret"}).
-		AddRow(1, "S1", 1, uuid.New(), time.Now(), "", "")
+		AddRow(storeID, "S1", buyerID, uuid.New(), time.Now(), "", "")
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnRows(rows)
 
-	req := httptest.NewRequest(http.MethodPut, "/store/1", bytes.NewBufferString("{"))
+	req := httptest.NewRequest(http.MethodPut, "/store/"+storeID.String(), bytes.NewBufferString("{"))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
@@ -471,7 +492,8 @@ func TestStoreHandler_UpdateStoreById_InternalFindError(t *testing.T) {
 
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnError(errors.New("db fail"))
 
-	req := httptest.NewRequest(http.MethodPut, "/store/1", bytes.NewBufferString(`{"name":"new"}`))
+	storeID := uuid.New().String()
+	req := httptest.NewRequest(http.MethodPut, "/store/"+storeID, bytes.NewBufferString(`{"name":"new"}`))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
@@ -491,12 +513,14 @@ func TestStoreHandler_UpdateStoreById_UpdateError(t *testing.T) {
 	t.Cleanup(func() { _ = bunDB.Close() })
 	h.service = NewService(NewRepository(&db.Db{DB: bunDB}))
 
+	storeID := uuid.New()
+	buyerID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	rows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation", "numero_tva", "siret"}).
-		AddRow(1, "S1", 1, uuid.New(), time.Now(), "", "")
+		AddRow(storeID, "S1", buyerID, uuid.New(), time.Now(), "", "")
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnRows(rows)
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnError(errors.New("select fail"))
 
-	req := httptest.NewRequest(http.MethodPut, "/store/1", bytes.NewBufferString(`{"name":"new"}`))
+	req := httptest.NewRequest(http.MethodPut, "/store/"+storeID.String(), bytes.NewBufferString(`{"name":"new"}`))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
@@ -516,15 +540,17 @@ func TestStoreHandler_UpdateStoreById_Success(t *testing.T) {
 	t.Cleanup(func() { _ = bunDB.Close() })
 	h.service = NewService(NewRepository(&db.Db{DB: bunDB}))
 
+	storeID := uuid.New()
+	buyerID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	rows1 := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation", "numero_tva", "siret"}).
-		AddRow(1, "S1", 1, uuid.New(), time.Now(), "", "")
+		AddRow(storeID, "S1", buyerID, uuid.New(), time.Now(), "", "")
 	rows2 := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "licence_id", "date_creation", "numero_tva", "siret"}).
-		AddRow(1, "S1", 1, uuid.New(), time.Now(), "", "")
+		AddRow(storeID, "S1", buyerID, uuid.New(), time.Now(), "", "")
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnRows(rows1)
 	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnRows(rows2)
 	mock.ExpectExec(`^UPDATE "store" AS "s" SET`).WillReturnResult(sqlmock.NewResult(1, 1))
 
-	req := httptest.NewRequest(http.MethodPut, "/store/1", bytes.NewBufferString(`{"name":"new"}`))
+	req := httptest.NewRequest(http.MethodPut, "/store/"+storeID.String(), bytes.NewBufferString(`{"name":"new"}`))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
@@ -545,10 +571,11 @@ func TestStoreHandler_CreateStore_Success(t *testing.T) {
 	h.service = NewService(NewRepository(&db.Db{DB: bunDB}))
 	h.profileService = profile.NewService(profile.NewRepository(&db.Db{DB: bunDB}))
 
+	storeID := uuid.New()
 	licenceID := uuid.New()
-	mock.ExpectQuery(`^INSERT INTO "store"`).WillReturnRows(sqlmock.NewRows([]string{"store_id"}).AddRow(1))
+	mock.ExpectQuery(`^INSERT INTO "store"`).WillReturnRows(sqlmock.NewRows([]string{"store_id"}).AddRow(storeID))
 	mock.ExpectQuery(`^SELECT EXISTS \(SELECT .* FROM "profile" AS "p" WHERE \(store_id = .+\) AND \(pin = .+\)\)$`).WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
-	mock.ExpectQuery(`^INSERT INTO "profile"`).WillReturnRows(sqlmock.NewRows([]string{"profile_id"}).AddRow(1))
+	mock.ExpectQuery(`^INSERT INTO "profile"`).WillReturnRows(sqlmock.NewRows([]string{"profile_id"}).AddRow(uuid.New()))
 
 	req := httptest.NewRequest(http.MethodPost, "/store", bytes.NewBufferString(`{"name":"New Store","licence_id":"`+licenceID.String()+`"}`))
 	req.Header.Set("Content-Type", "application/json")

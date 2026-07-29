@@ -5,13 +5,17 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"time"
 
+	"tili/app/pkg/email"
+
 	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v84"
 	"github.com/stripe/stripe-go/v84/checkout/session"
+	"github.com/stripe/stripe-go/v84/customer"
 	refundapi "github.com/stripe/stripe-go/v84/refund"
 	subscriptionapi "github.com/stripe/stripe-go/v84/subscription"
 
@@ -74,12 +78,13 @@ var (
 
 type Service struct {
 	repo           *Repository
+	emailClient    email.Sender
 	storeService   *store.Service
 	profileService *profile.Service
 }
 
-func NewService(repo *Repository) *Service {
-	return &Service{repo: repo}
+func NewService(repo *Repository, emailClient email.Sender) *Service {
+	return &Service{repo: repo, emailClient: emailClient}
 }
 
 func (s *Service) SetDependencies(storeService *store.Service, profileService *profile.Service) {
@@ -87,11 +92,11 @@ func (s *Service) SetDependencies(storeService *store.Service, profileService *p
 	s.profileService = profileService
 }
 
-func (s *Service) DeleteByAccountID(ctx context.Context, accountID int) error {
+func (s *Service) DeleteByAccountID(ctx context.Context, accountID uuid.UUID) error {
 	return s.repo.DeleteLicencesByAccountID(ctx, accountID)
 }
 
-func (s *Service) GetByAccountID(ctx context.Context, accountID int) ([]Licence, error) {
+func (s *Service) GetByAccountID(ctx context.Context, accountID uuid.UUID) ([]Licence, error) {
 	licences, err := s.repo.FindLicencesByAccountID(ctx, accountID)
 	if err != nil {
 		return nil, err
@@ -185,7 +190,7 @@ func (s *Service) fetchStripeLicenceInfo(ctx context.Context, transaction string
 	return info, nil
 }
 
-func (s *Service) Delete(ctx context.Context, accountID int, id uuid.UUID) error {
+func (s *Service) Delete(ctx context.Context, accountID uuid.UUID, id uuid.UUID) error {
 	lic, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -199,7 +204,7 @@ func (s *Service) Delete(ctx context.Context, accountID int, id uuid.UUID) error
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *Service) Refund(ctx context.Context, accountID int, id uuid.UUID) error {
+func (s *Service) Refund(ctx context.Context, accountID uuid.UUID, id uuid.UUID) error {
 	lic, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -293,7 +298,7 @@ func (s *Service) Refund(ctx context.Context, accountID int, id uuid.UUID) error
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *Service) Update(ctx context.Context, accountID int, id uuid.UUID, input UpdateLicenceInput) (*Licence, error) {
+func (s *Service) Update(ctx context.Context, accountID uuid.UUID, id uuid.UUID, input UpdateLicenceInput) (*Licence, error) {
 	lic, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -313,7 +318,7 @@ func (s *Service) Update(ctx context.Context, accountID int, id uuid.UUID, input
 	return s.repo.Update(ctx, lic)
 }
 
-func (s *Service) Create(ctx context.Context, accountID int, input CreateLicenceInput) (*Licence, error) {
+func (s *Service) Create(ctx context.Context, accountID uuid.UUID, input CreateLicenceInput) (*Licence, error) {
 
 	lic := &Licence{
 		LicenceID:   uuid.New(),
@@ -325,10 +330,22 @@ func (s *Service) Create(ctx context.Context, accountID int, input CreateLicence
 	if err := s.repo.CreateLicence(ctx, lic); err != nil {
 		return nil, err
 	}
+	emailContent, err := email.GetNewLicenseActiveEmailContent(fmt.Sprintf("%s/admin/shop/new?licenceId=%s", os.Getenv("APP_URL"), lic.LicenceID))
+	if err != nil {
+	} else {
+		account, err := s.repo.GetAccountByID(ctx, accountID)
+		if err != nil {
+			log.Printf("Error fetching account for email: %v", err)
+		} else {
+			if err := s.emailClient.SendEmail(account.Email, "Your new license is active!", emailContent); err != nil {
+				log.Printf("Error sending email: %v", err)
+			}
+		}
+	}
 	return lic, nil
 }
 
-func (s *Service) CreatePaymentLink(ctx context.Context, accountID int, customerID string, input CreatePaymentLinkInput) (string, error) {
+func (s *Service) CreatePaymentLink(ctx context.Context, accountID uuid.UUID, customerID string, input CreatePaymentLinkInput) (string, error) {
 	var priceID string
 
 	switch input.Offer {
@@ -363,7 +380,7 @@ func (s *Service) CreatePaymentLink(ctx context.Context, accountID int, customer
 		CancelURL:  stripe.String(os.Getenv("APP_URL") + "/admin/licenses?canceled=true"),
 		Customer:   customerPtr,
 		Metadata: map[string]string{
-			"account_id": fmt.Sprintf("%d", accountID),
+			"account_id": accountID.String(),
 			"offer":      input.Offer,
 		},
 	}
@@ -371,6 +388,26 @@ func (s *Service) CreatePaymentLink(ctx context.Context, accountID int, customer
 	sess, err := session.New(params)
 	if err != nil {
 		return "", fmt.Errorf("erreur stripe: %w", err)
+	}
+
+	var targetEmail string
+	if customerID != "" {
+		cust, err := customer.Get(customerID, nil)
+		if err != nil {
+			return "", fmt.Errorf("erreur lors de la récupération du client Stripe: %w", err)
+		}
+		targetEmail = cust.Email
+	}
+
+	if targetEmail != "" {
+		content, err := email.GetNewPaymentLinkEmailContent(input.Offer, sess.URL)
+		if err != nil {
+			return "", fmt.Errorf("erreur lors de la génération de l'email: %w", err)
+		}
+
+		if err := s.emailClient.SendEmail(targetEmail, "New Payment Link Created", content); err != nil {
+			return "", fmt.Errorf("erreur lors de l'envoi de l'email: %w", err)
+		}
 	}
 
 	return sess.URL, nil

@@ -3,12 +3,12 @@ package payementmethod
 import (
 	"errors"
 	"net/http"
-	"strconv"
 
 	"tili/app/internal/middleware"
 	"tili/app/internal/token"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type Handler struct {
@@ -31,9 +31,10 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 			managerRoutes := protected.Group("")
 			managerRoutes.Use(middleware.LevelAccessRequired(token.Manager))
 			{
-				managerRoutes.POST("", h.Create)       // POST /payementmethod
-				managerRoutes.PUT("/:id", h.Update)    // PUT /payementmethod/:id
-				managerRoutes.DELETE("/:id", h.Delete) // DELETE /payementmethod/:id
+				managerRoutes.POST("", h.Create)                     // POST /payementmethod
+				managerRoutes.PUT("/:id", h.Update)                  // PUT /payementmethod/:id
+				managerRoutes.DELETE("/:id", h.Delete)               // DELETE /payementmethod/:id
+				managerRoutes.PATCH("/:id/reactivate", h.Reactivate) // PATCH /payementmethod/:id/reactivate
 			}
 		}
 	}
@@ -84,8 +85,7 @@ func (h *Handler) Create(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /payementmethod/{id} [put]
 func (h *Handler) Update(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.Atoi(idStr)
+	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
@@ -107,9 +107,9 @@ func (h *Handler) Update(c *gin.Context) {
 	c.JSON(http.StatusOK, pm)
 }
 
-// Delete removes a payement method by ID
-// @Summary      Delete a payement method
-// @Description  Deletes a payement method from the system by its ID. Requires Manager level access.
+// Delete deactivates a payement method by ID
+// @Summary      Deactivate a payement method
+// @Description  Deactivates a payement method by its ID (soft-delete). The record is preserved for historical sales. Requires Manager level access.
 // @Tags         payementmethod
 // @Accept       json
 // @Produce      json
@@ -123,13 +123,43 @@ func (h *Handler) Update(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /payementmethod/{id} [delete]
 func (h *Handler) Delete(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.Atoi(idStr)
+	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
 	if err := h.service.DeleteByID(c.Request.Context(), id); err != nil {
+		if errors.Is(err, ErrPayementMethodNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "payement method not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+// Reactivate reactivates a previously deactivated payement method
+// @Summary      Reactivate a payement method
+// @Description  Reactivates a previously deactivated payement method by its ID. Requires Manager level access.
+// @Tags         payementmethod
+// @Produce      json
+// @Security     ProfileToken
+// @Param        id   path      int  true "Payement method ID"   example(1)
+// @Success      204  {object}  nil
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      401  {object}  map[string]interface{}
+// @Failure      403  {object}  map[string]interface{}
+// @Failure      404  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /payementmethod/{id}/reactivate [patch]
+func (h *Handler) Reactivate(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	if err := h.service.Reactivate(c.Request.Context(), id); err != nil {
 		if errors.Is(err, ErrPayementMethodNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "payement method not found"})
 			return

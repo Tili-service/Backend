@@ -5,6 +5,7 @@ import (
 
 	"tili/app/pkg/db"
 
+	"github.com/google/uuid"
 	"github.com/uptrace/bun"
 )
 
@@ -21,7 +22,7 @@ func (r *Repository) Create(ctx context.Context, a *Account) error {
 	return err
 }
 
-func (r *Repository) FindByID(ctx context.Context, id int) (*Account, error) {
+func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (*Account, error) {
 	a := &Account{}
 	err := r.db.NewSelect().Model(a).Where("account_id = ?", id).Scan(ctx)
 	if err != nil {
@@ -39,7 +40,7 @@ func (r *Repository) FindByEmail(ctx context.Context, email string) (*Account, e
 	return a, nil
 }
 
-func (r *Repository) Delete(ctx context.Context, id int) error {
+func (r *Repository) Delete(ctx context.Context, id uuid.UUID) error {
 	_, err := r.db.NewDelete().Model(&Account{}).Where("account_id = ?", id).Exec(ctx)
 	return err
 }
@@ -50,4 +51,25 @@ func (r *Repository) Update(ctx context.Context, a *Account) (*Account, error) {
 		return nil, err
 	}
 	return a, nil
+}
+
+type AccountProfileData struct {
+	Email string
+}
+
+func (r *Repository) FindByIDForProfile(ctx context.Context, id uuid.UUID) (*AccountProfileData, error) {
+	a := &Account{}
+	err := r.db.NewSelect().Model(a).Where("account_id = ?", id).Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &AccountProfileData{Email: a.Email}, nil
+}
+
+func (r *Repository) UpdatePassword(ctx context.Context, id uuid.UUID, newPassword string) error {
+	_, err := r.db.NewUpdate().Model((*Account)(nil)).
+		Set("password = ?", newPassword).
+		Where("account_id = ?", id).
+		Exec(ctx)
+	return err
 }

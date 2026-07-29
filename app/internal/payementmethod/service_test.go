@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
 	"tili/app/pkg/db"
@@ -32,7 +33,8 @@ func TestService_Update_NotFound(t *testing.T) {
 
 	mock.ExpectQuery(`^SELECT .* FROM "payementmethod" AS "pm" WHERE \(payement_method_id = .+\)$`).WillReturnError(sql.ErrNoRows)
 
-	_, err := svc.Update(context.Background(), 1, PayementMethod{Name: "Card"})
+	pmID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	_, err := svc.Update(context.Background(), pmID, PayementMethod{Name: "Card"})
 
 	assert.ErrorIs(t, err, ErrPayementMethodNotFound)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -60,8 +62,9 @@ func TestService_GetAll_Success(t *testing.T) {
 	repo := NewRepository(&db.Db{DB: bunDB})
 	svc := NewService(repo)
 
-	rows := sqlmock.NewRows([]string{"payement_method_id", "name"}).AddRow(1, "Card")
-	mock.ExpectQuery(`^SELECT .* FROM "payementmethod" AS "pm"$`).WillReturnRows(rows)
+	pmID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	rows := sqlmock.NewRows([]string{"payement_method_id", "name", "is_active"}).AddRow(pmID, "Card", true)
+	mock.ExpectQuery(`^SELECT .* FROM "payementmethod" AS "pm" WHERE \(is_active = .*\)$`).WillReturnRows(rows)
 
 	list, err := svc.GetAll(context.Background())
 
@@ -80,7 +83,24 @@ func TestService_DeleteByID_NotFound(t *testing.T) {
 
 	mock.ExpectQuery(`^SELECT .* FROM "payementmethod" AS "pm" WHERE \(payement_method_id = .+\)$`).WillReturnError(sql.ErrNoRows)
 
-	err := svc.DeleteByID(context.Background(), 1)
+	pmID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	err := svc.DeleteByID(context.Background(), pmID)
+
+	assert.ErrorIs(t, err, ErrPayementMethodNotFound)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestService_Reactivate_NotFound(t *testing.T) {
+	bunDB, mock := setupMockDB(t)
+	defer bunDB.Close()
+
+	repo := NewRepository(&db.Db{DB: bunDB})
+	svc := NewService(repo)
+
+	mock.ExpectQuery(`^SELECT .* FROM "payementmethod" AS "pm" WHERE \(payement_method_id = .+\)$`).WillReturnError(sql.ErrNoRows)
+
+	pmID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	err := svc.Reactivate(context.Background(), pmID)
 
 	assert.ErrorIs(t, err, ErrPayementMethodNotFound)
 	assert.NoError(t, mock.ExpectationsWereMet())

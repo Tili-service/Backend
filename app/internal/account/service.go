@@ -13,15 +13,19 @@ import (
 
 	"tili/app/internal/profile"
 	"tili/app/internal/store"
+	"tili/app/pkg/email"
+
+	"github.com/google/uuid"
 )
 
 var (
 	ErrAccountNotFound = errors.New("account not found")
 	ErrEmailExists     = errors.New("email already exists")
+	ErrInvalidPassword = errors.New("invalid password")
 )
 
 type LicenseDeleter interface {
-	DeleteByAccountID(ctx context.Context, accountID int) error
+	DeleteByAccountID(ctx context.Context, accountID uuid.UUID) error
 }
 
 type Service struct {
@@ -29,14 +33,16 @@ type Service struct {
 	storeService   *store.Service
 	profileService *profile.Service
 	licenseService LicenseDeleter
+	emailClient    email.Sender
 }
 
-func NewService(repo *Repository, storeService *store.Service, profileService *profile.Service, licenseService LicenseDeleter) *Service {
+func NewService(repo *Repository, storeService *store.Service, profileService *profile.Service, licenseService LicenseDeleter, emailClient email.Sender) *Service {
 	return &Service{
 		repo:           repo,
 		storeService:   storeService,
 		profileService: profileService,
 		licenseService: licenseService,
+		emailClient:    emailClient,
 	}
 }
 
@@ -69,10 +75,19 @@ func (s *Service) Create(ctx context.Context, input RegistrationInput) (*Account
 		Name:             input.Name,
 		StripeCustomerID: c.ID,
 	}
-	if err := s.repo.Create(ctx, acc); err != nil {
-		return nil, err
-	}
+	err = s.repo.Create(ctx, acc)
 
+	if err != nil {
+		return nil, fmt.Errorf("erreur lors de l'initialisation du client SMTP: %w", err)
+	}
+	content, err := email.GetWelcomeEmailContent(input.Name, input.Email)
+	if err != nil {
+		return nil, fmt.Errorf("erreur lors de la génération du contenu de l'email: %w", err)
+	}
+	err = s.emailClient.SendEmail(input.Email, "Bienvenue chez Tili !", content)
+	if err != nil {
+		return nil, fmt.Errorf("erreur lors de l'envoi de l'email de bienvenue: %w", err)
+	}
 	return acc, nil
 }
 
@@ -94,7 +109,7 @@ func (s *Service) Login(ctx context.Context, input LoginInput) (*Account, []stor
 	return acc, stores, nil
 }
 
-func (s *Service) Exists(ctx context.Context, accountID int) (bool, error) {
+func (s *Service) Exists(ctx context.Context, accountID uuid.UUID) (bool, error) {
 	_, err := s.repo.FindByID(ctx, accountID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -105,7 +120,7 @@ func (s *Service) Exists(ctx context.Context, accountID int) (bool, error) {
 	return true, nil
 }
 
-func (s *Service) FullDelete(ctx context.Context, id int) error {
+func (s *Service) FullDelete(ctx context.Context, id uuid.UUID) error {
 	stores, err := s.storeService.FindByBuyerID(ctx, id)
 	if err != nil {
 		return errors.New("failed to find stores")
@@ -131,7 +146,7 @@ func (s *Service) FullDelete(ctx context.Context, id int) error {
 	return nil
 }
 
-func (s *Service) Update(ctx context.Context, id int, input UpdateAccountInput) (*Account, error) {
+func (s *Service) Update(ctx context.Context, id uuid.UUID, input UpdateAccountInput) (*Account, error) {
 	acc, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -148,6 +163,27 @@ func (s *Service) Update(ctx context.Context, id int, input UpdateAccountInput) 
 	return s.repo.Update(ctx, acc)
 }
 
-func (s *Service) GetByID(ctx context.Context, id int) (*Account, error) {
+func (s *Service) GetByID(ctx context.Context, id uuid.UUID) (*Account, error) {
 	return s.repo.FindByID(ctx, id)
+}
+
+func (s *Service) ResetPassword(ctx context.Context, id uuid.UUID, input ResetPasswordInput) error {
+	acc, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrAccountNotFound
+		}
+		return err
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(acc.Password), []byte(input.OldPassword)); err != nil {
+		return ErrInvalidPassword
+	}
+
+	hashed, err := bcrypt.GenerateFromPassword([]byte(input.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	return s.repo.UpdatePassword(ctx, id, string(hashed))
 }

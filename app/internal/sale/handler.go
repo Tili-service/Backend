@@ -3,6 +3,8 @@ package sale
 import (
 	"errors"
 	"net/http"
+	"strings"
+	"time"
 
 	"tili/app/internal/middleware"
 	"tili/app/internal/token"
@@ -10,6 +12,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
+
+const dateOnlyLayout = "2006-01-02"
 
 type Handler struct {
 	service *Service
@@ -26,6 +30,7 @@ func (h *Handler) RegisterRoutes(rg *gin.Engine) {
 	{
 		protected.POST("", h.CreateSale)
 		protected.GET("", h.GetAllSales)
+		protected.GET("/kpi", h.GetSalesKPI)
 		protected.GET("/:id", h.GetSaleByID)
 		managerRoutes := protected.Group("")
 		managerRoutes.Use(middleware.LevelAccessRequired(token.Manager))
@@ -116,6 +121,52 @@ func (h *Handler) GetSaleByID(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, sale)
+}
+
+// @Summary      Sales KPI report
+// @Description  Returns revenue KPIs bucketed by day, week, or month: total revenue, revenue and tax amount per tax bracket (5%, 10%, 20%, other), and revenue by product. Line amounts are treated as tax-inclusive. `from`/`to` are optional dates (YYYY-MM-DD); `to` is inclusive.
+// @Tags         sales
+// @Produce      json
+// @Param        granularity  query     string  false  "daily, weekly, or monthly"  default(daily)
+// @Param        from         query     string  false  "Start date (YYYY-MM-DD), inclusive"
+// @Param        to           query     string  false  "End date (YYYY-MM-DD), inclusive"
+// @Success      200  {object}  KPIReport
+// @Failure      400  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /sales/kpi [get]
+func (h *Handler) GetSalesKPI(c *gin.Context) {
+	granularity := Granularity(strings.ToLower(c.DefaultQuery("granularity", string(GranularityDaily))))
+
+	var from, to *time.Time
+	if v := c.Query("from"); v != "" {
+		t, err := time.Parse(dateOnlyLayout, v)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid from date, expected YYYY-MM-DD"})
+			return
+		}
+		from = &t
+	}
+	if v := c.Query("to"); v != "" {
+		t, err := time.Parse(dateOnlyLayout, v)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid to date, expected YYYY-MM-DD"})
+			return
+		}
+		t = t.AddDate(0, 0, 1) // to is inclusive of the given day
+		to = &t
+	}
+
+	report, err := h.service.GetSalesKPI(c.Request.Context(), granularity, from, to)
+	if err != nil {
+		if errors.Is(err, ErrInvalidGranularity) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, report)
 }
 
 // @Summary      Update a sale

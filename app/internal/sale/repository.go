@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"tili/app/pkg/db"
 
@@ -50,6 +51,26 @@ func (r *Repository) FindAll(ctx context.Context) ([]*Sale, error) {
 		Where("s.is_deleted = ?", false).
 		OrderExpr("s.time_stamp DESC").
 		Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return sales, nil
+}
+
+// FindInRange returns non-deleted sales with time_stamp in [from, to), ordered
+// chronologically. A nil bound leaves that side of the range open.
+func (r *Repository) FindInRange(ctx context.Context, from, to *time.Time) ([]*Sale, error) {
+	var sales []*Sale
+	q := r.db.NewSelect().
+		Model(&sales).
+		Where("s.is_deleted = ?", false)
+	if from != nil {
+		q = q.Where("s.time_stamp >= ?", *from)
+	}
+	if to != nil {
+		q = q.Where("s.time_stamp < ?", *to)
+	}
+	err := q.OrderExpr("s.time_stamp ASC").Scan(ctx)
 	if err != nil {
 		return nil, err
 	}

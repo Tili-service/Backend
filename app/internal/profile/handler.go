@@ -276,20 +276,20 @@ func (h *Handler) UpdateProfileByIdAndStoreId(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Security     ProfileToken
-// @Param        id      path      int  true  "Profile ID"
-// @Param        storeId path      int  true  "Store ID"
+// @Param        id      path      string  true  "Profile ID"
+// @Param        storeId path      string  true  "Store ID"
 // @Success      200     {object}  ProfileWithPin
 // @Failure      400     {object}  map[string]interface{}
 // @Failure      404     {object}  map[string]interface{}
 // @Failure      500     {object}  map[string]interface{}
 // @Router       /profile/resetPin/{id}/{storeId} [put]
 func (h *Handler) ResetPin(c *gin.Context) {
-	idProfile, err := strconv.Atoi(c.Param("id"))
+	idProfile, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid profile ID"})
 		return
 	}
-	storeId, err := strconv.Atoi(c.Param("storeId"))
+	storeId, err := uuid.Parse(c.Param("storeId"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store ID"})
 		return

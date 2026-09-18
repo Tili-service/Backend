@@ -245,7 +245,7 @@ func (s *Service) UpdateProfileByIdAndStoreId(ctx context.Context, idProfile uui
 	return profile, nil
 }
 
-func (s *Service) ResetPin(ctx context.Context, idProfile int, storeId int) (*ProfileWithPin, error) {
+func (s *Service) ResetPin(ctx context.Context, idProfile uuid.UUID, storeId uuid.UUID) (*ProfileWithPin, error) {
 	profile, err := s.repo.FindByID(ctx, idProfile)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -278,7 +278,7 @@ func (s *Service) ResetPin(ctx context.Context, idProfile int, storeId int) (*Pr
 	}, nil
 }
 
-func (s *Service) DeactivateProfile(ctx context.Context, idProfile int, storeId int) (*Profile, error) {
+func (s *Service) DeactivateProfile(ctx context.Context, idProfile uuid.UUID, storeId uuid.UUID) (*Profile, error) {
 	profile, err := s.repo.FindByID(ctx, idProfile)
 	if err != nil {
 		return nil, errors.New("profile not found")

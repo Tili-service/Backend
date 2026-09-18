@@ -378,3 +378,95 @@ func TestService_DeactivateProfile_UpdateError(t *testing.T) {
 	assert.EqualError(t, err, "failed to deactivate profile")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
+func TestService_ResetPin_NotFound(t *testing.T) {
+	bunDB, mock := setupMockDB(t)
+	defer bunDB.Close()
+
+	repo := NewRepository(&db.Db{DB: bunDB})
+	svc := NewService(repo)
+
+	profID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	storeID := uuid.MustParse("00000000-0000-0000-0000-000000000010")
+
+	mock.ExpectQuery(`^SELECT .* FROM "profile" AS "p" WHERE \(p\.profile_id = .+\)$`).WillReturnError(sql.ErrNoRows)
+
+	_, err := svc.ResetPin(context.Background(), profID, storeID)
+
+	assert.ErrorIs(t, err, ErrProfileNotFound)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestService_ResetPin_StoreMismatch(t *testing.T) {
+	bunDB, mock := setupMockDB(t)
+	defer bunDB.Close()
+
+	repo := NewRepository(&db.Db{DB: bunDB})
+	svc := NewService(repo)
+
+	profID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	storeID := uuid.MustParse("00000000-0000-0000-0000-000000000010")
+	mismatchStoreID := uuid.MustParse("00000000-0000-0000-0000-000000000099")
+
+	rows := sqlmock.NewRows([]string{"profile_id", "store_id", "name", "pin", "level_access", "is_active"}).AddRow(profID, mismatchStoreID, "Old", "111111", 4, true)
+	mock.ExpectQuery(`^SELECT .* FROM "profile" AS "p" WHERE \(p\.profile_id = .+\)$`).WillReturnRows(rows)
+
+	_, err := svc.ResetPin(context.Background(), profID, storeID)
+
+	assert.EqualError(t, err, "profile does not belong to the specified store")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestService_ResetPin_Success(t *testing.T) {
+	bunDB, mock := setupMockDB(t)
+	defer bunDB.Close()
+
+	repo := NewRepository(&db.Db{DB: bunDB})
+	svc := NewService(repo)
+
+	profID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	storeID := uuid.MustParse("00000000-0000-0000-0000-000000000010")
+
+	rows := sqlmock.NewRows([]string{"profile_id", "store_id", "name", "pin", "level_access", "is_active"}).AddRow(profID, storeID, "Old", "111111", 4, true)
+	mock.ExpectQuery(`^SELECT .* FROM "profile" AS "p" WHERE \(p\.profile_id = .+\)$`).WillReturnRows(rows)
+
+	rowsExists := sqlmock.NewRows([]string{"exists"}).AddRow(false)
+	mock.ExpectQuery(`^SELECT EXISTS \(SELECT .* FROM "profile" AS "p" WHERE \(store_id = .+\) AND \(pin = .+\)\)$`).WillReturnRows(rowsExists)
+
+	mock.ExpectExec(`^UPDATE "profile" AS "p" SET`).WillReturnResult(sqlmock.NewResult(1, 1))
+
+	out, err := svc.ResetPin(context.Background(), profID, storeID)
+
+	assert.NoError(t, err)
+	if assert.NotNil(t, out) {
+		assert.Equal(t, profID, out.ProfileID)
+		assert.Equal(t, storeID, out.StoreID)
+		assert.Len(t, out.Pin, 6)
+		assert.NotEqual(t, "111111", out.Pin)
+	}
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestService_ResetPin_UpdateError(t *testing.T) {
+	bunDB, mock := setupMockDB(t)
+	defer bunDB.Close()
+
+	repo := NewRepository(&db.Db{DB: bunDB})
+	svc := NewService(repo)
+
+	profID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	storeID := uuid.MustParse("00000000-0000-0000-0000-000000000010")
+
+	rows := sqlmock.NewRows([]string{"profile_id", "store_id", "name", "pin", "level_access", "is_active"}).AddRow(profID, storeID, "Old", "111111", 4, true)
+	mock.ExpectQuery(`^SELECT .* FROM "profile" AS "p" WHERE \(p\.profile_id = .+\)$`).WillReturnRows(rows)
+
+	rowsExists := sqlmock.NewRows([]string{"exists"}).AddRow(false)
+	mock.ExpectQuery(`^SELECT EXISTS \(SELECT .* FROM "profile" AS "p" WHERE \(store_id = .+\) AND \(pin = .+\)\)$`).WillReturnRows(rowsExists)
+
+	mock.ExpectExec(`^UPDATE "profile" AS "p" SET`).WillReturnError(sql.ErrConnDone)
+
+	_, err := svc.ResetPin(context.Background(), profID, storeID)
+
+	assert.EqualError(t, err, "failed to reset pin")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}

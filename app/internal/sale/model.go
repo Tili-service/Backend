@@ -17,6 +17,7 @@ var ErrInvalidSaleTotal = errors.New("sale total must be positive")
 var ErrInvalidPaymentsTotal = errors.New("payments total must equal the sale total")
 var ErrInvalidPaymentAmount = errors.New("each payment amount must be positive")
 var ErrPayementMethodInvalid = errors.New("payment method not found or inactive")
+var ErrInvalidGranularity = errors.New("invalid granularity")
 
 type SaleLine struct {
 	ItemID    uuid.UUID       `json:"item_id"    binding:"required"       example:"00000000-0000-0000-0000-000000000000"`

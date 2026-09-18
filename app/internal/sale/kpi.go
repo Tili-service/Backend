@@ -131,11 +131,7 @@ func aggregateSalesKPI(sales []*Sale, granularity Granularity) *KPIReport {
 			label := taxBracketLabel(line.TaxRate)
 			bracket, ok := period.RevenueByTaxBracket[label]
 			if !ok {
-				rate := line.TaxRate
-				if label == otherTaxBracketLabel {
-					rate = decimal.Zero
-				}
-				bracket = &TaxBracketBreakdown{Rate: rate, Revenue: decimal.Zero, TaxAmount: decimal.Zero}
+				bracket = &TaxBracketBreakdown{Rate: line.TaxRate, Revenue: decimal.Zero, TaxAmount: decimal.Zero}
 				period.RevenueByTaxBracket[label] = bracket
 			}
 			bracket.Revenue = bracket.Revenue.Add(lineRevenue)

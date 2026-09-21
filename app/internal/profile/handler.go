@@ -212,12 +212,18 @@ func (h *Handler) Update(c *gin.Context) {
 // @Param        id   path      int  true  "Store ID"
 // @Success      200  {array}   Profile
 // @Failure      400  {object}  map[string]interface{}
+// @Failure      403  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /profile/allProfilesByStoreId/{id} [get]
 func (h *Handler) GetProfilesByStoreId(c *gin.Context) {
 	storeId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store ID"})
+		return
+	}
+	authStoreId, err := uuid.Parse(c.GetString("storeID"))
+	if err != nil || authStoreId != storeId {
+		c.JSON(http.StatusForbidden, gin.H{"error": "store mismatch"})
 		return
 	}
 

@@ -31,7 +31,7 @@ func NewService(d *db.Db, repo *Repository, historyRepo *salehistory.Repository,
 
 func validateTaxRates(lines []SaleLine) error {
 	for _, line := range lines {
-		if line.TaxRate.LessThanOrEqual(decimal.NewFromInt(-1)) {
+		if line.TaxRate.IsNegative() || line.TaxRate.GreaterThan(decimal.NewFromInt(1)) {
 			return ErrInvalidTaxRate
 		}
 	}

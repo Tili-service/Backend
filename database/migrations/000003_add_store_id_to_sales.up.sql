@@ -12,4 +12,4 @@
 ALTER TABLE sales
     ADD COLUMN store_id UUID REFERENCES store(store_id) ON DELETE CASCADE;
 
-CREATE INDEX idx_sales_store_id ON sales(store_id);
+CREATE INDEX idx_sales_store_id ON sales(store_id, time_stamp);

@@ -61,8 +61,12 @@ func TestService_CreateSale_InvalidTaxRate(t *testing.T) {
 func TestValidateTaxRates(t *testing.T) {
 	assert.ErrorIs(t, validateTaxRates([]SaleLine{{TaxRate: decimal.NewFromInt(-1)}}), ErrInvalidTaxRate)
 	assert.ErrorIs(t, validateTaxRates([]SaleLine{{TaxRate: decimal.NewFromInt(-2)}}), ErrInvalidTaxRate)
+	assert.ErrorIs(t, validateTaxRates([]SaleLine{{TaxRate: decimal.NewFromFloat(-0.5)}}), ErrInvalidTaxRate)
+	assert.ErrorIs(t, validateTaxRates([]SaleLine{{TaxRate: decimal.NewFromFloat(1.5)}}), ErrInvalidTaxRate)
+	assert.ErrorIs(t, validateTaxRates([]SaleLine{{TaxRate: decimal.NewFromInt(2)}}), ErrInvalidTaxRate)
 	assert.NoError(t, validateTaxRates([]SaleLine{{TaxRate: decimal.Zero}}))
 	assert.NoError(t, validateTaxRates([]SaleLine{{TaxRate: decimal.NewFromFloat(0.20)}}))
+	assert.NoError(t, validateTaxRates([]SaleLine{{TaxRate: decimal.NewFromInt(1)}}))
 }
 
 func TestValidatePayments_AmountNotPositive(t *testing.T) {

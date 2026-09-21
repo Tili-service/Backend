@@ -29,6 +29,15 @@ func NewService(d *db.Db, repo *Repository, historyRepo *salehistory.Repository,
 	return &Service{db: d.DB, repo: repo, historyRepo: historyRepo, pmChecker: pmChecker}
 }
 
+func validateTaxRates(lines []SaleLine) error {
+	for _, line := range lines {
+		if line.TaxRate.LessThanOrEqual(decimal.NewFromInt(-1)) {
+			return ErrInvalidTaxRate
+		}
+	}
+	return nil
+}
+
 func computeTotal(lines []SaleLine) decimal.Decimal {
 	total := decimal.Zero
 	for _, line := range lines {
@@ -91,6 +100,9 @@ func historyFromSale(s *Sale, changedByProfileID *uuid.UUID, changes map[string]
 }
 
 func (s *Service) CreateSale(ctx context.Context, input CreateSaleInput, storeID uuid.UUID, changedByProfileID *uuid.UUID) (*Sale, error) {
+	if err := validateTaxRates(input.Lines); err != nil {
+		return nil, err
+	}
 	total := computeTotal(input.Lines)
 	if !total.IsPositive() {
 		return nil, ErrInvalidSaleTotal

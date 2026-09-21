@@ -44,10 +44,11 @@ func taxBracketLabel(rate decimal.Decimal) string {
 // taxAmountFromInclusive extracts the tax portion of a tax-inclusive amount:
 // tax = amount * rate / (1 + rate).
 func taxAmountFromInclusive(amount, rate decimal.Decimal) decimal.Decimal {
-	if rate.IsZero() {
+	denominator := decimal.NewFromInt(1).Add(rate)
+	if rate.IsZero() || denominator.IsZero() {
 		return decimal.Zero
 	}
-	return amount.Mul(rate).Div(decimal.NewFromInt(1).Add(rate))
+	return amount.Mul(rate).Div(denominator)
 }
 
 // Rate is nil when the bracket (only ever otherTaxBracketLabel) pools lines
@@ -125,16 +126,22 @@ func aggregateSalesKPI(sales []*Sale, granularity Granularity) *KPIReport {
 			periods = append(periods, period)
 		}
 		period.SalesCount++
+		// Use the sale's stored, already-charged total rather than resumming
+		// lines here: CreateSale sums unrounded line extensions and rounds
+		// once (see computeTotal in service.go), so re-rounding per line
+		// below would let this report disagree with what was actually
+		// charged (e.g. three 4.995 lines charge 14.99 but would sum to
+		// 15.00 if each line were rounded before adding).
+		period.TotalRevenue = period.TotalRevenue.Add(sl.Price)
 
 		for _, line := range sl.Lines {
 			qty := decimal.NewFromInt(int64(line.Quantity))
-			// Round at the line level so every downstream sum (total, per-bracket,
-			// per-product) is built from the same cent-precision values and always
-			// reconciles; rounding independent aggregate sums afterwards can drift
-			// by a cent when inputs carry sub-cent precision.
-			lineRevenue := line.UnitPrice.Mul(qty).Round(2)
-			lineTax := taxAmountFromInclusive(lineRevenue, line.TaxRate).Round(2)
-			period.TotalRevenue = period.TotalRevenue.Add(lineRevenue)
+			// Kept unrounded here and rounded once below, alongside
+			// TotalRevenue, so these breakdowns stay as close as possible
+			// to the sale's rounding contract instead of drifting from
+			// independent per-line rounding.
+			lineRevenue := line.UnitPrice.Mul(qty)
+			lineTax := taxAmountFromInclusive(lineRevenue, line.TaxRate)
 
 			label := taxBracketLabel(line.TaxRate)
 			bracket, ok := period.RevenueByTaxBracket[label]

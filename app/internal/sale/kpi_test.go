@@ -54,6 +54,12 @@ func TestTaxAmountFromInclusive(t *testing.T) {
 	assert.True(t, decimal.NewFromInt(2).Equal(got), "got %s", got)
 
 	assert.True(t, decimal.Zero.Equal(taxAmountFromInclusive(decimal.NewFromInt(12), decimal.Zero)))
+
+	// rate == -1 would divide by zero; must not panic, only ever reachable
+	// via data stored before validateTaxRates existed.
+	assert.NotPanics(t, func() {
+		taxAmountFromInclusive(decimal.NewFromInt(12), decimal.NewFromInt(-1))
+	})
 }
 
 func TestTaxBracketLabel(t *testing.T) {
@@ -68,22 +74,28 @@ func TestAggregateSalesKPI_TotalsAndBrackets(t *testing.T) {
 	itemA := uuid.New()
 	itemB := uuid.New()
 
+	sale1Lines := []SaleLine{
+		{ItemID: itemA, Name: "Coffee", Quantity: 2, UnitPrice: decimal.NewFromFloat(4.80), TaxRate: decimal.NewFromFloat(0.20)},
+		{ItemID: itemB, Name: "Book", Quantity: 1, UnitPrice: decimal.NewFromFloat(10.50), TaxRate: decimal.NewFromFloat(0.05)},
+	}
+	sale2Lines := []SaleLine{
+		{ItemID: itemA, Name: "Coffee", Quantity: 1, UnitPrice: decimal.NewFromFloat(4.80), TaxRate: decimal.NewFromFloat(0.20)},
+		{ItemID: itemB, Name: "Book", Quantity: 1, UnitPrice: decimal.NewFromFloat(9.00), TaxRate: decimal.NewFromFloat(0.15)},
+	}
 	sales := []*Sale{
 		{
 			TimeStamp: ts,
-			Lines: []SaleLine{
-				{ItemID: itemA, Name: "Coffee", Quantity: 2, UnitPrice: decimal.NewFromFloat(4.80), TaxRate: decimal.NewFromFloat(0.20)},
-				{ItemID: itemB, Name: "Book", Quantity: 1, UnitPrice: decimal.NewFromFloat(10.50), TaxRate: decimal.NewFromFloat(0.05)},
-			},
+			Lines:     sale1Lines,
+			// Price mirrors what CreateSale would have stored via computeTotal,
+			// since aggregateSalesKPI now sources TotalRevenue from it directly.
+			Price: computeTotal(sale1Lines),
 		},
 		{
 			// Same day, second sale: item A repeats (should accumulate) and an
 			// "other" tax rate line is introduced.
 			TimeStamp: ts.Add(2 * time.Hour),
-			Lines: []SaleLine{
-				{ItemID: itemA, Name: "Coffee", Quantity: 1, UnitPrice: decimal.NewFromFloat(4.80), TaxRate: decimal.NewFromFloat(0.20)},
-				{ItemID: itemB, Name: "Book", Quantity: 1, UnitPrice: decimal.NewFromFloat(9.00), TaxRate: decimal.NewFromFloat(0.15)},
-			},
+			Lines:     sale2Lines,
+			Price:     computeTotal(sale2Lines),
 		},
 	}
 
@@ -128,19 +140,27 @@ func TestAggregateSalesKPI_RoundingReconciles(t *testing.T) {
 
 	// Unit prices with sub-cent precision: each line's raw revenue rounds
 	// differently, so the parts must still sum to the reported total.
+	lines := []SaleLine{
+		{ItemID: item, Name: "A", Quantity: 1, UnitPrice: decimal.NewFromFloat(4.995), TaxRate: decimal.NewFromFloat(0.20)},
+		{ItemID: item, Name: "A", Quantity: 1, UnitPrice: decimal.NewFromFloat(4.995), TaxRate: decimal.NewFromFloat(0.20)},
+		{ItemID: item, Name: "A", Quantity: 1, UnitPrice: decimal.NewFromFloat(4.995), TaxRate: decimal.NewFromFloat(0.20)},
+	}
 	sales := []*Sale{
 		{
 			TimeStamp: ts,
-			Lines: []SaleLine{
-				{ItemID: item, Name: "A", Quantity: 1, UnitPrice: decimal.NewFromFloat(4.995), TaxRate: decimal.NewFromFloat(0.20)},
-				{ItemID: item, Name: "A", Quantity: 1, UnitPrice: decimal.NewFromFloat(4.995), TaxRate: decimal.NewFromFloat(0.20)},
-				{ItemID: item, Name: "A", Quantity: 1, UnitPrice: decimal.NewFromFloat(4.995), TaxRate: decimal.NewFromFloat(0.20)},
-			},
+			Lines:     lines,
+			Price:     computeTotal(lines),
 		},
 	}
 
 	report := aggregateSalesKPI(sales, GranularityDaily)
 	period := report.Periods[0]
+
+	// The report's total must match what was actually charged (computeTotal
+	// sums the unrounded 4.995 lines and rounds once: 14.985 -> 14.99), not
+	// what summing three independently-rounded lines (5.00 each) would give.
+	assert.True(t, decimal.NewFromFloat(14.99).Equal(period.TotalRevenue), "got %s", period.TotalRevenue)
+	assert.True(t, sales[0].Price.Equal(period.TotalRevenue))
 
 	sumBrackets := decimal.Zero
 	for _, b := range period.RevenueByTaxBracket {

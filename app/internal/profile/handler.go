@@ -255,6 +255,11 @@ func (h *Handler) UpdateProfileByIdAndStoreId(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store ID"})
 		return
 	}
+	authStoreId, err := uuid.Parse(c.GetString("storeID"))
+	if err != nil || authStoreId != storeId {
+		c.JSON(http.StatusForbidden, gin.H{"error": "store mismatch"})
+		return
+	}
 	var input updateProfileInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -294,6 +299,11 @@ func (h *Handler) ResetPin(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store ID"})
 		return
 	}
+	authStoreId, err := uuid.Parse(c.GetString("storeID"))
+	if err != nil || authStoreId != storeId {
+		c.JSON(http.StatusForbidden, gin.H{"error": "store mismatch"})
+		return
+	}
 
 	profile, err := h.service.ResetPin(c.Request.Context(), idProfile, storeId)
 	if err != nil {
@@ -330,6 +340,11 @@ func (h *Handler) DeactivateProfile(c *gin.Context) {
 	storeId, err := uuid.Parse(c.Param("storeId"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store ID"})
+		return
+	}
+	authStoreId, err := uuid.Parse(c.GetString("storeID"))
+	if err != nil || authStoreId != storeId {
+		c.JSON(http.StatusForbidden, gin.H{"error": "store mismatch"})
 		return
 	}
 

@@ -24,7 +24,7 @@ func TestService_CreateSale_InvalidPaymentAmount(t *testing.T) {
 		Lines:    []SaleLine{{Quantity: 1, UnitPrice: decimal.NewFromInt(10)}},
 		Payments: []SalePayment{{PayementMethodID: uuid.Nil, Amount: decimal.Zero}},
 	}
-	_, err := svc.CreateSale(context.Background(), input, nil)
+	_, err := svc.CreateSale(context.Background(), input, uuid.New(), nil)
 	assert.ErrorIs(t, err, ErrInvalidPaymentAmount)
 }
 
@@ -34,7 +34,7 @@ func TestService_CreateSale_PaymentsTotalMismatch(t *testing.T) {
 		Lines:    []SaleLine{{Quantity: 1, UnitPrice: decimal.NewFromInt(10)}},
 		Payments: []SalePayment{{PayementMethodID: uuid.Nil, Amount: decimal.NewFromInt(5)}},
 	}
-	_, err := svc.CreateSale(context.Background(), input, nil)
+	_, err := svc.CreateSale(context.Background(), input, uuid.New(), nil)
 	assert.ErrorIs(t, err, ErrInvalidPaymentsTotal)
 }
 
@@ -44,7 +44,7 @@ func TestService_CreateSale_PayementMethodInvalid(t *testing.T) {
 		Lines:    []SaleLine{{Quantity: 1, UnitPrice: decimal.NewFromInt(10)}},
 		Payments: []SalePayment{{PayementMethodID: uuid.New(), Amount: decimal.NewFromInt(10)}},
 	}
-	_, err := svc.CreateSale(context.Background(), input, nil)
+	_, err := svc.CreateSale(context.Background(), input, uuid.New(), nil)
 	assert.ErrorIs(t, err, ErrPayementMethodInvalid)
 }
 

@@ -50,10 +50,13 @@ func taxAmountFromInclusive(amount, rate decimal.Decimal) decimal.Decimal {
 	return amount.Mul(rate).Div(decimal.NewFromInt(1).Add(rate))
 }
 
+// Rate is nil when the bracket (only ever otherTaxBracketLabel) pools lines
+// with more than one distinct non-standard tax rate, since no single rate
+// then describes the aggregated Revenue/TaxAmount.
 type TaxBracketBreakdown struct {
-	Rate      decimal.Decimal `json:"rate"`
-	Revenue   decimal.Decimal `json:"revenue"`
-	TaxAmount decimal.Decimal `json:"tax_amount"`
+	Rate      *decimal.Decimal `json:"rate"`
+	Revenue   decimal.Decimal  `json:"revenue"`
+	TaxAmount decimal.Decimal  `json:"tax_amount"`
 }
 
 type ProductBreakdown struct {
@@ -125,17 +128,25 @@ func aggregateSalesKPI(sales []*Sale, granularity Granularity) *KPIReport {
 
 		for _, line := range sl.Lines {
 			qty := decimal.NewFromInt(int64(line.Quantity))
-			lineRevenue := line.UnitPrice.Mul(qty)
+			// Round at the line level so every downstream sum (total, per-bracket,
+			// per-product) is built from the same cent-precision values and always
+			// reconciles; rounding independent aggregate sums afterwards can drift
+			// by a cent when inputs carry sub-cent precision.
+			lineRevenue := line.UnitPrice.Mul(qty).Round(2)
+			lineTax := taxAmountFromInclusive(lineRevenue, line.TaxRate).Round(2)
 			period.TotalRevenue = period.TotalRevenue.Add(lineRevenue)
 
 			label := taxBracketLabel(line.TaxRate)
 			bracket, ok := period.RevenueByTaxBracket[label]
 			if !ok {
-				bracket = &TaxBracketBreakdown{Rate: line.TaxRate, Revenue: decimal.Zero, TaxAmount: decimal.Zero}
+				rate := line.TaxRate
+				bracket = &TaxBracketBreakdown{Rate: &rate, Revenue: decimal.Zero, TaxAmount: decimal.Zero}
 				period.RevenueByTaxBracket[label] = bracket
+			} else if bracket.Rate != nil && !bracket.Rate.Equal(line.TaxRate) {
+				bracket.Rate = nil
 			}
 			bracket.Revenue = bracket.Revenue.Add(lineRevenue)
-			bracket.TaxAmount = bracket.TaxAmount.Add(taxAmountFromInclusive(lineRevenue, line.TaxRate))
+			bracket.TaxAmount = bracket.TaxAmount.Add(lineTax)
 
 			prod, ok := productIndex[key][line.ItemID]
 			if !ok {
@@ -157,7 +168,7 @@ func aggregateSalesKPI(sales []*Sale, granularity Granularity) *KPIReport {
 		for _, pr := range p.RevenueByProduct {
 			pr.Revenue = pr.Revenue.Round(2)
 		}
-		sort.Slice(p.RevenueByProduct, func(i, j int) bool {
+		sort.SliceStable(p.RevenueByProduct, func(i, j int) bool {
 			return p.RevenueByProduct[i].Revenue.GreaterThan(p.RevenueByProduct[j].Revenue)
 		})
 	}
@@ -169,12 +180,32 @@ func isValidGranularity(g Granularity) bool {
 	return g == GranularityDaily || g == GranularityWeekly || g == GranularityMonthly
 }
 
-func (s *Service) GetSalesKPI(ctx context.Context, granularity Granularity, from, to *time.Time) (*KPIReport, error) {
+// maxKPIRangeDays caps how wide a single KPI query can span, so an open-ended
+// or overly broad request can't force FindInRange to load a store's entire
+// sales history into memory in one go.
+const maxKPIRangeDays = 366
+
+func (s *Service) GetSalesKPI(ctx context.Context, storeID uuid.UUID, granularity Granularity, from, to *time.Time) (*KPIReport, error) {
 	if !isValidGranularity(granularity) {
 		return nil, ErrInvalidGranularity
 	}
 
-	sales, err := s.repo.FindInRange(ctx, from, to)
+	effectiveTo := time.Now()
+	if to != nil {
+		effectiveTo = *to
+	}
+	effectiveFrom := effectiveTo.AddDate(0, 0, -maxKPIRangeDays)
+	if from != nil {
+		effectiveFrom = *from
+	}
+	if effectiveFrom.After(effectiveTo) {
+		return nil, ErrKPIRangeInvalid
+	}
+	if effectiveTo.Sub(effectiveFrom) > maxKPIRangeDays*24*time.Hour {
+		return nil, ErrKPIRangeTooWide
+	}
+
+	sales, err := s.repo.FindInRange(ctx, storeID, &effectiveFrom, &effectiveTo)
 	if err != nil {
 		return nil, err
 	}

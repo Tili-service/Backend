@@ -23,6 +23,15 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
+func storeIDFromContext(c *gin.Context) (uuid.UUID, bool) {
+	storeID, err := uuid.Parse(c.GetString("storeID"))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid store context"})
+		return uuid.Nil, false
+	}
+	return storeID, true
+}
+
 func (h *Handler) RegisterRoutes(rg *gin.Engine) {
 	sales := rg.Group("/sales")
 	protected := sales.Group("")
@@ -58,12 +67,17 @@ func (h *Handler) CreateSale(c *gin.Context) {
 		return
 	}
 
+	storeID, ok := storeIDFromContext(c)
+	if !ok {
+		return
+	}
+
 	var changedByProf *uuid.UUID
 	if profileID, err := uuid.Parse(c.GetString("profileID")); err == nil && profileID != uuid.Nil {
 		changedByProf = &profileID
 	}
 
-	sale, err := h.service.CreateSale(c.Request.Context(), input, changedByProf)
+	sale, err := h.service.CreateSale(c.Request.Context(), input, storeID, changedByProf)
 	if err != nil {
 		if errors.Is(err, ErrInvalidSaleTotal) || errors.Is(err, ErrInvalidPaymentsTotal) || errors.Is(err, ErrInvalidPaymentAmount) || errors.Is(err, ErrPayementMethodInvalid) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -84,7 +98,12 @@ func (h *Handler) CreateSale(c *gin.Context) {
 // @Failure      500  {object}  map[string]string
 // @Router       /sales [get]
 func (h *Handler) GetAllSales(c *gin.Context) {
-	sales, err := h.service.GetAllSales(c.Request.Context())
+	storeID, ok := storeIDFromContext(c)
+	if !ok {
+		return
+	}
+
+	sales, err := h.service.GetAllSales(c.Request.Context(), storeID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 		return
@@ -110,7 +129,12 @@ func (h *Handler) GetSaleByID(c *gin.Context) {
 		return
 	}
 
-	sale, err := h.service.GetSaleByID(c.Request.Context(), id)
+	storeID, ok := storeIDFromContext(c)
+	if !ok {
+		return
+	}
+
+	sale, err := h.service.GetSaleByID(c.Request.Context(), id, storeID)
 	if err != nil {
 		if errors.Is(err, ErrSaleNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -124,7 +148,7 @@ func (h *Handler) GetSaleByID(c *gin.Context) {
 }
 
 // @Summary      Sales KPI report
-// @Description  Returns revenue KPIs bucketed by day, week, or month: total revenue, revenue and tax amount per tax bracket (5%, 10%, 20%, other), and revenue by product. Line amounts are treated as tax-inclusive. `from`/`to` are optional dates (YYYY-MM-DD); `to` is inclusive.
+// @Description  Returns revenue KPIs bucketed by day, week, or month: total revenue, revenue and tax amount per tax bracket (5%, 10%, 20%, other), and revenue by product. Line amounts are treated as tax-inclusive. `from`/`to` are optional dates (YYYY-MM-DD); `to` is inclusive and defaults to today. The effective range cannot exceed 366 days; `from` defaults to 366 days before the effective `to` when omitted.
 // @Tags         sales
 // @Produce      json
 // @Param        granularity  query     string  false  "daily, weekly, or monthly"  default(daily)
@@ -135,6 +159,11 @@ func (h *Handler) GetSaleByID(c *gin.Context) {
 // @Failure      500  {object}  map[string]string
 // @Router       /sales/kpi [get]
 func (h *Handler) GetSalesKPI(c *gin.Context) {
+	storeID, ok := storeIDFromContext(c)
+	if !ok {
+		return
+	}
+
 	granularity := Granularity(strings.ToLower(c.DefaultQuery("granularity", string(GranularityDaily))))
 
 	var from, to *time.Time
@@ -156,9 +185,9 @@ func (h *Handler) GetSalesKPI(c *gin.Context) {
 		to = &t
 	}
 
-	report, err := h.service.GetSalesKPI(c.Request.Context(), granularity, from, to)
+	report, err := h.service.GetSalesKPI(c.Request.Context(), storeID, granularity, from, to)
 	if err != nil {
-		if errors.Is(err, ErrInvalidGranularity) {
+		if errors.Is(err, ErrInvalidGranularity) || errors.Is(err, ErrKPIRangeTooWide) || errors.Is(err, ErrKPIRangeInvalid) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
@@ -194,12 +223,17 @@ func (h *Handler) UpdateSale(c *gin.Context) {
 		return
 	}
 
+	storeID, ok := storeIDFromContext(c)
+	if !ok {
+		return
+	}
+
 	var changedByProf *uuid.UUID
 	if profileID, err := uuid.Parse(c.GetString("profileID")); err == nil && profileID != uuid.Nil {
 		changedByProf = &profileID
 	}
 
-	sale, err := h.service.UpdateSale(c.Request.Context(), id, input, changedByProf)
+	sale, err := h.service.UpdateSale(c.Request.Context(), id, storeID, input, changedByProf)
 	if err != nil {
 		if errors.Is(err, ErrSaleNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -244,12 +278,17 @@ func (h *Handler) DeleteSale(c *gin.Context) {
 		return
 	}
 
+	storeID, ok := storeIDFromContext(c)
+	if !ok {
+		return
+	}
+
 	var changedByProf *uuid.UUID
 	if profileID, err := uuid.Parse(c.GetString("profileID")); err == nil && profileID != uuid.Nil {
 		changedByProf = &profileID
 	}
 
-	if err := h.service.DeleteSale(c.Request.Context(), id, changedByProf); err != nil {
+	if err := h.service.DeleteSale(c.Request.Context(), id, storeID, changedByProf); err != nil {
 		if errors.Is(err, ErrSaleNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return

@@ -247,6 +247,74 @@ const docTemplate = `{
                 }
             }
         },
+        "/account/reset-password": {
+            "post": {
+                "security": [
+                    {
+                        "AccountToken": []
+                    }
+                ],
+                "description": "Changes the password of the currently authenticated account. Requires the current password.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "account"
+                ],
+                "summary": "Change account password",
+                "parameters": [
+                    {
+                        "description": "Password change payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/account.ResetPasswordInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/webhooks/stripe": {
             "post": {
                 "description": "Endpoint to receive and process Stripe webhook events, creating licences upon successful checkout sessions.",
@@ -296,14 +364,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/catalog": {
+        "/catalog/store/{store_id}": {
             "get": {
                 "security": [
                     {
                         "ProfileToken": []
                     }
                 ],
-                "description": "Retrieves the complete list of catalogs",
+                "description": "Retrieves the complete list of catalogs for a store",
                 "produces": [
                     "application/json"
                 ],
@@ -311,14 +379,31 @@ const docTemplate = `{
                     "catalog"
                 ],
                 "summary": "List catalogs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "00000000-0000-0000-0000-000000000000",
+                        "description": "Store ID",
+                        "name": "store_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/catalog.catalog"
+                                "$ref": "#/definitions/catalog.Catalog"
                             }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "401": {
@@ -343,7 +428,7 @@ const docTemplate = `{
                         "ProfileToken": []
                     }
                 ],
-                "description": "Creates a new catalog in the system",
+                "description": "Creates a new catalog in the system for a given store",
                 "consumes": [
                     "application/json"
                 ],
@@ -355,6 +440,14 @@ const docTemplate = `{
                 ],
                 "summary": "Create a catalog",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "example": "00000000-0000-0000-0000-000000000000",
+                        "description": "Store ID",
+                        "name": "store_id",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "description": "catalog payload",
                         "name": "body",
@@ -369,7 +462,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/catalog.catalog"
+                            "$ref": "#/definitions/catalog.Catalog"
                         }
                     },
                     "400": {
@@ -403,7 +496,7 @@ const docTemplate = `{
                         "ProfileToken": []
                     }
                 ],
-                "description": "Retrieves the details of a catalog using its ID",
+                "description": "Retrieves the details of a catalog using its ID within a store",
                 "produces": [
                     "application/json"
                 ],
@@ -413,8 +506,16 @@ const docTemplate = `{
                 "summary": "Retrieve a catalog",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "example": 1,
+                        "type": "string",
+                        "example": "00000000-0000-0000-0000-000000000000",
+                        "description": "Store ID",
+                        "name": "store_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "example": "00000000-0000-0000-0000-000000000000",
                         "description": "catalog ID",
                         "name": "id",
                         "in": "path",
@@ -425,7 +526,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/catalog.catalog"
+                            "$ref": "#/definitions/catalog.Catalog"
                         }
                     },
                     "400": {
@@ -442,8 +543,8 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     },
-                    "404": {
-                        "description": "Not Found",
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -457,7 +558,7 @@ const docTemplate = `{
                         "ProfileToken": []
                     }
                 ],
-                "description": "Modifies the information of an existing catalog via its ID",
+                "description": "Modifies the information of an existing catalog via its ID within a store",
                 "consumes": [
                     "application/json"
                 ],
@@ -470,8 +571,16 @@ const docTemplate = `{
                 "summary": "Update a catalog",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "example": 1,
+                        "type": "string",
+                        "example": "00000000-0000-0000-0000-000000000000",
+                        "description": "Store ID",
+                        "name": "store_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "example": "00000000-0000-0000-0000-000000000000",
                         "description": "catalog ID",
                         "name": "id",
                         "in": "path",
@@ -491,7 +600,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/catalog.catalog"
+                            "$ref": "#/definitions/catalog.Catalog"
                         }
                     },
                     "400": {
@@ -503,13 +612,6 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -530,7 +632,7 @@ const docTemplate = `{
                         "ProfileToken": []
                     }
                 ],
-                "description": "Deletes a catalog from the system via its ID",
+                "description": "Deletes a catalog from the system via its ID within a store",
                 "produces": [
                     "application/json"
                 ],
@@ -540,8 +642,16 @@ const docTemplate = `{
                 "summary": "Delete a catalog",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "example": 1,
+                        "type": "string",
+                        "example": "00000000-0000-0000-0000-000000000000",
+                        "description": "Store ID",
+                        "name": "store_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "example": "00000000-0000-0000-0000-000000000000",
                         "description": "catalog ID",
                         "name": "id",
                         "in": "path",
@@ -576,14 +686,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/categorie": {
+        "/categorie/catalog/{catalog_id}": {
             "get": {
                 "security": [
                     {
                         "ProfileToken": []
                     }
                 ],
-                "description": "Retrieves the complete list of categories",
+                "description": "Retrieves all categories belonging to a catalog",
                 "produces": [
                     "application/json"
                 ],
@@ -591,6 +701,16 @@ const docTemplate = `{
                     "categorie"
                 ],
                 "summary": "List categories",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "example": 1,
+                        "description": "Catalog ID",
+                        "name": "catalog_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -599,6 +719,13 @@ const docTemplate = `{
                             "items": {
                                 "$ref": "#/definitions/categorie.Categorie"
                             }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "401": {
@@ -623,7 +750,7 @@ const docTemplate = `{
                         "ProfileToken": []
                     }
                 ],
-                "description": "Creates a new categorie in the system. Requires Manager level access.",
+                "description": "Creates a new categorie in a catalog. Requires Manager level access.",
                 "consumes": [
                     "application/json"
                 ],
@@ -635,6 +762,14 @@ const docTemplate = `{
                 ],
                 "summary": "Create a categorie",
                 "parameters": [
+                    {
+                        "type": "integer",
+                        "example": 1,
+                        "description": "Catalog ID",
+                        "name": "catalog_id",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "description": "Categorie payload",
                         "name": "body",
@@ -683,14 +818,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/categorie/type/{type}": {
+        "/categorie/catalog/{catalog_id}/type/{type}": {
             "get": {
                 "security": [
                     {
                         "ProfileToken": []
                     }
                 ],
-                "description": "Retrieves the details of a categorie using its type",
+                "description": "Retrieves the details of a categorie using its type within a catalog",
                 "produces": [
                     "application/json"
                 ],
@@ -699,6 +834,14 @@ const docTemplate = `{
                 ],
                 "summary": "Retrieve a categorie by type",
                 "parameters": [
+                    {
+                        "type": "integer",
+                        "example": 1,
+                        "description": "Catalog ID",
+                        "name": "catalog_id",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "type": "string",
                         "example": "Electronics",
@@ -713,6 +856,13 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/categorie.Categorie"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "401": {
@@ -737,7 +887,7 @@ const docTemplate = `{
                         "ProfileToken": []
                     }
                 ],
-                "description": "Deletes a categorie from the system via its type. Requires Manager level access.",
+                "description": "Deletes a categorie from a catalog via its type. Requires Manager level access.",
                 "produces": [
                     "application/json"
                 ],
@@ -746,6 +896,14 @@ const docTemplate = `{
                 ],
                 "summary": "Delete a categorie by type",
                 "parameters": [
+                    {
+                        "type": "integer",
+                        "example": 1,
+                        "description": "Catalog ID",
+                        "name": "catalog_id",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "type": "string",
                         "example": "Electronics",
@@ -758,6 +916,13 @@ const docTemplate = `{
                 "responses": {
                     "204": {
                         "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
                     },
                     "401": {
                         "description": "Unauthorized",
@@ -790,14 +955,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/categorie/{id}": {
+        "/categorie/catalog/{catalog_id}/{id}": {
             "get": {
                 "security": [
                     {
                         "ProfileToken": []
                     }
                 ],
-                "description": "Retrieves the details of a categorie using its ID",
+                "description": "Retrieves the details of a categorie using its ID within a catalog",
                 "produces": [
                     "application/json"
                 ],
@@ -806,6 +971,14 @@ const docTemplate = `{
                 ],
                 "summary": "Retrieve a categorie",
                 "parameters": [
+                    {
+                        "type": "integer",
+                        "example": 1,
+                        "description": "Catalog ID",
+                        "name": "catalog_id",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "example": 1,
@@ -851,7 +1024,7 @@ const docTemplate = `{
                         "ProfileToken": []
                     }
                 ],
-                "description": "Modifies the information of an existing categorie via its ID. Requires Manager level access.",
+                "description": "Modifies the information of an existing categorie. Requires Manager level access.",
                 "consumes": [
                     "application/json"
                 ],
@@ -863,6 +1036,14 @@ const docTemplate = `{
                 ],
                 "summary": "Update a categorie",
                 "parameters": [
+                    {
+                        "type": "integer",
+                        "example": 1,
+                        "description": "Catalog ID",
+                        "name": "catalog_id",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "example": 1,
@@ -931,7 +1112,7 @@ const docTemplate = `{
                         "ProfileToken": []
                     }
                 ],
-                "description": "Deletes a categorie from the system via its ID. Requires Manager level access.",
+                "description": "Deletes a categorie from a catalog via its ID. Requires Manager level access.",
                 "produces": [
                     "application/json"
                 ],
@@ -940,6 +1121,14 @@ const docTemplate = `{
                 ],
                 "summary": "Delete a categorie",
                 "parameters": [
+                    {
+                        "type": "integer",
+                        "example": 1,
+                        "description": "Catalog ID",
+                        "name": "catalog_id",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "example": 1,
@@ -1512,6 +1701,68 @@ const docTemplate = `{
                 }
             }
         },
+        "/licences/refund": {
+            "post": {
+                "security": [
+                    {
+                        "AccountToken": []
+                    }
+                ],
+                "description": "Refunds the specified licence and deletes the associated store and profiles.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "licence"
+                ],
+                "summary": "Refund a licence",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Licence UUID",
+                        "name": "licenceId",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/licences/{id}": {
             "get": {
                 "security": [
@@ -1973,7 +2224,7 @@ const docTemplate = `{
                         "ProfileToken": []
                     }
                 ],
-                "description": "Deletes a payement method from the system by its ID. Requires Manager level access.",
+                "description": "Deactivates a payement method by its ID (soft-delete). The record is preserved for historical sales. Requires Manager level access.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1983,7 +2234,74 @@ const docTemplate = `{
                 "tags": [
                     "payementmethod"
                 ],
-                "summary": "Delete a payement method",
+                "summary": "Deactivate a payement method",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "example": 1,
+                        "description": "Payement method ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/payementmethod/{id}/reactivate": {
+            "patch": {
+                "security": [
+                    {
+                        "ProfileToken": []
+                    }
+                ],
+                "description": "Reactivates a previously deactivated payement method by its ID. Requires Manager level access.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "payementmethod"
+                ],
+                "summary": "Reactivate a payement method",
                 "parameters": [
                     {
                         "type": "integer",
@@ -2547,6 +2865,65 @@ const docTemplate = `{
                 }
             }
         },
+        "/sales/kpi": {
+            "get": {
+                "description": "Returns revenue KPIs bucketed by day, week, or month: total revenue, revenue and tax amount per tax bracket (5%, 10%, 20%, other), and revenue by product. Line amounts are treated as tax-inclusive. ` + "`" + `from` + "`" + `/` + "`" + `to` + "`" + ` are optional dates (YYYY-MM-DD); ` + "`" + `to` + "`" + ` is inclusive and defaults to today. The effective range cannot exceed 366 days; ` + "`" + `from` + "`" + ` defaults to 366 days before the effective ` + "`" + `to` + "`" + ` when omitted.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sales"
+                ],
+                "summary": "Sales KPI report",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "daily",
+                        "description": "daily, weekly, or monthly",
+                        "name": "granularity",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Start date (YYYY-MM-DD), inclusive",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date (YYYY-MM-DD), inclusive",
+                        "name": "to",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/sale.KPIReport"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/sales/{id}": {
             "get": {
                 "description": "Returns a single non-deleted sale by its ID.",
@@ -2946,13 +3323,6 @@ const docTemplate = `{
                 "summary": "Update a store",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Store ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
                         "description": "Store update payload",
                         "name": "body",
                         "in": "body",
@@ -3066,7 +3436,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "account_id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "created_at": {
                     "type": "string"
@@ -3114,8 +3484,27 @@ const docTemplate = `{
                 }
             }
         },
+        "account.ResetPasswordInput": {
+            "type": "object",
+            "required": [
+                "new_password",
+                "old_password"
+            ],
+            "properties": {
+                "new_password": {
+                    "type": "string",
+                    "minLength": 6
+                },
+                "old_password": {
+                    "type": "string"
+                }
+            }
+        },
         "account.UpdateAccountInput": {
             "type": "object",
+            "required": [
+                "email"
+            ],
             "properties": {
                 "email": {
                     "type": "string"
@@ -3125,9 +3514,13 @@ const docTemplate = `{
                 }
             }
         },
-        "catalog.catalog": {
+        "catalog.Catalog": {
             "type": "object",
             "properties": {
+                "catalog_id": {
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
+                },
                 "description": {
                     "type": "string",
                     "example": "All items available for the winter 2026 season"
@@ -3135,6 +3528,10 @@ const docTemplate = `{
                 "name": {
                     "type": "string",
                     "example": "Winter 2026 Collection"
+                },
+                "store_id": {
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
                 }
             }
         },
@@ -3154,9 +3551,13 @@ const docTemplate = `{
         "categorie.Categorie": {
             "type": "object",
             "properties": {
+                "catalog_id": {
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
+                },
                 "categorie_id": {
-                    "type": "integer",
-                    "example": 1
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
                 },
                 "type": {
                     "type": "string",
@@ -3171,12 +3572,12 @@ const docTemplate = `{
                     "$ref": "#/definitions/categorie.Categorie"
                 },
                 "categorie_id": {
-                    "type": "integer",
-                    "example": 1
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
                 },
                 "item_id": {
-                    "type": "integer",
-                    "example": 1
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
                 },
                 "name": {
                     "type": "string",
@@ -3200,8 +3601,8 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "categorie_id": {
-                    "type": "integer",
-                    "example": 1
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
                 },
                 "name": {
                     "type": "string",
@@ -3232,7 +3633,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "account_id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "expiration": {
                     "type": "string"
@@ -3241,6 +3642,9 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "licence_id": {
+                    "type": "string"
+                },
+                "next_payment": {
                     "type": "string"
                 },
                 "store": {
@@ -3270,13 +3674,17 @@ const docTemplate = `{
         "payementmethod.PayementMethod": {
             "type": "object",
             "properties": {
+                "is_active": {
+                    "type": "boolean",
+                    "example": true
+                },
                 "name": {
                     "type": "string",
                     "example": "Credit Card"
                 },
                 "payement_method_id": {
-                    "type": "integer",
-                    "example": 1
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
                 }
             }
         },
@@ -3314,7 +3722,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "store_id": {
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         },
@@ -3331,10 +3739,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "profile_id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "store_id": {
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         },
@@ -3354,10 +3762,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "profile_id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "store_id": {
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         },
@@ -3382,7 +3790,7 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "lines",
-                "payement_method_id"
+                "payments"
             ],
             "properties": {
                 "lines": {
@@ -3392,9 +3800,85 @@ const docTemplate = `{
                         "$ref": "#/definitions/sale.SaleLine"
                     }
                 },
-                "payement_method_id": {
-                    "type": "integer",
-                    "example": 1
+                "payments": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/sale.SalePayment"
+                    }
+                }
+            }
+        },
+        "sale.Granularity": {
+            "type": "string",
+            "enum": [
+                "daily",
+                "weekly",
+                "monthly"
+            ],
+            "x-enum-varnames": [
+                "GranularityDaily",
+                "GranularityWeekly",
+                "GranularityMonthly"
+            ]
+        },
+        "sale.KPIPeriod": {
+            "type": "object",
+            "properties": {
+                "period": {
+                    "type": "string"
+                },
+                "period_start": {
+                    "type": "string"
+                },
+                "revenue_by_product": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/sale.ProductBreakdown"
+                    }
+                },
+                "revenue_by_tax_bracket": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/sale.TaxBracketBreakdown"
+                    }
+                },
+                "sales_count": {
+                    "type": "integer"
+                },
+                "total_revenue": {
+                    "type": "number"
+                }
+            }
+        },
+        "sale.KPIReport": {
+            "type": "object",
+            "properties": {
+                "granularity": {
+                    "$ref": "#/definitions/sale.Granularity"
+                },
+                "periods": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/sale.KPIPeriod"
+                    }
+                }
+            }
+        },
+        "sale.ProductBreakdown": {
+            "type": "object",
+            "properties": {
+                "item_id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "quantity": {
+                    "type": "integer"
+                },
+                "revenue": {
+                    "type": "number"
                 }
             }
         },
@@ -3410,17 +3894,20 @@ const docTemplate = `{
                         "$ref": "#/definitions/sale.SaleLine"
                     }
                 },
-                "payement_method": {
-                    "$ref": "#/definitions/payementmethod.PayementMethod"
-                },
-                "payement_method_id": {
-                    "type": "integer"
+                "payments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/sale.SalePayment"
+                    }
                 },
                 "price": {
                     "type": "number"
                 },
                 "sale_id": {
-                    "type": "integer"
+                    "type": "string"
+                },
+                "store_id": {
+                    "type": "string"
                 },
                 "time_stamp": {
                     "type": "string"
@@ -3436,8 +3923,8 @@ const docTemplate = `{
             ],
             "properties": {
                 "item_id": {
-                    "type": "integer",
-                    "example": 1
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
                 },
                 "name": {
                     "type": "string",
@@ -3458,8 +3945,40 @@ const docTemplate = `{
                 }
             }
         },
+        "sale.SalePayment": {
+            "type": "object",
+            "required": [
+                "amount",
+                "payement_method_id"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "payement_method_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "sale.TaxBracketBreakdown": {
+            "type": "object",
+            "properties": {
+                "rate": {
+                    "type": "number"
+                },
+                "revenue": {
+                    "type": "number"
+                },
+                "tax_amount": {
+                    "type": "number"
+                }
+            }
+        },
         "sale.UpdateSaleInput": {
             "type": "object",
+            "required": [
+                "payments"
+            ],
             "properties": {
                 "lines": {
                     "type": "array",
@@ -3468,9 +3987,12 @@ const docTemplate = `{
                         "$ref": "#/definitions/sale.UpdateSaleLine"
                     }
                 },
-                "payement_method_id": {
-                    "type": "integer",
-                    "example": 2
+                "payments": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/sale.SalePayment"
+                    }
                 }
             }
         },
@@ -3482,8 +4004,8 @@ const docTemplate = `{
             ],
             "properties": {
                 "item_id": {
-                    "type": "integer",
-                    "example": 2
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
                 },
                 "name": {
                     "type": "string",
@@ -3503,14 +4025,14 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "changed_by_profile_id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "changes": {
                     "type": "object",
                     "additionalProperties": {}
                 },
                 "history_id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "is_deleted": {
                     "type": "boolean"
@@ -3521,14 +4043,17 @@ const docTemplate = `{
                         "$ref": "#/definitions/salehistory.SaleLineSnapshot"
                     }
                 },
-                "payement_method_id": {
-                    "type": "integer"
+                "payments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/salehistory.SalePaymentSnapshot"
+                    }
                 },
                 "price": {
                     "type": "number"
                 },
                 "sale_id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "time_stamp": {
                     "type": "string"
@@ -3539,7 +4064,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "item_id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "name": {
                     "type": "string"
@@ -3552,6 +4077,17 @@ const docTemplate = `{
                 },
                 "unit_price": {
                     "type": "number"
+                }
+            }
+        },
+        "salehistory.SalePaymentSnapshot": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "payement_method_id": {
+                    "type": "string"
                 }
             }
         },
@@ -3595,7 +4131,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "store_id": {
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         }

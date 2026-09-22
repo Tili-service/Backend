@@ -116,7 +116,7 @@ func (s *Service) sendStoreCreatedEmail(ctx context.Context, accountID uuid.UUID
 	}
 }
 
-func (s *Service) LinkSumupCredentials(ctx context.Context, storeID uuid.UUID, accountID uuid.UUID, merchantCode string, accessToken string) (*Store, error) {
+func (s *Service) LinkSumupCredentials(ctx context.Context, storeID uuid.UUID, accountID uuid.UUID, merchantCode string, accessToken string, refreshToken string) (*Store, error) {
 	store, err := s.FindByID(ctx, storeID)
 	if err != nil {
 		return nil, err
@@ -128,6 +128,22 @@ func (s *Service) LinkSumupCredentials(ctx context.Context, storeID uuid.UUID, a
 
 	store.SumupMerchantCode = merchantCode
 	store.SumupAccessToken = accessToken
+	store.SumupRefreshToken = refreshToken
+	decorateSumupStatus(store)
+
+	return s.repo.Update(ctx, store)
+}
+
+func (s *Service) UpdateSumupTokens(ctx context.Context, storeID uuid.UUID, accessToken string, refreshToken string) (*Store, error) {
+	store, err := s.FindByID(ctx, storeID)
+	if err != nil {
+		return nil, err
+	}
+
+	store.SumupAccessToken = accessToken
+	if refreshToken != "" {
+		store.SumupRefreshToken = refreshToken
+	}
 	decorateSumupStatus(store)
 
 	return s.repo.Update(ctx, store)

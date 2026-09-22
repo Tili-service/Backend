@@ -43,7 +43,7 @@ services:
       - ./database/migrations:/migrations
     command:
       - -path=/migrations
-      - -database=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable
+      - -database=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@tili-db:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable
       - up
     networks:
       - tili-network

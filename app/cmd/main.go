@@ -15,6 +15,7 @@ import (
 	"tili/app/internal/sale"
 	"tili/app/internal/salehistory"
 	"tili/app/internal/store"
+	"tili/app/internal/store/tpe"
 
 	"tili/app/pkg/cache"
 	"tili/app/pkg/db"
@@ -111,6 +112,9 @@ func main() {
 	storeService := store.NewServiceWithEmail(storeRepo, storeAccountAdapter, emailClient)
 	storeHandler := store.NewHandler(storeService, profileService)
 
+	tpeService := tpe.NewService(storeService)
+	tpeHandler := tpe.NewHandler(tpeService, storeService)
+
 	oauthHandler := oauth.NewHandler(storeService)
 
 	licenseRepo := license.NewRepository(db, redisClient)
@@ -149,6 +153,7 @@ func main() {
 
 	profileHandler.RegisterRoutes(r)
 	storeHandler.RegisterRoutes(r)
+	tpeHandler.RegisterRoutes(r)
 	licenseHandler.RegisterRoutes(r)
 	accountHandler.RegisterRoutes(r)
 	catalogHandler.RegisterRoutes(r)

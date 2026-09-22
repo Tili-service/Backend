@@ -44,6 +44,8 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 	accountRoutes.Use(middleware.AccountAuthMiddleware())
 	accountRoutes.GET("/login", h.login)          // GET /oauth/login
 	oauthRoutes.GET("/callback", h.OAuthCallback) // GET /oauth/callback
+	oauthRoutes.POST("/refresh", h.RefreshToken)  // POST /oauth/refresh
+	oauthRoutes.GET("/refresh", h.RefreshToken)   // GET /oauth/refresh
 }
 
 func generateStateOauthCookie(c *gin.Context) string {
@@ -104,6 +106,80 @@ func (h *Handler) login(c *gin.Context) {
 
 	url := sumupOauthConfig.AuthCodeURL(oauthState)
 	c.Redirect(http.StatusTemporaryRedirect, url)
+}
+
+// RefreshToken refreshes the SumUp access token using the shop ID
+// @Summary      Refresh SumUp access token
+// @Description  Refreshes the SumUp access token using the stored refresh token for the given store ID.
+// @Tags         oauth
+// @Accept       json
+// @Produce      json
+// @Param        store_id query string false "Store ID (query param)"
+// @Param        request body map[string]string false "JSON Body with store_id"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      404 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Router       /oauth/refresh [post]
+func (h *Handler) RefreshToken(c *gin.Context) {
+	var storeID uuid.UUID
+	storeIDStr := c.Query("store_id")
+
+	if storeIDStr != "" {
+		var err error
+		storeID, err = uuid.Parse(storeIDStr)
+		if err != nil || storeID == uuid.Nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store_id"})
+			return
+		}
+	} else {
+		var req struct {
+			StoreID uuid.UUID `json:"store_id"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil || req.StoreID == uuid.Nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store_id"})
+			return
+		}
+		storeID = req.StoreID
+	}
+
+	storeEntity, err := h.storeService.FindByID(c.Request.Context(), storeID)
+	if err != nil {
+		if errors.Is(err, store.ErrStoreNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "store not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if storeEntity.SumupRefreshToken == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no refresh token available for this store"})
+		return
+	}
+
+	t := &oauth2.Token{
+		RefreshToken: storeEntity.SumupRefreshToken,
+	}
+
+	tokenSource := sumupOauthConfig.TokenSource(c.Request.Context(), t)
+	newToken, err := tokenSource.Token()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to refresh token: " + err.Error()})
+		return
+	}
+
+	updatedStore, err := h.storeService.UpdateSumupTokens(c.Request.Context(), storeID, newToken.AccessToken, newToken.RefreshToken)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update store tokens: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":      "Token refreshed successfully",
+		"access_token": newToken.AccessToken,
+		"store":        updatedStore,
+	})
 }
 
 // OAuthCallback handles the callback from SumUp after the user authorizes the application
@@ -167,7 +243,7 @@ func (h *Handler) OAuthCallback(c *gin.Context) {
 		return
 	}
 
-	_, err = h.storeService.LinkSumupCredentials(c.Request.Context(), storeID, accountID, merchantCode, token.AccessToken)
+	_, err = h.storeService.LinkSumupCredentials(c.Request.Context(), storeID, accountID, merchantCode, token.AccessToken, token.RefreshToken)
 	if err != nil {
 		if errors.Is(err, store.ErrStoreOwnershipMismatch) {
 			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})

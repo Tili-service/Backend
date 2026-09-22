@@ -25,7 +25,7 @@ func NewHandler(storeService *store.Service) *Handler {
 	sumupOauthConfig = &oauth2.Config{
 		ClientID:     os.Getenv("CLIENT_ID_SUMUP_OAUTH"),
 		ClientSecret: os.Getenv("CLIENT_SECRET_SUMUP_OAUTH"),
-		RedirectURL:  "http://localhost:8000/oauth/callback",
+		RedirectURL:  os.Getenv("BACKEND_URL") + "/oauth/callback",
 
 		Scopes: []string{"transactions.history", "user.profile_readonly", "readers.read", "readers.write"},
 

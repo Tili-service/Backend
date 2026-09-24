@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"tili/app/pkg/db"
 
@@ -27,11 +28,12 @@ func (r *Repository) Create(ctx context.Context, s *Sale) (*Sale, error) {
 	return s, nil
 }
 
-func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (*Sale, error) {
+func (r *Repository) FindByID(ctx context.Context, id, storeID uuid.UUID) (*Sale, error) {
 	sale := &Sale{}
 	err := r.db.NewSelect().
 		Model(sale).
 		Where("s.sale_id = ?", id).
+		Where("s.store_id = ?", storeID).
 		Where("s.is_deleted = ?", false).
 		Scan(ctx)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -43,13 +45,36 @@ func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (*Sale, error) 
 	return sale, nil
 }
 
-func (r *Repository) FindAll(ctx context.Context) ([]*Sale, error) {
+func (r *Repository) FindAll(ctx context.Context, storeID uuid.UUID) ([]*Sale, error) {
 	var sales []*Sale
 	err := r.db.NewSelect().
 		Model(&sales).
+		Where("s.store_id = ?", storeID).
 		Where("s.is_deleted = ?", false).
 		OrderExpr("s.time_stamp DESC").
 		Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return sales, nil
+}
+
+// FindInRange returns non-deleted sales for storeID with time_stamp in
+// [from, to), ordered chronologically. A nil bound leaves that side of the
+// range open.
+func (r *Repository) FindInRange(ctx context.Context, storeID uuid.UUID, from, to *time.Time) ([]*Sale, error) {
+	var sales []*Sale
+	q := r.db.NewSelect().
+		Model(&sales).
+		Where("s.store_id = ?", storeID).
+		Where("s.is_deleted = ?", false)
+	if from != nil {
+		q = q.Where("s.time_stamp >= ?", *from)
+	}
+	if to != nil {
+		q = q.Where("s.time_stamp < ?", *to)
+	}
+	err := q.OrderExpr("s.time_stamp ASC").Scan(ctx)
 	if err != nil {
 		return nil, err
 	}

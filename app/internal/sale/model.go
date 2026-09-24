@@ -14,9 +14,13 @@ var ErrNewLineIncomplete = errors.New("new line items require a name")
 var ErrNewLineZeroQuantity = errors.New("new line items must have quantity >= 1")
 var ErrSaleWouldBeEmpty = errors.New("sale must have at least one item with quantity > 0")
 var ErrInvalidSaleTotal = errors.New("sale total must be positive")
+var ErrInvalidTaxRate = errors.New("tax rate must be between 0 and 1")
 var ErrInvalidPaymentsTotal = errors.New("payments total must equal the sale total")
 var ErrInvalidPaymentAmount = errors.New("each payment amount must be positive")
 var ErrPayementMethodInvalid = errors.New("payment method not found or inactive")
+var ErrInvalidGranularity = errors.New("invalid granularity")
+var ErrKPIRangeTooWide = errors.New("date range too wide; maximum is 366 days")
+var ErrKPIRangeInvalid = errors.New("from must not be after to")
 
 type SaleLine struct {
 	ItemID    uuid.UUID       `json:"item_id"    binding:"required"       example:"00000000-0000-0000-0000-000000000000"`
@@ -35,6 +39,7 @@ type Sale struct {
 	bun.BaseModel `bun:"table:sales,alias:s" swaggerignore:"true"`
 
 	SaleID    uuid.UUID       `bun:"sale_id,pk,type:uuid,default:gen_random_uuid()" json:"sale_id"`
+	StoreID   uuid.UUID       `bun:"store_id,notnull,type:uuid"           json:"store_id"`
 	Lines     []SaleLine      `bun:"element,type:jsonb"                   json:"lines"`
 	Price     decimal.Decimal `bun:"price,type:decimal(10,2)"             json:"price"`
 	TimeStamp time.Time       `bun:"time_stamp,default:current_timestamp" json:"time_stamp"`

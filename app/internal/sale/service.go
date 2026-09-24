@@ -29,6 +29,15 @@ func NewService(d *db.Db, repo *Repository, historyRepo *salehistory.Repository,
 	return &Service{db: d.DB, repo: repo, historyRepo: historyRepo, pmChecker: pmChecker}
 }
 
+func validateTaxRates(lines []SaleLine) error {
+	for _, line := range lines {
+		if line.TaxRate.IsNegative() || line.TaxRate.GreaterThan(decimal.NewFromInt(1)) {
+			return ErrInvalidTaxRate
+		}
+	}
+	return nil
+}
+
 func computeTotal(lines []SaleLine) decimal.Decimal {
 	total := decimal.Zero
 	for _, line := range lines {
@@ -90,7 +99,10 @@ func historyFromSale(s *Sale, changedByProfileID *uuid.UUID, changes map[string]
 	}
 }
 
-func (s *Service) CreateSale(ctx context.Context, input CreateSaleInput, changedByProfileID *uuid.UUID) (*Sale, error) {
+func (s *Service) CreateSale(ctx context.Context, input CreateSaleInput, storeID uuid.UUID, changedByProfileID *uuid.UUID) (*Sale, error) {
+	if err := validateTaxRates(input.Lines); err != nil {
+		return nil, err
+	}
 	total := computeTotal(input.Lines)
 	if !total.IsPositive() {
 		return nil, ErrInvalidSaleTotal
@@ -108,6 +120,7 @@ func (s *Service) CreateSale(ctx context.Context, input CreateSaleInput, changed
 		}
 	}
 	sale := &Sale{
+		StoreID:   storeID,
 		Lines:     input.Lines,
 		Price:     total,
 		TimeStamp: time.Now(),
@@ -127,12 +140,12 @@ func (s *Service) CreateSale(ctx context.Context, input CreateSaleInput, changed
 	return sale, nil
 }
 
-func (s *Service) GetSaleByID(ctx context.Context, id uuid.UUID) (*Sale, error) {
-	return s.repo.FindByID(ctx, id)
+func (s *Service) GetSaleByID(ctx context.Context, id, storeID uuid.UUID) (*Sale, error) {
+	return s.repo.FindByID(ctx, id, storeID)
 }
 
-func (s *Service) GetAllSales(ctx context.Context) ([]*Sale, error) {
-	return s.repo.FindAll(ctx)
+func (s *Service) GetAllSales(ctx context.Context, storeID uuid.UUID) ([]*Sale, error) {
+	return s.repo.FindAll(ctx, storeID)
 }
 
 // diffLines returns a diff between old and new lines keyed by item_id.
@@ -210,7 +223,7 @@ func diffPayments(oldPayments, newPayments []SalePayment) map[string]any {
 // UpdateSale applies a partial update to a sale and records the post-update state
 // alongside a diff of what changed in sale_history, within the same transaction.
 // changedByProfileID is optional and identifies the profile that authored the change.
-func (s *Service) UpdateSale(ctx context.Context, id uuid.UUID, input UpdateSaleInput, changedByProfileID *uuid.UUID) (*Sale, error) {
+func (s *Service) UpdateSale(ctx context.Context, id, storeID uuid.UUID, input UpdateSaleInput, changedByProfileID *uuid.UUID) (*Sale, error) {
 	var result *Sale
 
 	err := s.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
@@ -218,6 +231,7 @@ func (s *Service) UpdateSale(ctx context.Context, id uuid.UUID, input UpdateSale
 		err := tx.NewSelect().
 			Model(existing).
 			Where("s.sale_id = ?", id).
+			Where("s.store_id = ?", storeID).
 			Where("s.is_deleted = ?", false).
 			Scan(ctx)
 		if errors.Is(err, sql.ErrNoRows) {
@@ -309,7 +323,7 @@ func (s *Service) UpdateSale(ctx context.Context, id uuid.UUID, input UpdateSale
 			return err
 		}
 
-		updated, err := s.repo.FindByID(ctx, existing.SaleID)
+		updated, err := s.repo.FindByID(ctx, existing.SaleID, storeID)
 		if err != nil {
 			return err
 		}
@@ -322,12 +336,13 @@ func (s *Service) UpdateSale(ctx context.Context, id uuid.UUID, input UpdateSale
 	return result, nil
 }
 
-func (s *Service) DeleteSale(ctx context.Context, id uuid.UUID, changedByProfileID *uuid.UUID) error {
+func (s *Service) DeleteSale(ctx context.Context, id, storeID uuid.UUID, changedByProfileID *uuid.UUID) error {
 	return s.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		existing := &Sale{}
 		err := tx.NewSelect().
 			Model(existing).
 			Where("s.sale_id = ?", id).
+			Where("s.store_id = ?", storeID).
 			Where("s.is_deleted = ?", false).
 			Scan(ctx)
 		if errors.Is(err, sql.ErrNoRows) {
@@ -337,7 +352,7 @@ func (s *Service) DeleteSale(ctx context.Context, id uuid.UUID, changedByProfile
 			return err
 		}
 
-		res, err := tx.NewUpdate().Model(&Sale{}).Set("is_deleted = ?", true).Where("sale_id = ?", id).Where("is_deleted = ?", false).Exec(ctx)
+		res, err := tx.NewUpdate().Model(&Sale{}).Set("is_deleted = ?", true).Where("sale_id = ?", id).Where("store_id = ?", storeID).Where("is_deleted = ?", false).Exec(ctx)
 		if err != nil {
 			return err
 		}

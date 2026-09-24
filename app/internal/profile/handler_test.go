@@ -138,6 +138,7 @@ func TestProfileHandler_UpdateProfileByIdAndStoreId_InvalidIDs(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h, _ := setupProfileHandler(t)
+	r.Use(withProfileContext())
 	r.PUT("/profile/updateProfile/:id/:storeId", h.UpdateProfileByIdAndStoreId)
 
 	req := httptest.NewRequest(http.MethodPut, "/profile/updateProfile/abc/00000000-0000-0000-0000-000000000010", bytes.NewBufferString("{}"))
@@ -159,6 +160,7 @@ func TestProfileHandler_DeactivateProfile_InvalidIDs(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h, _ := setupProfileHandler(t)
+	r.Use(withProfileContext())
 	r.PUT("/profile/deactivateProfile/:id/:storeId", h.DeactivateProfile)
 
 	req := httptest.NewRequest(http.MethodPut, "/profile/deactivateProfile/abc/00000000-0000-0000-0000-000000000010", nil)
@@ -270,6 +272,7 @@ func TestProfileHandler_GetProfilesByStoreId_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h, mock := setupProfileHandler(t)
+	r.Use(withProfileContext())
 	r.GET("/profile/allProfilesByStoreId/:id", h.GetProfilesByStoreId)
 
 	profID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
@@ -286,14 +289,31 @@ func TestProfileHandler_GetProfilesByStoreId_Success(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestProfileHandler_GetProfilesByStoreId_StoreMismatch(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	h, _ := setupProfileHandler(t)
+	r.Use(withProfileContext())
+	r.GET("/profile/allProfilesByStoreId/:id", h.GetProfilesByStoreId)
+
+	otherStoreID := uuid.New()
+
+	req := httptest.NewRequest(http.MethodGet, "/profile/allProfilesByStoreId/"+otherStoreID.String(), nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
 func TestProfileHandler_UpdateProfileByIdAndStoreId_BadJSON(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h, _ := setupProfileHandler(t)
+	r.Use(withProfileContext())
 	r.PUT("/profile/updateProfile/:id/:storeId", h.UpdateProfileByIdAndStoreId)
 
 	profID := uuid.New().String()
-	storeID := uuid.New().String()
+	storeID := "00000000-0000-0000-0000-000000000010"
 	req := httptest.NewRequest(http.MethodPut, "/profile/updateProfile/"+profID+"/"+storeID, bytes.NewBufferString("{"))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -306,6 +326,7 @@ func TestProfileHandler_DeactivateProfile_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h, mock := setupProfileHandler(t)
+	r.Use(withProfileContext())
 	r.PUT("/profile/deactivateProfile/:id/:storeId", h.DeactivateProfile)
 
 	profID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
@@ -370,6 +391,7 @@ func TestProfileHandler_UpdateProfileByIdAndStoreId_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h, mock := setupProfileHandler(t)
+	r.Use(withProfileContext())
 	r.PUT("/profile/updateProfile/:id/:storeId", h.UpdateProfileByIdAndStoreId)
 
 	profID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
@@ -381,6 +403,120 @@ func TestProfileHandler_UpdateProfileByIdAndStoreId_Success(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPut, "/profile/updateProfile/"+profID.String()+"/"+storeID.String(), bytes.NewBufferString(`{"name":"B"}`))
 	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestProfileHandler_UpdateProfileByIdAndStoreId_StoreMismatch(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	h, _ := setupProfileHandler(t)
+	r.Use(withProfileContext())
+	r.PUT("/profile/updateProfile/:id/:storeId", h.UpdateProfileByIdAndStoreId)
+
+	profID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	otherStoreID := uuid.New()
+
+	req := httptest.NewRequest(http.MethodPut, "/profile/updateProfile/"+profID.String()+"/"+otherStoreID.String(), bytes.NewBufferString(`{"name":"B"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestProfileHandler_DeactivateProfile_StoreMismatch(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	h, _ := setupProfileHandler(t)
+	r.Use(withProfileContext())
+	r.PUT("/profile/deactivateProfile/:id/:storeId", h.DeactivateProfile)
+
+	profID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	otherStoreID := uuid.New()
+
+	req := httptest.NewRequest(http.MethodPut, "/profile/deactivateProfile/"+profID.String()+"/"+otherStoreID.String(), nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestProfileHandler_ResetPin_InvalidIDs(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	h, _ := setupProfileHandler(t)
+	r.Use(withProfileContext())
+	r.PUT("/profile/resetPin/:id/:storeId", h.ResetPin)
+
+	req := httptest.NewRequest(http.MethodPut, "/profile/resetPin/abc/00000000-0000-0000-0000-000000000010", nil)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	req2 := httptest.NewRequest(http.MethodPut, "/profile/resetPin/00000000-0000-0000-0000-000000000001/abc", nil)
+	w2 := httptest.NewRecorder()
+
+	r.ServeHTTP(w2, req2)
+	assert.Equal(t, http.StatusBadRequest, w2.Code)
+}
+
+func TestProfileHandler_ResetPin_NotFound(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	h, mock := setupProfileHandler(t)
+	r.Use(withProfileContext())
+	r.PUT("/profile/resetPin/:id/:storeId", h.ResetPin)
+
+	storeID := "00000000-0000-0000-0000-000000000010"
+	mock.ExpectQuery(`^SELECT .* FROM "profile" AS "p" WHERE \(p\.profile_id = .+\)$`).WillReturnError(sql.ErrNoRows)
+
+	profID := uuid.New().String()
+	req := httptest.NewRequest(http.MethodPut, "/profile/resetPin/"+profID+"/"+storeID, nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestProfileHandler_ResetPin_StoreMismatch(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	h, _ := setupProfileHandler(t)
+	r.Use(withProfileContext())
+	r.PUT("/profile/resetPin/:id/:storeId", h.ResetPin)
+
+	profID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	otherStoreID := uuid.New()
+
+	req := httptest.NewRequest(http.MethodPut, "/profile/resetPin/"+profID.String()+"/"+otherStoreID.String(), nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestProfileHandler_ResetPin_Success(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	h, mock := setupProfileHandler(t)
+	r.Use(withProfileContext())
+	r.PUT("/profile/resetPin/:id/:storeId", h.ResetPin)
+
+	profID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	storeID := uuid.MustParse("00000000-0000-0000-0000-000000000010")
+
+	rows := sqlmock.NewRows([]string{"profile_id", "store_id", "name", "pin", "level_access", "is_active"}).AddRow(profID, storeID, "A", "111111", 4, true)
+	mock.ExpectQuery(`^SELECT .* FROM "profile" AS "p" WHERE \(p\.profile_id = .+\)$`).WillReturnRows(rows)
+	mock.ExpectQuery(`^SELECT EXISTS \(SELECT .* FROM "profile" AS "p" WHERE \(store_id = .+\) AND \(pin = .+\)\)$`).WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
+	mock.ExpectExec(`^UPDATE "profile" AS "p" SET`).WillReturnResult(sqlmock.NewResult(1, 1))
+
+	req := httptest.NewRequest(http.MethodPut, "/profile/resetPin/"+profID.String()+"/"+storeID.String(), nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 

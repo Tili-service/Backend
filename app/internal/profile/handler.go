@@ -37,6 +37,7 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 				managerRoutes.GET("/allProfilesByStoreId/:id", h.GetProfilesByStoreId)          // GET /profile/allProfilesByStoreId/:id
 				managerRoutes.PUT("/updateProfile/:id/:storeId", h.UpdateProfileByIdAndStoreId) // PUT /profile/updateProfile/:id/:storeId
 				managerRoutes.PUT("/deactivateProfile/:id/:storeId", h.DeactivateProfile)       // PUT /profile/deactivateProfile/:id/:storeId
+				managerRoutes.PUT("/resetPin/:id/:storeId", h.ResetPin)                         // PUT /profile/resetPin/:id/:storeId
 			}
 
 			adminRoutes := protected.Group("")
@@ -211,12 +212,18 @@ func (h *Handler) Update(c *gin.Context) {
 // @Param        id   path      int  true  "Store ID"
 // @Success      200  {array}   Profile
 // @Failure      400  {object}  map[string]interface{}
+// @Failure      403  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /profile/allProfilesByStoreId/{id} [get]
 func (h *Handler) GetProfilesByStoreId(c *gin.Context) {
 	storeId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store ID"})
+		return
+	}
+	authStoreId, err := uuid.Parse(c.GetString("storeID"))
+	if err != nil || authStoreId != storeId {
+		c.JSON(http.StatusForbidden, gin.H{"error": "store mismatch"})
 		return
 	}
 
@@ -254,6 +261,11 @@ func (h *Handler) UpdateProfileByIdAndStoreId(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store ID"})
 		return
 	}
+	authStoreId, err := uuid.Parse(c.GetString("storeID"))
+	if err != nil || authStoreId != storeId {
+		c.JSON(http.StatusForbidden, gin.H{"error": "store mismatch"})
+		return
+	}
 	var input updateProfileInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -261,6 +273,50 @@ func (h *Handler) UpdateProfileByIdAndStoreId(c *gin.Context) {
 	}
 	profile, err := h.service.UpdateProfileByIdAndStoreId(c.Request.Context(), idProfile, storeId, input)
 	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, profile)
+}
+
+// ResetPin generates a new PIN for a profile
+// @Summary      Reset a profile's PIN
+// @Description  Generates and assigns a new unique PIN for the profile. Requires manager+ access.
+// @Tags         profile
+// @Accept       json
+// @Produce      json
+// @Security     ProfileToken
+// @Param        id      path      string  true  "Profile ID"
+// @Param        storeId path      string  true  "Store ID"
+// @Success      200     {object}  ProfileWithPin
+// @Failure      400     {object}  map[string]interface{}
+// @Failure      404     {object}  map[string]interface{}
+// @Failure      500     {object}  map[string]interface{}
+// @Router       /profile/resetPin/{id}/{storeId} [put]
+func (h *Handler) ResetPin(c *gin.Context) {
+	idProfile, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid profile ID"})
+		return
+	}
+	storeId, err := uuid.Parse(c.Param("storeId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store ID"})
+		return
+	}
+	authStoreId, err := uuid.Parse(c.GetString("storeID"))
+	if err != nil || authStoreId != storeId {
+		c.JSON(http.StatusForbidden, gin.H{"error": "store mismatch"})
+		return
+	}
+
+	profile, err := h.service.ResetPin(c.Request.Context(), idProfile, storeId)
+	if err != nil {
+		if errors.Is(err, ErrProfileNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "profile not found"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -290,6 +346,11 @@ func (h *Handler) DeactivateProfile(c *gin.Context) {
 	storeId, err := uuid.Parse(c.Param("storeId"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store ID"})
+		return
+	}
+	authStoreId, err := uuid.Parse(c.GetString("storeID"))
+	if err != nil || authStoreId != storeId {
+		c.JSON(http.StatusForbidden, gin.H{"error": "store mismatch"})
 		return
 	}
 

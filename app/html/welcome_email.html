@@ -1,59 +1,67 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to Tili</title>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <title>Bienvenue chez Tili</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
-<body style="margin: 0; padding: 0; font-family: 'DM Sans', sans-serif; background-color: #f5f5f5;">
-    <!-- Wrapper -->
-    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5;">
+<body style="margin: 0; padding: 0; font-family: 'DM Sans', sans-serif; background-color: #F3F4F6;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #F3F4F6;">
         <tr>
             <td align="center" style="padding: 40px 20px;">
-                <!-- Main Container -->
-                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 20px rgba(60, 26, 19, 0.1);">
-                    <!-- Header -->
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden;">
                     <tr>
-                        <td style="background: linear-gradient(135deg, #FFA64D 0%, #C74013 100%); padding: 40px 20px; text-align: center; border-radius: 12px 12px 0 0;">
-                            <h1 style="color: #ffffff; font-family: 'Space Grotesk', sans-serif; font-size: 28px; margin: 0; font-weight: 600;">Welcome to Tili!</h1>
-                        </td>
-                    </tr>
-
-                    <!-- Content -->
-                    <tr>
-                        <td style="padding: 40px 30px;">
-                            <p style="color: #3a1a17; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
-                                Hi <strong>{{name}}</strong>,
-                            </p>
-                            <p style="color: #3a1a17; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
-                                Thank you for signing up for Tili! We're thrilled to have you join our community. Get ready to manage your payments and store with ease.
-                            </p>
-                            
-                            <!-- CTA Button -->
-                            <table cellpadding="0" cellspacing="0" style="margin: 30px 0;">
+                        <td style="background-color: #3B2B2C; padding: 48px 32px; text-align: center;">
+                            <table cellpadding="0" cellspacing="0" style="margin: 0 auto 20px auto;">
                                 <tr>
-                                    <td align="center" style="background: linear-gradient(135deg, #FFA64D 0%, #C74013 100%); border-radius: 8px; padding: 0;">
-                                        <a href="{{app_url}}" style="display: inline-block; color: #ffffff; text-decoration: none; padding: 14px 40px; font-weight: 600; font-size: 16px;">Get Started</a>
+                                    <td style="background-color: rgba(249, 115, 22, 0.15); border: 1px solid rgba(249, 115, 22, 0.25); border-radius: 999px; padding: 7px 16px;">
+                                        <span style="color: #FDBA74; font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;">Bienvenue</span>
                                     </td>
                                 </tr>
                             </table>
+                            <h1 style="color: #ffffff; font-family: 'Space Grotesk', sans-serif; font-size: 28px; line-height: 1.2; margin: 0; font-weight: 700;">Bienvenue chez Tili !</h1>
+                        </td>
+                    </tr>
 
-                            <p style="color: #665559; font-size: 14px; line-height: 1.6; margin: 30px 0 0 0;">
-                                If you did not create this account, please ignore this email or contact our support team.
+                    <tr>
+                        <td style="padding: 40px 32px;">
+                            <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                                Bonjour <strong style="color: #111827;">{{name}}</strong>,
+                            </p>
+                            <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 32px 0;">
+                                Merci de vous être inscrit chez Tili ! Nous sommes ravis de vous compter parmi nous. Préparez-vous à gérer vos paiements et votre boutique en toute simplicité.
+                            </p>
+
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 8px 0;">
+                                <tr>
+                                    <td align="center">
+                                        <table cellpadding="0" cellspacing="0">
+                                            <tr>
+                                                <td align="center" style="background-color: #F97316; border-radius: 12px;">
+                                                    <a href="{{app_url}}" style="display: inline-block; color: #ffffff; text-decoration: none; padding: 14px 36px; font-weight: 700; font-size: 15px;">Commencer</a>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 0 32px 32px 32px;">
+                            <p style="color: #9CA3AF; font-size: 13px; line-height: 1.6; margin: 0; padding-top: 24px; border-top: 1px solid #F3F4F6;">
+                                Si vous n'êtes pas à l'origine de la création de ce compte, ignorez cet e-mail ou contactez notre support.
                             </p>
                         </td>
                     </tr>
 
-                    <!-- Footer -->
                     <tr>
-                        <td style="background-color: #f5f5f5; padding: 30px; text-align: center; border-radius: 0 0 12px 12px; border-top: 1px solid #e5d4d0;">
-                            <p style="color: #665559; font-size: 13px; margin: 0 0 10px 0;">
-                                © 2026 Tili. All rights reserved.
-                            </p>
-                            <p style="color: #999; font-size: 12px; margin: 0;">
-                                <a href="#" style="color: #C74013; text-decoration: none;">Privacy Policy</a> • 
-                                <a href="#" style="color: #C74013; text-decoration: none;">Terms of Service</a>
+                        <td style="background-color: #3B2B2C; padding: 28px 32px; text-align: center;">
+                            <p style="color: #ffffff; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 14px; margin: 0 0 6px 0;">Tili</p>
+                            <p style="color: rgba(255,255,255,0.4); font-size: 12px; margin: 0;">
+                                © 2026 Tili. Le logiciel de caisse pour les petits commerces.
                             </p>
                         </td>
                     </tr>

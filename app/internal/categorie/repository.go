@@ -67,33 +67,37 @@ func (r *Repository) Update(ctx context.Context, id uuid.UUID, catalogID uuid.UU
 }
 
 func (r *Repository) DeleteById(ctx context.Context, id uuid.UUID, catalogID uuid.UUID) error {
-	cat := &Categorie{}
-	err := r.db.NewSelect().Model(cat).
-		Where("cat.categorie_id = ?", id).
-		Where("cat.catalog_id = ?", catalogID).
-		Scan(ctx)
-	if err != nil {
-		return err
-	}
-	_, er := r.db.NewDelete().Model(cat).
-		Where("cat.categorie_id = ?", id).
-		Where("cat.catalog_id = ?", catalogID).
-		Exec(ctx)
-	return er
+	return r.deleteWithItems(ctx, "cat.categorie_id = ?", id, catalogID)
 }
 
 func (r *Repository) DeleteByType(ctx context.Context, typ string, catalogID uuid.UUID) error {
+	return r.deleteWithItems(ctx, "cat.type = ?", typ, catalogID)
+}
+
+func (r *Repository) deleteWithItems(ctx context.Context, where string, value interface{}, catalogID uuid.UUID) error {
 	cat := &Categorie{}
 	err := r.db.NewSelect().Model(cat).
-		Where("cat.type = ?", typ).
+		Where(where, value).
 		Where("cat.catalog_id = ?", catalogID).
 		Scan(ctx)
 	if err != nil {
 		return err
 	}
-	_, er := r.db.NewDelete().Model(cat).
-		Where("cat.type = ?", typ).
-		Where("cat.catalog_id = ?", catalogID).
-		Exec(ctx)
-	return er
+
+	return r.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		ids := tx.NewSelect().Model((*Categorie)(nil)).
+			Column("cat.categorie_id").
+			Where(where, value).
+			Where("cat.catalog_id = ?", catalogID)
+		if _, err := tx.NewDelete().TableExpr("item").
+			Where("categorie_id IN (?)", ids).
+			Exec(ctx); err != nil {
+			return err
+		}
+		_, err := tx.NewDelete().Model((*Categorie)(nil)).
+			Where(where, value).
+			Where("cat.catalog_id = ?", catalogID).
+			Exec(ctx)
+		return err
+	})
 }

@@ -157,9 +157,12 @@ func TestRepository_DeleteById(t *testing.T) {
 	mock.ExpectQuery(`^SELECT "cat"\."categorie_id", "cat"\."type", "cat"\."catalog_id" FROM "categorie" AS "cat" WHERE \(cat\.categorie_id = .+\) AND \(cat\.catalog_id = .+\)$`).
 		WillReturnRows(rows)
 
-	// Mock Delete
+	mock.ExpectBegin()
+	mock.ExpectExec(`^DELETE FROM item WHERE \(categorie_id IN \(SELECT "cat"\."categorie_id" FROM "categorie" AS "cat" WHERE \(cat\.categorie_id = .+\) AND \(cat\.catalog_id = .+\)\)\)$`).
+		WillReturnResult(sqlmock.NewResult(0, 3))
 	mock.ExpectExec(`^DELETE FROM "categorie" AS "cat" WHERE \(cat\.categorie_id = .+\) AND \(cat\.catalog_id = .+\)$`).
 		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
 
 	ctx := context.Background()
 	err := repo.DeleteById(ctx, catID, catalogID)
@@ -182,9 +185,12 @@ func TestRepository_DeleteByType(t *testing.T) {
 	mock.ExpectQuery(`^SELECT "cat"\."categorie_id", "cat"\."type", "cat"\."catalog_id" FROM "categorie" AS "cat" WHERE \(cat\.type = .+\) AND \(cat\.catalog_id = .+\)$`).
 		WillReturnRows(rows)
 
-	// Mock Delete
+	mock.ExpectBegin()
+	mock.ExpectExec(`^DELETE FROM item WHERE \(categorie_id IN \(SELECT "cat"\."categorie_id" FROM "categorie" AS "cat" WHERE \(cat\.type = .+\) AND \(cat\.catalog_id = .+\)\)\)$`).
+		WillReturnResult(sqlmock.NewResult(0, 3))
 	mock.ExpectExec(`^DELETE FROM "categorie" AS "cat" WHERE \(cat\.type = .+\) AND \(cat\.catalog_id = .+\)$`).
 		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
 
 	ctx := context.Background()
 	err := repo.DeleteByType(ctx, "Electronics", catalogID)

@@ -43,7 +43,7 @@ services:
       - ./database/migrations:/migrations
     command:
       - -path=/migrations
-      - -database=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable
+      - -database=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@tili-db:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable
       - up
     networks:
       - tili-network
@@ -64,12 +64,15 @@ services:
       - STRIPE_PRICE_SEMESTRIEL=${STRIPE_PRICE_SEMESTRIEL}
       - STRIPE_PRICE_ANNUEL=${STRIPE_PRICE_ANNUEL}
       - APP_URL=${APP_URL}
+      - BACKEND_URL=${BACKEND_URL}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - STRIPE_API_KEY=${STRIPE_API_KEY}
       - RESEND_API_KEY=${RESEND_API_KEY}
       - REDIS_URL=redis:6379
       - BACKEND_PORT=${BACKEND_PORT}
+      - CLIENT_ID_SUMUP_OAUTH=${CLIENT_ID_SUMUP_OAUTH}
+      - CLIENT_SECRET_SUMUP_OAUTH=${CLIENT_SECRET_SUMUP_OAUTH}
       - APP_ENV=${APP_ENV}
       - TILI_SMTP_HOST=${TILI_SMTP_HOST}
       - TILI_SMTP_PORT=${TILI_SMTP_PORT}
@@ -82,6 +85,7 @@ services:
         condition: service_healthy
     networks:
       - tili-network
+
   stripe-cli:
     profiles:
       - dev

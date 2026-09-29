@@ -334,3 +334,26 @@ func TestService_Update_Success(t *testing.T) {
 	}
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
+func TestService_UpdateSumupTokens_Success(t *testing.T) {
+	bunDB, mock := setupMockDB(t)
+	defer bunDB.Close()
+
+	repo := NewRepository(&db.Db{DB: bunDB})
+	svc := NewService(repo)
+
+	storeID := uuid.New()
+	buyerID := uuid.New()
+	rows := sqlmock.NewRows([]string{"store_id", "name", "buyer_id", "sumup_access_token", "sumup_refresh_token"}).AddRow(storeID, "Store A", buyerID, "old_acc", "old_ref")
+	mock.ExpectQuery(`^SELECT .* FROM "store" AS "s" WHERE \(store_id = .+\)$`).WillReturnRows(rows)
+	mock.ExpectExec(`^UPDATE "store" AS "s" SET`).WillReturnResult(sqlmock.NewResult(1, 1))
+
+	store, err := svc.UpdateSumupTokens(context.Background(), storeID, "new_acc", "new_ref")
+
+	assert.NoError(t, err)
+	if assert.NotNil(t, store) {
+		assert.Equal(t, "new_acc", store.SumupAccessToken)
+		assert.Equal(t, "new_ref", store.SumupRefreshToken)
+	}
+	assert.NoError(t, mock.ExpectationsWereMet())
+}

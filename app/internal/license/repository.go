@@ -20,8 +20,6 @@ type Repository struct {
 	cache *redis.Client
 }
 
-const licencesByAccountTTL = 20 * time.Second
-
 func NewRepository(d *db.Db, cacheClients ...*redis.Client) *Repository {
 	var cacheClient *redis.Client
 	if len(cacheClients) > 0 {
@@ -50,7 +48,7 @@ func (r *Repository) FindLicencesByAccountID(ctx context.Context, accountID uuid
 	if err != nil {
 		return nil, err
 	}
-	_ = cache.Set(ctx, r.cache, key, &licences, licencesByAccountTTL)
+	_ = cache.Set(ctx, r.cache, key, &licences, time.Duration(20*time.Second))
 	return licences, nil
 }
 

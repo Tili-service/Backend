@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"tili/app/pkg/cache"
 	"tili/app/pkg/db"
@@ -47,7 +48,7 @@ func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (*Store, error)
 	if err != nil {
 		return nil, err
 	}
-	_ = cache.Set(ctx, r.cache, key, store, cache.DefaultTTL)
+	_ = cache.Set(ctx, r.cache, key, store, time.Duration(20*time.Second))
 	return store, nil
 }
 
@@ -61,7 +62,7 @@ func (r *Repository) FindAll(ctx context.Context) ([]*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	_ = cache.Set(ctx, r.cache, key, &stores, cache.DefaultTTL)
+	_ = cache.Set(ctx, r.cache, key, &stores, time.Duration(20*time.Second))
 	return stores, nil
 }
 
@@ -75,7 +76,7 @@ func (r *Repository) FindByBuyerID(ctx context.Context, buyerID uuid.UUID) ([]St
 	if err != nil {
 		return nil, err
 	}
-	_ = cache.Set(ctx, r.cache, key, &stores, cache.DefaultTTL)
+	_ = cache.Set(ctx, r.cache, key, &stores, time.Duration(20*time.Second))
 	return stores, nil
 }
 

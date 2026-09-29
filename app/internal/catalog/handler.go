@@ -25,15 +25,15 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 		protected := catalogRoutes.Group("")
 		protected.Use(middleware.ProfileAuthMiddleware())
 		{
-			protected.GET("/store/:store_id", h.GetAll) // GET /catalog/store/:store_id
-			protected.GET("/:id", h.GetByID)            // GET /catalog/:id
+			protected.GET("/store/:store_id", h.GetAll)      // GET /catalog/store/:store_id
+			protected.GET("/store/:store_id/:id", h.GetByID) // GET /catalog/store/:store_id/:id
 
 			managerRoutes := protected.Group("")
 			managerRoutes.Use(middleware.LevelAccessRequired(token.Manager))
 			{
-				managerRoutes.POST("/store/:store_id", h.Create) // POST /catalog/store/:store_id
-				managerRoutes.PUT("/:id", h.Update)              // PUT /catalog/:id
-				managerRoutes.DELETE("/:id", h.Delete)           // DELETE /catalog/:id
+				managerRoutes.POST("/store/:store_id", h.Create)       // POST /catalog/store/:store_id
+				managerRoutes.PUT("/store/:store_id/:id", h.Update)    // PUT /catalog/store/:store_id/:id
+				managerRoutes.DELETE("/store/:store_id/:id", h.Delete) // DELETE /catalog/store/:store_id/:id
 			}
 		}
 	}
@@ -117,7 +117,7 @@ func (h *Handler) GetAll(c *gin.Context) {
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Router       /catalog/{id} [get]
+// @Router       /catalog/store/{store_id}/{id} [get]
 func (h *Handler) GetByID(c *gin.Context) {
 	storeID, ok := parseStoreID(c)
 	if !ok {
@@ -155,7 +155,7 @@ func (h *Handler) GetByID(c *gin.Context) {
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Router       /catalog/{id} [put]
+// @Router       /catalog/store/{store_id}/{id} [put]
 func (h *Handler) Update(c *gin.Context) {
 	storeID, ok := parseStoreID(c)
 	if !ok {
@@ -196,7 +196,7 @@ func (h *Handler) Update(c *gin.Context) {
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Router       /catalog/{id} [delete]
+// @Router       /catalog/store/{store_id}/{id} [delete]
 func (h *Handler) Delete(c *gin.Context) {
 	storeID, ok := parseStoreID(c)
 	if !ok {
